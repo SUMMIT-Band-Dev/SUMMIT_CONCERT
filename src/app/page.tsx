@@ -1,4 +1,5 @@
 import Image from "next/image";
+import CardCarousel from "@/components/card-carousel";
 
 export default function Home() {
   return (
@@ -61,6 +62,8 @@ export default function Home() {
             </div>
           </article>
         </section>
+
+        <CardCarousel />
       </main>
     </div>
   );
