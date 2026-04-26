@@ -2,63 +2,65 @@ import Image from "next/image";
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="flex min-h-screen items-start justify-center bg-black px-4 py-10 text-white">
+      <main className="w-full max-w-[430px] overflow-hidden bg-black">
+        <header className="flex h-16 items-center justify-between bg-black px-5">
+          <p
+            className="text-[18px] leading-[19.8px]"
+            style={{ fontFamily: '"Puradak Gentle Gothic OTF", Pretendard, sans-serif' }}
+          >
+            SUMMIT
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+          <button
+            type="button"
+            aria-label="메뉴 열기"
+            className="flex h-6 w-6 flex-col items-center justify-center gap-[3px]"
           >
+            <span className="block h-[2px] w-[18px] rounded-full bg-white" />
+            <span className="block h-[2px] w-[18px] rounded-full bg-white" />
+            <span className="block h-[2px] w-[18px] rounded-full bg-white" />
+          </button>
+        </header>
+
+        <section className="relative h-[728px] overflow-hidden">
+          <div className="absolute -left-14 top-0 h-full w-[542px]">
             <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+              src="/concert-poster.png"
+              alt="2025 SUMMIT 겨울 공연 포스터"
+              fill
+              priority
+              className="object-cover object-top"
+              sizes="542px"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+          </div>
+          <div
+            className="absolute inset-x-0 top-[530px] bottom-0 bg-black"
+            style={{
+              WebkitMaskImage:
+                "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.35) 45%, rgba(0,0,0,0.75) 72%, black 100%)",
+              maskImage:
+                "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.35) 45%, rgba(0,0,0,0.75) 72%, black 100%)",
+            }}
+          />
+
+          <article className="absolute left-[19px] top-[609px] w-[270px] text-white">
+            <h1
+              className="text-center text-2xl font-semibold leading-[28.64px]"
+              style={{ fontFamily: "Pretendard, system-ui, sans-serif" }}
+            >
+              2025년 SUMMIT 겨울공연
+            </h1>
+
+            <div
+              className="mt-3 w-[208px] text-[14px] font-medium leading-[16.71px]"
+              style={{ fontFamily: "Pretendard, system-ui, sans-serif" }}
+            >
+              <p className="text-center">드림홀 (서울 마포구 서교동 394-44)</p>
+              <p className="mt-2">2025-12-18 - 2025-12-19</p>
+            </div>
+          </article>
+        </section>
       </main>
     </div>
   );
