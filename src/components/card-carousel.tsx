@@ -46,7 +46,11 @@ const posterCards: PosterCard[] = [
 
 const SWIPE_THRESHOLD = 7000;
 
-function getCircularDistance(index: number, activeIndex: number, length: number) {
+function getCircularDistance(
+  index: number,
+  activeIndex: number,
+  length: number,
+) {
   const rawDistance = index - activeIndex;
   const wrappedDistance =
     rawDistance > length / 2
@@ -64,19 +68,47 @@ function getCardMotion(relativeIndex: number) {
   }
 
   if (relativeIndex === -1) {
-    return { x: -170, scale: 0.9, rotateY: 32, z: 40, opacity: 0.9, zIndex: 20 };
+    return {
+      x: -170,
+      scale: 0.9,
+      rotateY: 32,
+      z: 40,
+      opacity: 0.9,
+      zIndex: 20,
+    };
   }
 
   if (relativeIndex === 1) {
-    return { x: 170, scale: 0.9, rotateY: -32, z: 40, opacity: 0.9, zIndex: 20 };
+    return {
+      x: 170,
+      scale: 0.9,
+      rotateY: -32,
+      z: 40,
+      opacity: 0.9,
+      zIndex: 20,
+    };
   }
 
   if (relativeIndex === -2) {
-    return { x: -290, scale: 0.78, rotateY: 45, z: -20, opacity: 0.5, zIndex: 10 };
+    return {
+      x: -290,
+      scale: 0.78,
+      rotateY: 45,
+      z: -20,
+      opacity: 0.5,
+      zIndex: 10,
+    };
   }
 
   if (relativeIndex === 2) {
-    return { x: 290, scale: 0.78, rotateY: -45, z: -20, opacity: 0.5, zIndex: 10 };
+    return {
+      x: 290,
+      scale: 0.78,
+      rotateY: -45,
+      z: -20,
+      opacity: 0.5,
+      zIndex: 10,
+    };
   }
 
   return { x: 0, scale: 0.7, rotateY: 0, z: -80, opacity: 0, zIndex: 0 };
@@ -91,10 +123,15 @@ export default function CardCarousel() {
   const totalCards = posterCards.length;
 
   const moveCard = (direction: 1 | -1) => {
-    setActiveIndex((prevIndex) => (prevIndex + direction + totalCards) % totalCards);
+    setActiveIndex(
+      (prevIndex) => (prevIndex + direction + totalCards) % totalCards,
+    );
   };
 
-  const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+  const handleDragEnd = (
+    _event: MouseEvent | TouchEvent | PointerEvent,
+    info: PanInfo,
+  ) => {
     const swipe = swipePower(info.offset.x, info.velocity.x);
 
     if (swipe < -SWIPE_THRESHOLD) {
@@ -106,15 +143,21 @@ export default function CardCarousel() {
 
   return (
     <section className="px-4 pb-16 pt-10">
-      <h2 className="text-lg font-semibold">CardList</h2>
-      <p className="mt-1 text-sm text-white/70">좌우로 드래그해서 포스터를 넘겨보세요.</p>
+      <h2 className="font-semibold text-[32px]">Setlist</h2>
+      <p className="mt-1 text-sm text-white/70">
+        좌우로 드래그해서 포스터를 넘겨보세요.
+      </p>
 
       <div
         className="relative mt-10 h-[340px] w-full overflow-visible"
         style={{ perspective: "1000px" }}
       >
         {posterCards.map((card, index) => {
-          const relativeIndex = getCircularDistance(index, activeIndex, totalCards);
+          const relativeIndex = getCircularDistance(
+            index,
+            activeIndex,
+            totalCards,
+          );
           const motionConfig = getCardMotion(relativeIndex);
 
           if (Math.abs(relativeIndex) > 2) {
@@ -137,7 +180,12 @@ export default function CardCarousel() {
                 z: motionConfig.z,
                 opacity: motionConfig.opacity,
               }}
-              transition={{ type: "spring", stiffness: 260, damping: 28, mass: 0.85 }}
+              transition={{
+                type: "spring",
+                stiffness: 260,
+                damping: 28,
+                mass: 0.85,
+              }}
               drag="x"
               dragConstraints={{ left: 0, right: 0 }}
               dragElastic={0.18}
@@ -155,8 +203,12 @@ export default function CardCarousel() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
                 <div className="absolute inset-x-0 bottom-0 p-4 text-left">
-                  <p className="text-xs font-medium tracking-[0.12em] text-white/80">{card.subtitle}</p>
-                  <p className="mt-1 text-lg font-semibold leading-tight">{card.title}</p>
+                  <p className="text-xs font-medium tracking-[0.12em] text-white/80">
+                    {card.subtitle}
+                  </p>
+                  <p className="mt-1 text-lg font-semibold leading-tight">
+                    {card.title}
+                  </p>
                 </div>
               </div>
             </motion.button>
