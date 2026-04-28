@@ -1,5 +1,6 @@
 import Image from "next/image";
 import CardCarousel from "@/components/card-carousel";
+import FacilityServiceSection from "@/components/facility-service-section";
 
 export default function Home() {
   return (
@@ -64,6 +65,7 @@ export default function Home() {
         </section>
 
         <CardCarousel />
+        <FacilityServiceSection />
       </main>
     </div>
   );
