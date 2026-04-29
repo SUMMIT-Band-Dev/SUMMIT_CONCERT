@@ -19,3 +19,61 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
+
+@keyframes blue-gradient-flow {
+  0% {
+    transform: translate3d(-5%, -2%, 0) scale(1);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translate3d(6%, 3%, 0) scale(1.06);
+    opacity: 0.54;
+  }
+  100% {
+    transform: translate3d(-4%, -3%, 0) scale(1);
+    opacity: 0.8;
+  }
+}
+
+.blue-flow-gradient {
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(
+      circle at 50% 88%,
+      rgba(24, 10, 88, 0.54) 0%,
+      rgba(12, 5, 44, 0.42) 40%,
+      rgba(0, 0, 0, 0.06) 76%
+    ),
+    radial-gradient(
+      circle at 22% 100%,
+      rgba(18, 8, 70, 0.38) 0%,
+      rgba(0, 0, 0, 0) 60%
+    );
+  mix-blend-mode: soft-light;
+  filter: blur(26px);
+  animation: blue-gradient-flow 18s ease-in-out infinite;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.08) 34%,
+    rgba(0, 0, 0, 0.5) 56%,
+    black 74%,
+    black 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.08) 34%,
+    rgba(0, 0, 0, 0.5) 56%,
+    black 74%,
+    black 100%
+  );
+}
+
+.blue-flow-gradient-secondary {
+  animation-duration: 24s;
+  animation-delay: -8s;
+  transform: scale(1.24);
+  opacity: 0.15;
+}

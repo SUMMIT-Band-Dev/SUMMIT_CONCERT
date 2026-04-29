@@ -6,10 +6,16 @@ import FadeInUp from "@/components/fade-in-up";
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-start justify-center bg-black text-white">
-      <main className="w-full max-w-[430px] overflow-hidden bg-black">
-        <SiteHeader />
-        <div className="pt-16">
+    <div className="flex min-h-screen items-start justify-center overflow-hidden bg-black text-white">
+      <main className="relative w-full max-w-[430px] overflow-hidden bg-black/78">
+        <div className="pointer-events-none absolute inset-0 z-0">
+          <div className="blue-flow-gradient" />
+          <div className="blue-flow-gradient blue-flow-gradient-secondary" />
+        </div>
+
+        <div className="relative z-10">
+          <SiteHeader />
+          <div className="pt-16">
 
           <FadeInUp delay={0.05}>
             <section className="relative h-[728px] overflow-hidden">
@@ -57,8 +63,9 @@ export default function Home() {
             </section>
           </FadeInUp>
 
-          <CardCarousel />
-          <FacilityServiceSection />
+            <CardCarousel />
+            <FacilityServiceSection />
+          </div>
         </div>
       </main>
     </div>
