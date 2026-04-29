@@ -18,37 +18,39 @@ export default function SiteHeader() {
 
   return (
     <>
-      <header className="fixed left-1/2 top-0 z-50 flex h-16 w-full max-w-[430px] -translate-x-1/2 items-center justify-between bg-black px-5">
-        <p
-          className="text-[18px] leading-[19.8px]"
-          style={{ fontFamily: '"Puradak Gentle Gothic OTF", Pretendard, sans-serif' }}
-        >
-          SUMMIT
-        </p>
+      <header className="fixed inset-x-0 top-0 z-50 flex justify-center">
+        <div className="flex h-[64px] w-full max-w-[430px] items-center justify-between bg-black px-5">
+          <p
+            className="text-[18px] leading-[19.8px]"
+            style={{ fontFamily: '"Puradak Gentle Gothic OTF", Pretendard, sans-serif' }}
+          >
+            SUMMIT
+          </p>
 
-        <button
-          type="button"
-          aria-label={isMenuOpen ? "메뉴 닫기" : "메뉴 열기"}
-          aria-expanded={isMenuOpen}
-          onClick={() => setIsMenuOpen((prev) => !prev)}
-          className="relative flex h-6 w-6 items-center justify-center"
-        >
-          <span
-            className={`absolute block h-[2px] w-[18px] rounded-full bg-white transition-transform duration-300 ${
-              isMenuOpen ? "rotate-45" : "-translate-y-[5px]"
-            }`}
-          />
-          <span
-            className={`absolute block h-[2px] w-[18px] rounded-full bg-white transition-opacity duration-300 ${
-              isMenuOpen ? "opacity-0" : "opacity-100"
-            }`}
-          />
-          <span
-            className={`absolute block h-[2px] w-[18px] rounded-full bg-white transition-transform duration-300 ${
-              isMenuOpen ? "-rotate-45" : "translate-y-[5px]"
-            }`}
-          />
-        </button>
+          <button
+            type="button"
+            aria-label={isMenuOpen ? "메뉴 닫기" : "메뉴 열기"}
+            aria-expanded={isMenuOpen}
+            onClick={() => setIsMenuOpen((prev) => !prev)}
+            className="relative flex h-6 w-6 items-center justify-center"
+          >
+            <span
+              className={`absolute block h-[2px] w-[18px] rounded-full bg-white transition-transform duration-300 ${
+                isMenuOpen ? "rotate-45" : "-translate-y-[5px]"
+              }`}
+            />
+            <span
+              className={`absolute block h-[2px] w-[18px] rounded-full bg-white transition-opacity duration-300 ${
+                isMenuOpen ? "opacity-0" : "opacity-100"
+              }`}
+            />
+            <span
+              className={`absolute block h-[2px] w-[18px] rounded-full bg-white transition-transform duration-300 ${
+                isMenuOpen ? "-rotate-45" : "translate-y-[5px]"
+              }`}
+            />
+          </button>
+        </div>
       </header>
 
       <AnimatePresence mode="sync">
@@ -66,7 +68,7 @@ export default function SiteHeader() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -28 }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="mx-auto h-full w-full max-w-[430px] px-5 pt-[104px]"
+              className="mx-auto h-full w-[430px] max-w-full px-5 pt-[104px]"
             >
               <section>
                 <h2 className="text-[28px] font-semibold leading-[33.41px] text-white">

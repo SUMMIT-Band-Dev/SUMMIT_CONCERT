@@ -1,5 +1,7 @@
 "use client";
 
+import FadeInUp from "@/components/fade-in-up";
+
 type ServiceCard = {
   id:
     | "TimeTableCard"
@@ -198,29 +200,33 @@ const serviceCards: ServiceCard[] = [
 export default function FacilityServiceSection() {
   return (
     <section className="px-5 pb-16 pt-10">
-      <h2 className="text-[32px] font-semibold leading-[38px]">
-        시설 및 서비스
-      </h2>
+      <FadeInUp delay={0.08} once={false}>
+        <h2 className="text-[32px] font-semibold leading-[38px]">
+          시설 및 서비스
+        </h2>
+      </FadeInUp>
 
-      <div className="mt-6 grid grid-cols-2 gap-6">
-        {serviceCards.map((card) => (
-          <article
-            key={card.id}
-            className="group flex h-[149px] flex-col items-center rounded-[24px] border border-transparent bg-[#161920] px-4 py-[29px] transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white hover:shadow-[0_20px_36px_rgba(0,0,0,0.36)]"
-          >
-            {renderCardIcon(card.id)}
+      <FadeInUp delay={0.16} once={false}>
+        <div className="mt-6 grid grid-cols-2 gap-6">
+          {serviceCards.map((card) => (
+            <article
+              key={card.id}
+              className="group flex h-[149px] flex-col items-center rounded-[24px] border border-transparent bg-[#161920] px-4 py-[29px] transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white hover:shadow-[0_20px_36px_rgba(0,0,0,0.36)]"
+            >
+              {renderCardIcon(card.id)}
 
-            <div className="mt-4 w-full text-center">
-              <p className="text-xs font-normal leading-[14.32px] text-white transition-colors duration-300 group-hover:text-[#5b6475]">
-                {card.englishLabel}
-              </p>
-              <p className="mt-2 text-[18px] font-semibold leading-[21.48px] text-white transition-colors duration-300 group-hover:text-[#10131a]">
-                {card.koreanLabel}
-              </p>
-            </div>
-          </article>
-        ))}
-      </div>
+              <div className="mt-4 w-full text-center">
+                <p className="text-xs font-normal leading-[14.32px] text-white transition-colors duration-300 group-hover:text-[#5b6475]">
+                  {card.englishLabel}
+                </p>
+                <p className="mt-2 text-[18px] font-semibold leading-[21.48px] text-white transition-colors duration-300 group-hover:text-[#10131a]">
+                  {card.koreanLabel}
+                </p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </FadeInUp>
     </section>
   );
 }
