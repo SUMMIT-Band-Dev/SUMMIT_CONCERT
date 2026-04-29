@@ -1,29 +1,13 @@
 import Image from "next/image";
 import CardCarousel from "@/components/card-carousel";
 import FacilityServiceSection from "@/components/facility-service-section";
+import SiteHeader from "@/components/site-header";
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-start justify-center bg-black px-4 py-10 text-white">
-      <main className="w-full max-w-[430px] overflow-hidden bg-black">
-        <header className="flex h-16 items-center justify-between bg-black px-5">
-          <p
-            className="text-[18px] leading-[19.8px]"
-            style={{ fontFamily: '"Puradak Gentle Gothic OTF", Pretendard, sans-serif' }}
-          >
-            SUMMIT
-          </p>
-
-          <button
-            type="button"
-            aria-label="메뉴 열기"
-            className="flex h-6 w-6 flex-col items-center justify-center gap-[3px]"
-          >
-            <span className="block h-[2px] w-[18px] rounded-full bg-white" />
-            <span className="block h-[2px] w-[18px] rounded-full bg-white" />
-            <span className="block h-[2px] w-[18px] rounded-full bg-white" />
-          </button>
-        </header>
+    <div className="flex min-h-screen items-start justify-center bg-black text-white">
+      <SiteHeader />
+      <main className="w-full max-w-[430px] overflow-hidden bg-black pt-16">
 
         <section className="relative h-[728px] overflow-hidden">
           <div className="absolute -left-14 top-0 h-full w-[542px]">

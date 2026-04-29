@@ -142,7 +142,7 @@ function NoticeIcon({ className }: IconProps) {
 }
 
 function renderCardIcon(cardId: ServiceCard["id"]) {
-  const iconClassName = "h-8 w-8 text-white";
+  const iconClassName = "h-8 w-8 text-white transition-colors duration-300 group-hover:text-[#10131a]";
 
   switch (cardId) {
     case "StageInfoCard":
@@ -206,15 +206,15 @@ export default function FacilityServiceSection() {
         {serviceCards.map((card) => (
           <article
             key={card.id}
-            className="flex h-[149px] flex-col items-center rounded-[24px] bg-[#161920] px-4 py-[29px]"
+            className="group flex h-[149px] flex-col items-center rounded-[24px] border border-transparent bg-[#161920] px-4 py-[29px] transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white hover:shadow-[0_20px_36px_rgba(0,0,0,0.36)]"
           >
             {renderCardIcon(card.id)}
 
             <div className="mt-4 w-full text-center">
-              <p className="text-xs font-normal leading-[14.32px] text-white">
+              <p className="text-xs font-normal leading-[14.32px] text-white transition-colors duration-300 group-hover:text-[#5b6475]">
                 {card.englishLabel}
               </p>
-              <p className="mt-2 text-[18px] font-semibold leading-[21.48px] text-white">
+              <p className="mt-2 text-[18px] font-semibold leading-[21.48px] text-white transition-colors duration-300 group-hover:text-[#10131a]">
                 {card.koreanLabel}
               </p>
             </div>
