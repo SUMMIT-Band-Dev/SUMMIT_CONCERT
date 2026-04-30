@@ -19,8 +19,8 @@ export default function SiteHeader() {
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-50 flex justify-center">
-        <div className="flex h-[64px] w-full max-w-7xl items-center justify-between bg-black px-5 md:px-6 lg:px-8">
+      <header className="fixed inset-x-0 top-0 z-50 w-full">
+        <div className="flex h-[64px] w-full items-center justify-between border-b border-[#6a6a6a] bg-black px-5 md:px-6 lg:px-8">
           <p
             className="text-[18px] leading-[19.8px]"
             style={{ fontFamily: '"Puradak Gentle Gothic OTF", Pretendard, sans-serif' }}
