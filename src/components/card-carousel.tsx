@@ -252,14 +252,15 @@ export default function CardCarousel() {
   return (
     <section className="px-4 pb-16 pt-10 md:px-6 lg:px-8">
       <FadeInUp delay={0.06} once={false}>
-        <h2 className="text-[32px] font-semibold leading-[38px] md:text-[36px] md:leading-[43px]">
+        <h2 className="text-[32px] font-semibold leading-[38px] md:text-[44px] md:leading-[52px]">
           셋리스트
         </h2>
       </FadeInUp>
       <FadeInUp delay={0.12} once={false}>
-        <p className="mt-1 text-sm text-white/70">
+        <p className="mt-2 text-[18px] leading-[21.48px] text-white/70 md:mt-3">
           좌우로 드래그해서 포스터를 넘겨보세요.
         </p>
+   
       </FadeInUp>
 
       <FadeInUp delay={0.2} once={false}>
