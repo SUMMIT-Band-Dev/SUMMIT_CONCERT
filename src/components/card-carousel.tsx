@@ -17,43 +17,43 @@ const posterCards: PosterCard[] = [
     id: 1,
     title: "WINTER SUMMIT",
     subtitle: "MAIN STAGE",
-    imageSrc: "/concert-poster.png",
+    imageSrc: "/setlist-first-thu.png",
   },
   {
     id: 2,
     title: "WINTER SUMMIT",
     subtitle: "SECOND STAGE",
-    imageSrc: "/concert-poster.png",
+    imageSrc: "/setlist-team.png",
   },
   {
     id: 3,
     title: "WINTER SUMMIT",
     subtitle: "SPECIAL SESSION",
-    imageSrc: "/concert-poster.png",
+    imageSrc: "/setlist-last.png",
   },
   {
     id: 4,
     title: "WINTER SUMMIT",
     subtitle: "NIGHT PROGRAM",
-    imageSrc: "/concert-poster.png",
+    imageSrc: "/setlist-first-thu.png",
   },
   {
     id: 5,
     title: "WINTER SUMMIT",
     subtitle: "FINAL ENCORE",
-    imageSrc: "/concert-poster.png",
+    imageSrc: "/setlist-team.png",
   },
   {
     id: 6,
     title: "WINTER SUMMIT",
     subtitle: "OPENING ACT",
-    imageSrc: "/concert-poster.png",
+    imageSrc: "/setlist-last.png",
   },
   {
     id: 7,
     title: "WINTER SUMMIT",
     subtitle: "AFTER PARTY",
-    imageSrc: "/concert-poster.png",
+    imageSrc: "/setlist-first-thu.png",
   },
 ];
 
@@ -265,7 +265,7 @@ export default function CardCarousel() {
 
       <FadeInUp delay={0.2} once={false}>
         <div
-          className="relative mt-14 h-[374px] w-full overflow-visible md:mt-16 md:h-[396px] lg:mt-[4.5rem] lg:h-[418px]"
+          className="relative mt-8 h-[374px] w-full overflow-visible md:mt-10 md:h-[396px] lg:mt-12 lg:h-[418px]"
           style={{ perspective: "1000px" }}
         >
           {posterCards.map((card, index) => {

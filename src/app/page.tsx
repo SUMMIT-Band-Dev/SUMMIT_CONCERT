@@ -1,4 +1,3 @@
-import Image from "next/image";
 import CardCarousel from "@/components/card-carousel";
 import FacilityServiceSection from "@/components/facility-service-section";
 import SiteHeader from "@/components/site-header";
@@ -19,13 +18,13 @@ export default function Home() {
             <FadeInUp delay={0.05}>
               <section className="relative h-[calc(100svh-64px)] min-h-[728px] overflow-hidden md:min-h-[760px] lg:min-h-[820px]">
                 <div className="absolute -left-14 top-0 h-full w-[542px] lg:left-0 lg:w-full">
-                  <Image
-                    src="/concert-poster.png"
-                    alt="2025 SUMMIT 겨울 공연 포스터"
-                    fill
-                    priority
-                    className="object-cover object-top"
-                    sizes="(min-width: 1024px) 1280px, 542px"
+                  <video
+                    src="/concert-poster.mov"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    className="h-full w-full object-cover object-top"
                   />
                 </div>
                 <div className="absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-black via-black/75 to-transparent lg:h-[52%] lg:from-black/95 lg:via-black/70" />
