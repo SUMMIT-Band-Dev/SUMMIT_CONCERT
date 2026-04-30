@@ -7,7 +7,7 @@ import FadeInUp from "@/components/fade-in-up";
 export default function Home() {
   return (
     <div className="flex min-h-screen items-start justify-center overflow-hidden bg-black text-white">
-      <main className="relative w-full max-w-[430px] overflow-hidden bg-black/78">
+      <main className="relative w-full max-w-[430px] overflow-hidden bg-black/78 md:max-w-4xl lg:max-w-6xl">
         <div className="pointer-events-none absolute inset-0 z-0">
           <div className="blue-flow-gradient" />
           <div className="blue-flow-gradient blue-flow-gradient-secondary" />
@@ -15,10 +15,10 @@ export default function Home() {
 
         <div className="relative z-10">
           <SiteHeader />
-          <div className="pt-16">
+          <div className="pt-16 md:pt-20 lg:pt-24">
 
-          <FadeInUp delay={0.05}>
-            <section className="relative h-[728px] overflow-hidden">
+            <FadeInUp delay={0.05}>
+              <section className="relative h-[728px] overflow-hidden md:h-[760px] lg:h-[800px]">
               <div className="absolute -left-14 top-0 h-full w-[542px]">
                 <Image
                   src="/concert-poster.png"
@@ -60,11 +60,15 @@ export default function Home() {
                   </div>
                 </article>
               </FadeInUp>
-            </section>
-          </FadeInUp>
+              </section>
+            </FadeInUp>
 
-            <CardCarousel />
-            <FacilityServiceSection />
+            <div className="md:mt-14 lg:mt-24">
+              <CardCarousel />
+            </div>
+            <div className="md:mt-12 lg:mt-20">
+              <FacilityServiceSection />
+            </div>
           </div>
         </div>
       </main>

@@ -12,6 +12,7 @@ const facilityMenuItems = [
   "오시는 길",
   "관람 유의사항",
 ];
+const desktopMenuItems = [...setlistMenuItems, ...facilityMenuItems];
 
 export default function SiteHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -19,7 +20,7 @@ export default function SiteHeader() {
   return (
     <>
       <header className="fixed inset-x-0 top-0 z-50 flex justify-center">
-        <div className="flex h-[64px] w-full max-w-[430px] items-center justify-between bg-black px-5">
+        <div className="flex h-[64px] w-full max-w-7xl items-center justify-between bg-black px-5 md:px-6 lg:px-8">
           <p
             className="text-[18px] leading-[19.8px]"
             style={{ fontFamily: '"Puradak Gentle Gothic OTF", Pretendard, sans-serif' }}
@@ -27,12 +28,27 @@ export default function SiteHeader() {
             SUMMIT
           </p>
 
+          <nav aria-label="데스크톱 메뉴" className="hidden md:block">
+            <ul className="flex items-center gap-5 lg:gap-7">
+              {desktopMenuItems.map((item) => (
+                <li key={item}>
+                  <button
+                    type="button"
+                    className="text-sm font-semibold text-white/80 transition-colors hover:text-white lg:text-base"
+                  >
+                    {item}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
           <button
             type="button"
             aria-label={isMenuOpen ? "메뉴 닫기" : "메뉴 열기"}
             aria-expanded={isMenuOpen}
             onClick={() => setIsMenuOpen((prev) => !prev)}
-            className="relative flex h-6 w-6 items-center justify-center"
+            className="relative flex h-6 w-6 items-center justify-center md:hidden"
           >
             <span
               className={`absolute block h-[2px] w-[18px] rounded-full bg-white transition-transform duration-300 ${
@@ -61,7 +77,7 @@ export default function SiteHeader() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="fixed inset-0 z-40 bg-black/90"
+            className="fixed inset-0 z-40 bg-black/90 md:hidden"
           >
             <motion.nav
               initial={{ opacity: 0, y: -28 }}

@@ -199,15 +199,15 @@ const serviceCards: ServiceCard[] = [
 
 export default function FacilityServiceSection() {
   return (
-    <section className="px-5 pb-16 pt-10">
+    <section className="px-5 pb-16 pt-10 md:px-6 lg:px-8">
       <FadeInUp delay={0.08} once={false}>
-        <h2 className="text-[32px] font-semibold leading-[38px]">
+        <h2 className="text-[32px] font-semibold leading-[38px] md:text-[36px] md:leading-[43px]">
           시설 및 서비스
         </h2>
       </FadeInUp>
 
       <FadeInUp delay={0.16} once={false}>
-        <div className="mt-6 grid grid-cols-2 gap-6">
+        <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-8 lg:grid-cols-3 lg:gap-10">
           {serviceCards.map((card) => (
             <article
               key={card.id}

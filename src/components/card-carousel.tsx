@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { motion, type PanInfo } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import FadeInUp from "@/components/fade-in-up";
 
 type PosterCard = {
@@ -46,6 +46,17 @@ const posterCards: PosterCard[] = [
 ];
 
 const SWIPE_THRESHOLD = 7000;
+type ViewportMode = "mobile" | "tablet" | "desktop";
+
+function getViewportMode(width: number): ViewportMode {
+  if (width >= 1280) {
+    return "desktop";
+  }
+  if (width >= 768) {
+    return "tablet";
+  }
+  return "mobile";
+}
 
 function getCircularDistance(
   index: number,
@@ -63,49 +74,106 @@ function getCircularDistance(
   return wrappedDistance;
 }
 
-function getCardMotion(relativeIndex: number) {
-  if (relativeIndex === 0) {
-    return { x: 0, scale: 1, rotateY: 0, z: 120, opacity: 1, zIndex: 30 };
+function getCardMotion(relativeIndex: number, viewportMode: ViewportMode) {
+  const direction = relativeIndex < 0 ? -1 : 1;
+  const absIndex = Math.abs(relativeIndex);
+
+  if (absIndex === 0) {
+    return { x: 0, scale: 1, rotateY: 0, z: 120, opacity: 1, zIndex: 40 };
   }
 
-  if (relativeIndex === -1) {
+  if (viewportMode === "desktop") {
+    if (absIndex === 1) {
+      return {
+        x: 230 * direction,
+        scale: 0.92,
+        rotateY: -28 * direction,
+        z: 70,
+        opacity: 0.92,
+        zIndex: 30,
+      };
+    }
+    if (absIndex === 2) {
+      return {
+        x: 410 * direction,
+        scale: 0.83,
+        rotateY: -36 * direction,
+        z: 20,
+        opacity: 0.66,
+        zIndex: 20,
+      };
+    }
+    if (absIndex === 3) {
+      return {
+        x: 560 * direction,
+        scale: 0.74,
+        rotateY: -44 * direction,
+        z: -25,
+        opacity: 0.42,
+        zIndex: 10,
+      };
+    }
+    if (absIndex === 4) {
+      return {
+        x: 700 * direction,
+        scale: 0.66,
+        rotateY: -48 * direction,
+        z: -70,
+        opacity: 0.2,
+        zIndex: 5,
+      };
+    }
+  }
+
+  if (viewportMode === "tablet") {
+    if (absIndex === 1) {
+      return {
+        x: 190 * direction,
+        scale: 0.9,
+        rotateY: -30 * direction,
+        z: 50,
+        opacity: 0.9,
+        zIndex: 30,
+      };
+    }
+    if (absIndex === 2) {
+      return {
+        x: 320 * direction,
+        scale: 0.79,
+        rotateY: -40 * direction,
+        z: -5,
+        opacity: 0.56,
+        zIndex: 20,
+      };
+    }
+    if (absIndex === 3) {
+      return {
+        x: 430 * direction,
+        scale: 0.72,
+        rotateY: -45 * direction,
+        z: -40,
+        opacity: 0.3,
+        zIndex: 10,
+      };
+    }
+  }
+
+  if (absIndex === 1) {
     return {
-      x: -170,
+      x: 170 * direction,
       scale: 0.9,
-      rotateY: 32,
+      rotateY: -32 * direction,
       z: 40,
       opacity: 0.9,
       zIndex: 20,
     };
   }
 
-  if (relativeIndex === 1) {
+  if (absIndex === 2) {
     return {
-      x: 170,
-      scale: 0.9,
-      rotateY: -32,
-      z: 40,
-      opacity: 0.9,
-      zIndex: 20,
-    };
-  }
-
-  if (relativeIndex === -2) {
-    return {
-      x: -290,
+      x: 290 * direction,
       scale: 0.78,
-      rotateY: 45,
-      z: -20,
-      opacity: 0.5,
-      zIndex: 10,
-    };
-  }
-
-  if (relativeIndex === 2) {
-    return {
-      x: 290,
-      scale: 0.78,
-      rotateY: -45,
+      rotateY: -45 * direction,
       z: -20,
       opacity: 0.5,
       zIndex: 10,
@@ -121,11 +189,28 @@ function swipePower(offset: number, velocity: number) {
 
 export default function CardCarousel() {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [viewportMode, setViewportMode] = useState<ViewportMode>("mobile");
   const totalCards = posterCards.length;
+  const visibleRange =
+    viewportMode === "desktop" ? 4 : viewportMode === "tablet" ? 3 : 2;
+  const slideStep = viewportMode === "desktop" ? 2 : 1;
 
-  const moveCard = (direction: 1 | -1) => {
+  useEffect(() => {
+    const updateViewportMode = () => {
+      setViewportMode(getViewportMode(window.innerWidth));
+    };
+
+    updateViewportMode();
+    window.addEventListener("resize", updateViewportMode);
+
+    return () => {
+      window.removeEventListener("resize", updateViewportMode);
+    };
+  }, []);
+
+  const moveCard = (direction: 1 | -1, step = 1) => {
     setActiveIndex(
-      (prevIndex) => (prevIndex + direction + totalCards) % totalCards,
+      (prevIndex) => (prevIndex + direction * step + totalCards) % totalCards,
     );
   };
 
@@ -136,14 +221,14 @@ export default function CardCarousel() {
     const swipe = swipePower(info.offset.x, info.velocity.x);
 
     if (swipe < -SWIPE_THRESHOLD) {
-      moveCard(1);
+      moveCard(1, slideStep);
     } else if (swipe > SWIPE_THRESHOLD) {
-      moveCard(-1);
+      moveCard(-1, slideStep);
     }
   };
 
   return (
-    <section className="px-4 pb-16 pt-10">
+    <section className="px-4 pb-16 pt-10 md:px-6 lg:px-8">
       <FadeInUp delay={0.06} once={false}>
         <h2 className="font-semibold text-[32px]">Setlist</h2>
       </FadeInUp>
@@ -155,7 +240,7 @@ export default function CardCarousel() {
 
       <FadeInUp delay={0.2} once={false}>
         <div
-          className="relative mt-10 h-[340px] w-full overflow-visible"
+          className="relative mt-10 h-[340px] w-full overflow-visible md:h-[360px] lg:h-[380px]"
           style={{ perspective: "1000px" }}
         >
           {posterCards.map((card, index) => {
@@ -164,9 +249,9 @@ export default function CardCarousel() {
               activeIndex,
               totalCards,
             );
-            const motionConfig = getCardMotion(relativeIndex);
+            const motionConfig = getCardMotion(relativeIndex, viewportMode);
 
-            if (Math.abs(relativeIndex) > 2) {
+            if (Math.abs(relativeIndex) > visibleRange) {
               return null;
             }
 
@@ -174,7 +259,7 @@ export default function CardCarousel() {
               <motion.button
                 key={card.id}
                 type="button"
-                className="absolute left-1/2 top-0 h-[320px] w-[220px] -translate-x-1/2 cursor-grab active:cursor-grabbing"
+                className="absolute left-1/2 top-0 h-[320px] w-[220px] -translate-x-1/2 cursor-grab active:cursor-grabbing md:h-[330px] md:w-[230px] lg:h-[340px] lg:w-[240px]"
                 style={{
                   zIndex: motionConfig.zIndex,
                   transformStyle: "preserve-3d",
@@ -205,7 +290,7 @@ export default function CardCarousel() {
                     alt={`${card.title} ${card.subtitle} 포스터`}
                     fill
                     className="object-cover object-center"
-                    sizes="220px"
+                    sizes="(min-width: 1280px) 240px, (min-width: 768px) 230px, 220px"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
                   <div className="absolute inset-x-0 bottom-0 p-4 text-left">
