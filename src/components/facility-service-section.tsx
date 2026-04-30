@@ -207,11 +207,11 @@ export default function FacilityServiceSection() {
       </FadeInUp>
 
       <FadeInUp delay={0.16} once={false}>
-        <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-8 lg:grid-cols-3 lg:gap-10">
+        <div className="mt-6 flex gap-6 overflow-x-auto pb-2 md:gap-8 lg:gap-10">
           {serviceCards.map((card) => (
             <article
               key={card.id}
-              className="group flex h-[149px] flex-col items-center rounded-[24px] border border-transparent bg-[#161920] px-4 py-[29px] transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white hover:shadow-[0_20px_36px_rgba(0,0,0,0.36)]"
+              className="group flex h-[149px] w-[183px] shrink-0 flex-col items-center rounded-[24px] border border-transparent bg-[#161920] px-4 py-[29px] transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white hover:shadow-[0_20px_36px_rgba(0,0,0,0.36)]"
             >
               {renderCardIcon(card.id)}
 

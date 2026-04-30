@@ -43,6 +43,18 @@ const posterCards: PosterCard[] = [
     subtitle: "FINAL ENCORE",
     imageSrc: "/concert-poster.png",
   },
+  {
+    id: 6,
+    title: "WINTER SUMMIT",
+    subtitle: "OPENING ACT",
+    imageSrc: "/concert-poster.png",
+  },
+  {
+    id: 7,
+    title: "WINTER SUMMIT",
+    subtitle: "AFTER PARTY",
+    imageSrc: "/concert-poster.png",
+  },
 ];
 
 const SWIPE_THRESHOLD = 7000;
@@ -79,17 +91,17 @@ function getCardMotion(relativeIndex: number, viewportMode: ViewportMode) {
   const absIndex = Math.abs(relativeIndex);
 
   if (absIndex === 0) {
-    return { x: 0, scale: 1, rotateY: 0, z: 120, opacity: 1, zIndex: 40 };
+    return { x: 0, scale: 1.04, rotateY: 0, z: 150, opacity: 1, zIndex: 50 };
   }
 
   if (viewportMode === "desktop") {
     if (absIndex === 1) {
       return {
-        x: 230 * direction,
-        scale: 0.92,
-        rotateY: -28 * direction,
+        x: 214 * direction,
+        scale: 0.88,
+        rotateY: -32 * direction,
         z: 70,
-        opacity: 0.92,
+        opacity: 0.84,
         zIndex: 30,
       };
     }
@@ -128,11 +140,11 @@ function getCardMotion(relativeIndex: number, viewportMode: ViewportMode) {
   if (viewportMode === "tablet") {
     if (absIndex === 1) {
       return {
-        x: 190 * direction,
-        scale: 0.9,
-        rotateY: -30 * direction,
+        x: 182 * direction,
+        scale: 0.87,
+        rotateY: -34 * direction,
         z: 50,
-        opacity: 0.9,
+        opacity: 0.82,
         zIndex: 30,
       };
     }
@@ -160,11 +172,11 @@ function getCardMotion(relativeIndex: number, viewportMode: ViewportMode) {
 
   if (absIndex === 1) {
     return {
-      x: 170 * direction,
-      scale: 0.9,
-      rotateY: -32 * direction,
+      x: 162 * direction,
+      scale: 0.86,
+      rotateY: -36 * direction,
       z: 40,
-      opacity: 0.9,
+      opacity: 0.8,
       zIndex: 20,
     };
   }
@@ -208,6 +220,16 @@ export default function CardCarousel() {
     };
   }, []);
 
+  useEffect(() => {
+    const autoplayTimer = window.setInterval(() => {
+      setActiveIndex((prevIndex) => (prevIndex + 1) % totalCards);
+    }, 3000);
+
+    return () => {
+      window.clearInterval(autoplayTimer);
+    };
+  }, [totalCards]);
+
   const moveCard = (direction: 1 | -1, step = 1) => {
     setActiveIndex(
       (prevIndex) => (prevIndex + direction * step + totalCards) % totalCards,
@@ -230,7 +252,9 @@ export default function CardCarousel() {
   return (
     <section className="px-4 pb-16 pt-10 md:px-6 lg:px-8">
       <FadeInUp delay={0.06} once={false}>
-        <h2 className="font-semibold text-[32px]">Setlist</h2>
+        <h2 className="text-[32px] font-semibold leading-[38px] md:text-[36px] md:leading-[43px]">
+          셋리스트
+        </h2>
       </FadeInUp>
       <FadeInUp delay={0.12} once={false}>
         <p className="mt-1 text-sm text-white/70">
@@ -240,7 +264,7 @@ export default function CardCarousel() {
 
       <FadeInUp delay={0.2} once={false}>
         <div
-          className="relative mt-10 h-[340px] w-full overflow-visible md:h-[360px] lg:h-[380px]"
+          className="relative mt-14 h-[374px] w-full overflow-visible md:mt-16 md:h-[396px] lg:mt-[4.5rem] lg:h-[418px]"
           style={{ perspective: "1000px" }}
         >
           {posterCards.map((card, index) => {
@@ -259,7 +283,7 @@ export default function CardCarousel() {
               <motion.button
                 key={card.id}
                 type="button"
-                className="absolute left-1/2 top-0 h-[320px] w-[220px] -translate-x-1/2 cursor-grab active:cursor-grabbing md:h-[330px] md:w-[230px] lg:h-[340px] lg:w-[240px]"
+                className="absolute left-1/2 top-0 h-[352px] w-[242px] -translate-x-1/2 cursor-grab active:cursor-grabbing md:h-[363px] md:w-[253px] lg:h-[374px] lg:w-[264px]"
                 style={{
                   zIndex: motionConfig.zIndex,
                   transformStyle: "preserve-3d",
@@ -273,15 +297,16 @@ export default function CardCarousel() {
                 }}
                 transition={{
                   type: "spring",
-                  stiffness: 260,
-                  damping: 28,
-                  mass: 0.85,
+                  stiffness: 100, //강성, 스프링의 단단함
+                  damping: 40, //감쇠, 흔들림을 죽이는 힘
+                  mass: 1.45, //질량, 물체 무게감
                 }}
                 drag="x"
                 dragConstraints={{ left: 0, right: 0 }}
                 dragElastic={0.18}
                 onDragEnd={handleDragEnd}
                 onClick={() => setActiveIndex(index)}
+                whileHover={{ scale: motionConfig.scale * 1.04 }}
                 whileTap={{ scale: motionConfig.scale * 0.98 }}
               >
                 <div className="relative h-full w-full overflow-hidden rounded-2xl border border-white/20">
@@ -290,7 +315,7 @@ export default function CardCarousel() {
                     alt={`${card.title} ${card.subtitle} 포스터`}
                     fill
                     className="object-cover object-center"
-                    sizes="(min-width: 1280px) 240px, (min-width: 768px) 230px, 220px"
+                    sizes="(min-width: 1280px) 264px, (min-width: 768px) 253px, 242px"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
                   <div className="absolute inset-x-0 bottom-0 p-4 text-left">
