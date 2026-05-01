@@ -17,7 +17,7 @@ export default function Home() {
           <div className="pt-16">
             <FadeInUp delay={0.05}>
               <section className="relative h-[calc(100svh-64px)] min-h-[728px] overflow-hidden md:min-h-[760px] lg:min-h-[820px]">
-                <div className="absolute -left-14 top-0 h-full w-[542px] lg:left-0 lg:w-full">
+                <div className="absolute -left-14 top-0 h-full w-[542px] md:inset-0 md:h-full md:w-full">
                   <video
                     src="/concert-poster.mov"
                     autoPlay
@@ -35,7 +35,7 @@ export default function Home() {
                 >
                   <article className="w-fit">
                     <h1
-                      className="whitespace-nowrap text-center text-2xl font-semibold leading-[28.64px] lg:text-left lg:text-4xl lg:leading-[1.2]"
+                      className="whitespace-nowrap text-left text-2xl font-semibold leading-[28.64px] lg:text-4xl lg:leading-[1.2]"
                       style={{
                         fontFamily: "Pretendard, system-ui, sans-serif",
                       }}
@@ -49,10 +49,10 @@ export default function Home() {
                         fontFamily: "Pretendard, system-ui, sans-serif",
                       }}
                     >
-                      <p className="whitespace-nowrap text-center lg:text-left">
+                      <p className="whitespace-nowrap text-left">
                         드림홀 (서울 마포구 서교동 394-44)
                       </p>
-                      <p className="mt-2 whitespace-nowrap text-center lg:text-left">
+                      <p className="mt-2 whitespace-nowrap text-left">
                         2025-12-18 - 2025-12-19
                       </p>
                     </div>

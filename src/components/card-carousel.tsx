@@ -257,15 +257,14 @@ export default function CardCarousel() {
         </h2>
       </FadeInUp>
       <FadeInUp delay={0.12} once={false}>
-        <p className="mt-2 text-[18px] leading-[21.48px] text-white/70 md:mt-3">
+        <p className="mb-0 mt-2 text-[18px] leading-[21.48px] text-white/70 md:mt-3">
           좌우로 드래그해서 포스터를 넘겨보세요.
         </p>
-   
       </FadeInUp>
 
       <FadeInUp delay={0.2} once={false}>
         <div
-          className="relative mt-8 h-[374px] w-full overflow-visible md:mt-10 md:h-[396px] lg:mt-12 lg:h-[418px]"
+          className="relative mt-20 h-[340px] w-full overflow-visible md:mt-16 md:h-[396px] lg:mt-12 lg:h-[418px]"
           style={{ perspective: "1000px" }}
         >
           {posterCards.map((card, index) => {
@@ -284,7 +283,7 @@ export default function CardCarousel() {
               <motion.button
                 key={card.id}
                 type="button"
-                className="absolute left-1/2 top-0 h-[352px] w-[242px] -translate-x-1/2 cursor-grab active:cursor-grabbing md:h-[363px] md:w-[253px] lg:h-[374px] lg:w-[264px]"
+                className="absolute left-1/2 top-0 h-[320px] w-[220px] -translate-x-1/2 cursor-grab active:cursor-grabbing md:h-[363px] md:w-[253px] lg:h-[374px] lg:w-[264px]"
                 style={{
                   zIndex: motionConfig.zIndex,
                   transformStyle: "preserve-3d",
@@ -316,7 +315,7 @@ export default function CardCarousel() {
                     alt={`${card.title} ${card.subtitle} 포스터`}
                     fill
                     className="object-cover object-center"
-                    sizes="(min-width: 1280px) 264px, (min-width: 768px) 253px, 242px"
+                    sizes="(min-width: 1280px) 264px, (min-width: 768px) 253px, 220px"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
                   <div className="absolute inset-x-0 bottom-0 p-4 text-left">
