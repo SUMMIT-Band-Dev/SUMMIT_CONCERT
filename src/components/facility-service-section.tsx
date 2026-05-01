@@ -20,14 +20,47 @@ type IconProps = {
 
 function StageInfoIcon({ className }: IconProps) {
   return (
-    <svg aria-hidden viewBox="4 4 24 24" className={className} fill="currentColor">
+    <svg
+      aria-hidden
+      viewBox="4 4 24 24"
+      className={className}
+      fill="currentColor"
+    >
       <rect x="6" y="27" width="20" height="2" rx="1" />
       <rect x="8" y="9" width="16" height="18" rx="2" />
       <rect x="10" y="6" width="12" height="3" rx="1" />
-      <rect x="11" y="13" width="3" height="3" rx="0.6" fill="rgba(0,0,0,0.3)" />
-      <rect x="18" y="13" width="3" height="3" rx="0.6" fill="rgba(0,0,0,0.3)" />
-      <rect x="11" y="17" width="3" height="3" rx="0.6" fill="rgba(0,0,0,0.3)" />
-      <rect x="18" y="17" width="3" height="3" rx="0.6" fill="rgba(0,0,0,0.3)" />
+      <rect
+        x="11"
+        y="13"
+        width="3"
+        height="3"
+        rx="0.6"
+        fill="rgba(0,0,0,0.3)"
+      />
+      <rect
+        x="18"
+        y="13"
+        width="3"
+        height="3"
+        rx="0.6"
+        fill="rgba(0,0,0,0.3)"
+      />
+      <rect
+        x="11"
+        y="17"
+        width="3"
+        height="3"
+        rx="0.6"
+        fill="rgba(0,0,0,0.3)"
+      />
+      <rect
+        x="18"
+        y="17"
+        width="3"
+        height="3"
+        rx="0.6"
+        fill="rgba(0,0,0,0.3)"
+      />
       <rect x="12" y="21" width="8" height="6" rx="1" fill="rgba(0,0,0,0.3)" />
     </svg>
   );
@@ -35,7 +68,12 @@ function StageInfoIcon({ className }: IconProps) {
 
 function TimeTableIcon({ className }: IconProps) {
   return (
-    <svg aria-hidden viewBox="4 4 24 24" className={className} fill="currentColor">
+    <svg
+      aria-hidden
+      viewBox="4 4 24 24"
+      className={className}
+      fill="currentColor"
+    >
       <rect x="5" y="7" width="22" height="20" rx="3.5" />
       <rect x="5" y="12" width="22" height="2.5" fill="rgba(0,0,0,0.28)" />
       <rect x="9" y="4.5" width="2.2" height="5" rx="1.1" />
@@ -49,18 +87,49 @@ function TimeTableIcon({ className }: IconProps) {
 
 function TicketInfoIcon({ className }: IconProps) {
   return (
-    <svg aria-hidden viewBox="4 4 24 24" className={className} fill="currentColor">
+    <svg
+      aria-hidden
+      viewBox="4 4 24 24"
+      className={className}
+      fill="currentColor"
+    >
       <path d="M6 11.5a3 3 0 1 1 0 6V24h20v-6.5a3 3 0 1 1 0-6V8H6v3.5Z" />
-      <rect x="15.2" y="10.5" width="1.6" height="2.8" rx="0.8" fill="rgba(0,0,0,0.32)" />
-      <rect x="15.2" y="15.2" width="1.6" height="2.8" rx="0.8" fill="rgba(0,0,0,0.32)" />
-      <rect x="15.2" y="20" width="1.6" height="2.8" rx="0.8" fill="rgba(0,0,0,0.32)" />
+      <rect
+        x="15.2"
+        y="10.5"
+        width="1.6"
+        height="2.8"
+        rx="0.8"
+        fill="rgba(0,0,0,0.32)"
+      />
+      <rect
+        x="15.2"
+        y="15.2"
+        width="1.6"
+        height="2.8"
+        rx="0.8"
+        fill="rgba(0,0,0,0.32)"
+      />
+      <rect
+        x="15.2"
+        y="20"
+        width="1.6"
+        height="2.8"
+        rx="0.8"
+        fill="rgba(0,0,0,0.32)"
+      />
     </svg>
   );
 }
 
 function EventMdIcon({ className }: IconProps) {
   return (
-    <svg aria-hidden viewBox="4 4 24 24" className={className} fill="currentColor">
+    <svg
+      aria-hidden
+      viewBox="4 4 24 24"
+      className={className}
+      fill="currentColor"
+    >
       <rect x="6" y="11" width="20" height="15" rx="2.5" />
       <rect x="15" y="11" width="2" height="15" fill="rgba(0,0,0,0.3)" />
       <rect x="6" y="16" width="20" height="2" fill="rgba(0,0,0,0.3)" />
@@ -72,7 +141,12 @@ function EventMdIcon({ className }: IconProps) {
 
 function ContactUsIcon({ className }: IconProps) {
   return (
-    <svg aria-hidden viewBox="4 4 24 24" className={className} fill="currentColor">
+    <svg
+      aria-hidden
+      viewBox="4 4 24 24"
+      className={className}
+      fill="currentColor"
+    >
       <path d="M16 27s8-7.4 8-13a8 8 0 1 0-16 0c0 5.6 8 13 8 13Z" />
       <circle cx="16" cy="14" r="3" fill="rgba(0,0,0,0.33)" />
     </svg>
@@ -81,9 +155,21 @@ function ContactUsIcon({ className }: IconProps) {
 
 function NoticeIcon({ className }: IconProps) {
   return (
-    <svg aria-hidden viewBox="4 4 24 24" className={className} fill="currentColor">
+    <svg
+      aria-hidden
+      viewBox="4 4 24 24"
+      className={className}
+      fill="currentColor"
+    >
       <path d="M16 5.5 27 25.5H5L16 5.5Z" />
-      <rect x="15.15" y="12" width="1.7" height="7.2" rx="0.85" fill="rgba(0,0,0,0.36)" />
+      <rect
+        x="15.15"
+        y="12"
+        width="1.7"
+        height="7.2"
+        rx="0.85"
+        fill="rgba(0,0,0,0.36)"
+      />
       <circle cx="16" cy="22.1" r="1.15" fill="rgba(0,0,0,0.36)" />
     </svg>
   );
@@ -91,7 +177,7 @@ function NoticeIcon({ className }: IconProps) {
 
 function renderCardIcon(cardId: ServiceCard["id"]) {
   const iconClassName =
-    "h-14 w-14 text-white transition-colors duration-300 group-hover:text-[#3b82f6]";
+    "h-8 w-8 text-white transition-colors duration-300 group-hover:text-[#3b82f6] md:h-14 md:w-14";
 
   switch (cardId) {
     case "StageInfoCard":
@@ -154,19 +240,19 @@ export default function FacilityServiceSection() {
       </FadeInUp>
 
       <FadeInUp delay={0.16} once={false}>
-        <div className="mt-8 grid grid-cols-6 gap-4 md:mt-10 md:gap-5 lg:mt-12 lg:gap-6">
+        <div className="mt-8 grid grid-cols-2 gap-6 md:mt-10 md:grid-cols-6 md:gap-5 lg:mt-12 lg:gap-6">
           {serviceCards.map((card) => (
             <article
               key={card.id}
-              className="group flex h-[204px] min-w-0 flex-col items-center rounded-[24px] border border-transparent bg-[#161920] px-4 py-[42px] transition-all duration-300 hover:-translate-y-1 hover:border-white hover:shadow-[0_20px_36px_rgba(0,0,0,0.36)]"
+              className="group flex h-[149px] min-w-0 flex-col items-center rounded-[24px] border border-transparent bg-[#161920] px-4 pb-[29px] pt-[29px] transition-all duration-300 hover:-translate-y-1 hover:border-white hover:shadow-[0_20px_36px_rgba(0,0,0,0.36)] md:h-[204px] md:py-[42px]"
             >
               {renderCardIcon(card.id)}
 
-              <div className="mt-8 w-full text-center">
-                <p className="text-[13px] font-normal leading-[15.5px] text-white transition-colors duration-300">
+              <div className="mt-4 w-full text-center md:mt-8">
+                <p className="text-[12px] font-normal leading-[14.32px] text-white transition-colors duration-300 md:text-[13px] md:leading-[15.5px]">
                   {card.englishLabel}
                 </p>
-                <p className="mt-2 text-[19px] font-semibold leading-[22.67px] text-white transition-colors duration-300">
+                <p className="mt-2 text-[18px] font-semibold leading-[21.48px] text-white transition-colors duration-300 md:text-[19px] md:leading-[22.67px]">
                   {card.koreanLabel}
                 </p>
               </div>
