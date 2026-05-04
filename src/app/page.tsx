@@ -1,12 +1,11 @@
 import CardCarousel from "@/components/card-carousel";
 import FacilityServiceSection from "@/components/facility-service-section";
 import SiteHeader from "@/components/site-header";
-import FadeInUp from "@/components/fade-in-up";
 
 export default function Home() {
   return (
     <div className="flex min-h-screen w-full items-start overflow-hidden bg-black text-white">
-      <main className="relative w-full overflow-hidden bg-black/78">
+      <main className="relative isolate w-full overflow-hidden bg-black/78">
         <div className="pointer-events-none absolute inset-0 z-0">
           <div className="blue-flow-gradient" />
           <div className="blue-flow-gradient blue-flow-gradient-secondary" />
@@ -15,24 +14,19 @@ export default function Home() {
         <div className="relative z-10">
           <SiteHeader />
           <div className="pt-16">
-            <FadeInUp delay={0.05}>
-              <section className="relative h-[calc(100svh-64px)] min-h-[728px] overflow-hidden md:min-h-[760px] lg:min-h-[820px]">
-                <div className="absolute -left-14 top-0 h-full w-[542px] md:inset-0 md:h-full md:w-full">
+            <section className="relative isolate h-[calc(100svh-64px)] min-h-[728px] overflow-hidden bg-black [contain:paint] md:min-h-[760px] lg:min-h-[820px]">
+                <div className="hero-poster-media absolute -left-14 top-0 z-0 h-full w-[542px] md:inset-0 md:h-full md:w-full">
                   <video
                     src="/concert-poster.mov"
                     autoPlay
                     muted
                     loop
                     playsInline
-                    className="h-full w-full object-cover object-top"
+                    className="hero-poster-video h-full w-full object-cover object-top"
                   />
                 </div>
-                <div className="absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-black via-black/75 to-transparent lg:h-[52%] lg:from-black/95 lg:via-black/70" />
 
-                <FadeInUp
-                  className="absolute inset-x-0 bottom-0 w-full px-5 pb-10 text-white md:px-8 md:pb-10 lg:px-12 lg:pb-[120px]"
-                  delay={0.2}
-                >
+                <div className="absolute z-20 inset-x-0 bottom-0 w-full px-5 pb-10 text-white md:px-8 md:pb-10 lg:px-12 lg:pb-[120px]">
                   <article className="w-fit">
                     <h1
                       className="whitespace-nowrap text-left text-2xl font-semibold leading-[28.64px] lg:text-4xl lg:leading-[1.2]"
@@ -57,9 +51,8 @@ export default function Home() {
                       </p>
                     </div>
                   </article>
-                </FadeInUp>
-              </section>
-            </FadeInUp>
+                </div>
+            </section>
 
             <div className="md:mt-14 lg:mt-24">
               <CardCarousel />

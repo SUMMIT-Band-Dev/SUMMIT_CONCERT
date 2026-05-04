@@ -39,6 +39,10 @@ body {
 .blue-flow-gradient {
   position: absolute;
   inset: -20%;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: transform, opacity;
   background:
     radial-gradient(
       circle at 50% 88%,
@@ -77,4 +81,34 @@ body {
   animation-delay: -8s;
   transform: scale(1.24);
   opacity: 0.15;
+}
+
+.hero-poster-media {
+  isolation: isolate;
+  contain: paint;
+}
+
+.hero-poster-video {
+  display: block;
+  /* 크롬 합성 레이어 충돌을 피하기 위해 오버레이 대신 비디오 자체에 마스크를 적용 */
+  -webkit-mask-image: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.1) 0%,
+    rgba(0, 0, 0, 0.3) 16%,
+    rgba(0, 0, 0, 0.6) 30%,
+    rgba(0, 0, 0, 0.82) 48%,
+    rgba(0, 0, 0, 0.95) 64%,
+    rgba(0, 0, 0, 1) 100%
+  );
+  mask-image: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.1) 0%,
+    rgba(0, 0, 0, 0.3) 16%,
+    rgba(0, 0, 0, 0.6) 30%,
+    rgba(0, 0, 0, 0.82) 48%,
+    rgba(0, 0, 0, 0.95) 64%,
+    rgba(0, 0, 0, 1) 100%
+  );
+  /* 하단 가독성을 보강하는 보조 톤 다운 */
+  filter: brightness(0.85) contrast(1.03);
 }
