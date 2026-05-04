@@ -3,59 +3,24 @@
 import Image from "next/image";
 import { motion, type PanInfo } from "framer-motion";
 import { useEffect, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
 import FadeInUp from "@/components/fade-in-up";
 
-type PosterCard = {
+type SetlistItem = {
   id: number;
-  title: string;
-  subtitle: string;
-  imageSrc: string;
+  team_name: string;
+  day: string;
+  image_src: string;
 };
 
-const posterCards: PosterCard[] = [
-  {
-    id: 1,
-    title: "WINTER SUMMIT",
-    subtitle: "MAIN STAGE",
-    imageSrc: "/setlist-first-thu.png",
-  },
-  {
-    id: 2,
-    title: "WINTER SUMMIT",
-    subtitle: "SECOND STAGE",
-    imageSrc: "/setlist-team.png",
-  },
-  {
-    id: 3,
-    title: "WINTER SUMMIT",
-    subtitle: "SPECIAL SESSION",
-    imageSrc: "/setlist-last.png",
-  },
-  {
-    id: 4,
-    title: "WINTER SUMMIT",
-    subtitle: "NIGHT PROGRAM",
-    imageSrc: "/setlist-first-thu.png",
-  },
-  {
-    id: 5,
-    title: "WINTER SUMMIT",
-    subtitle: "FINAL ENCORE",
-    imageSrc: "/setlist-team.png",
-  },
-  {
-    id: 6,
-    title: "WINTER SUMMIT",
-    subtitle: "OPENING ACT",
-    imageSrc: "/setlist-last.png",
-  },
-  {
-    id: 7,
-    title: "WINTER SUMMIT",
-    subtitle: "AFTER PARTY",
-    imageSrc: "/setlist-first-thu.png",
-  },
-];
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+
+// 디버깅용: 환경 변수가 잘 들어오는지 콘솔에 출력 (배포 시에는 지울 것)
+console.log("Supabase URL 확인:", supabaseUrl ? "정상" : "비어있음");
+console.log("Supabase KEY 확인:", supabaseKey ? "정상" : "비어있음");
+
+export const supabase = createClient(supabaseUrl, supabaseKey);
 
 const SWIPE_THRESHOLD = 7000;
 type ViewportMode = "mobile" | "tablet" | "desktop";
@@ -200,12 +165,51 @@ function swipePower(offset: number, velocity: number) {
 }
 
 export default function CardCarousel() {
+  const [posterCards, setPosterCards] = useState<SetlistItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
   const [viewportMode, setViewportMode] = useState<ViewportMode>("mobile");
   const totalCards = posterCards.length;
+  const safeActiveIndex =
+    totalCards === 0 ? 0 : Math.min(activeIndex, totalCards - 1);
   const visibleRange =
     viewportMode === "desktop" ? 4 : viewportMode === "tablet" ? 3 : 2;
   const slideStep = viewportMode === "desktop" ? 2 : 1;
+  const activeCard = totalCards > 0 ? posterCards[safeActiveIndex] : null;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchSetlist = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("setlist")
+          .select("*")
+          .order("id", { ascending: true });
+
+        console.log("Fetched Data:", data);
+        console.error("Fetch Error:", error);
+
+        if (error) {
+          return;
+        }
+
+        if (isMounted) {
+          setPosterCards((data ?? []) as SetlistItem[]);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void fetchSetlist();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     const updateViewportMode = () => {
@@ -221,6 +225,10 @@ export default function CardCarousel() {
   }, []);
 
   useEffect(() => {
+    if (totalCards === 0) {
+      return;
+    }
+
     const autoplayTimer = window.setInterval(() => {
       setActiveIndex((prevIndex) => (prevIndex + 1) % totalCards);
     }, 3000);
@@ -231,6 +239,10 @@ export default function CardCarousel() {
   }, [totalCards]);
 
   const moveCard = (direction: 1 | -1, step = 1) => {
+    if (totalCards === 0) {
+      return;
+    }
+
     setActiveIndex(
       (prevIndex) => (prevIndex + direction * step + totalCards) % totalCards,
     );
@@ -262,92 +274,119 @@ export default function CardCarousel() {
         </p>
       </FadeInUp>
 
-      <FadeInUp delay={0.2} once={false}>
-        <div
-          className="relative mt-20 h-[340px] w-full overflow-visible md:mt-16 md:h-[396px] lg:mt-12 lg:h-[418px]"
-          style={{ perspective: "1000px" }}
-        >
-          {posterCards.map((card, index) => {
-            const relativeIndex = getCircularDistance(
-              index,
-              activeIndex,
-              totalCards,
-            );
-            const motionConfig = getCardMotion(relativeIndex, viewportMode);
+      {isLoading ? (
+        <FadeInUp delay={0.2} once={false}>
+          <div className="mt-20 flex h-[340px] items-center justify-center text-white/50">
+            포스터를 불러오는 중입니다...
+          </div>
+        </FadeInUp>
+      ) : totalCards === 0 ? (
+        <FadeInUp delay={0.2} once={false}>
+          <div className="mt-20 flex h-[340px] items-center justify-center text-white/50">
+            아직 등록된 포스터가 없습니다.
+          </div>
+        </FadeInUp>
+      ) : (
+        <>
+          <FadeInUp delay={0.2} once={false}>
+            <div
+              className="relative mt-20 h-[340px] w-full overflow-visible md:mt-16 md:h-[396px] lg:mt-12 lg:h-[418px]"
+              style={{ perspective: "1000px" }}
+            >
+              {posterCards.map((card, index) => {
+                const relativeIndex = getCircularDistance(
+                  index,
+                  safeActiveIndex,
+                  totalCards,
+                );
+                const motionConfig = getCardMotion(relativeIndex, viewportMode);
 
-            if (Math.abs(relativeIndex) > visibleRange) {
-              return null;
-            }
+                if (Math.abs(relativeIndex) > visibleRange) {
+                  return null;
+                }
 
-            return (
-              <motion.button
-                key={card.id}
-                type="button"
-                className="absolute left-1/2 top-0 h-[320px] w-[220px] -translate-x-1/2 cursor-grab active:cursor-grabbing md:h-[363px] md:w-[253px] lg:h-[374px] lg:w-[264px]"
-                style={{
-                  zIndex: motionConfig.zIndex,
-                  transformStyle: "preserve-3d",
-                }}
-                animate={{
-                  x: motionConfig.x,
-                  scale: motionConfig.scale,
-                  rotateY: motionConfig.rotateY,
-                  z: motionConfig.z,
-                  opacity: motionConfig.opacity,
-                }}
-                transition={{
-                  type: "spring",
-                  stiffness: 100, //강성, 스프링의 단단함
-                  damping: 40, //감쇠, 흔들림을 죽이는 힘
-                  mass: 1.45, //질량, 물체 무게감
-                }}
-                drag="x"
-                dragConstraints={{ left: 0, right: 0 }}
-                dragElastic={0.18}
-                onDragEnd={handleDragEnd}
-                onClick={() => setActiveIndex(index)}
-                whileHover={{ scale: motionConfig.scale * 1.04 }}
-                whileTap={{ scale: motionConfig.scale * 0.98 }}
-              >
-                <div className="relative h-full w-full overflow-hidden rounded-2xl border border-white/20">
-                  <Image
-                    src={card.imageSrc}
-                    alt={`${card.title} ${card.subtitle} 포스터`}
-                    fill
-                    className="object-cover object-center"
-                    sizes="(min-width: 1280px) 264px, (min-width: 768px) 253px, 220px"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
-                  <div className="absolute inset-x-0 bottom-0 p-4 text-left">
-                    <p className="text-xs font-medium tracking-[0.12em] text-white/80">
-                      {card.subtitle}
-                    </p>
-                    <p className="mt-1 text-lg font-semibold leading-tight">
-                      {card.title}
-                    </p>
-                  </div>
-                </div>
-              </motion.button>
-            );
-          })}
-        </div>
-      </FadeInUp>
+                return (
+                  <motion.button
+                    key={card.id}
+                    type="button"
+                    className="absolute left-1/2 top-0 h-[320px] w-[220px] -translate-x-1/2 cursor-grab active:cursor-grabbing md:h-[363px] md:w-[253px] lg:h-[374px] lg:w-[264px]"
+                    style={{
+                      zIndex: motionConfig.zIndex,
+                      transformStyle: "preserve-3d",
+                    }}
+                    animate={{
+                      x: motionConfig.x,
+                      scale: motionConfig.scale,
+                      rotateY: motionConfig.rotateY,
+                      z: motionConfig.z,
+                      opacity: motionConfig.opacity,
+                    }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 100, //강성, 스프링의 단단함
+                      damping: 40, //감쇠, 흔들림을 죽이는 힘
+                      mass: 1.45, //질량, 물체 무게감
+                    }}
+                    drag="x"
+                    dragConstraints={{ left: 0, right: 0 }}
+                    dragElastic={0.18}
+                    onDragEnd={handleDragEnd}
+                    onClick={() => setActiveIndex(index)}
+                    whileHover={{ scale: motionConfig.scale * 1.04 }}
+                    whileTap={{ scale: motionConfig.scale * 0.98 }}
+                  >
+                    <div className="relative h-full w-full overflow-hidden rounded-2xl border border-white/20">
+                      <Image
+                        src={card.image_src}
+                        alt={`${card.team_name} ${card.day} 포스터`}
+                        fill
+                        className="object-cover object-center"
+                        sizes="(min-width: 1280px) 264px, (min-width: 768px) 253px, 220px"
+                      />
+                    </div>
+                  </motion.button>
+                );
+              })}
+            </div>
+          </FadeInUp>
 
-      <FadeInUp delay={0.26} once={false}>
-        <div className="mt-5 flex items-center justify-center gap-2">
-          {posterCards.map((card, index) => (
-            <button
-              key={card.id}
-              type="button"
-              aria-label={`${index + 1}번째 카드로 이동`}
-              onClick={() => setActiveIndex(index)}
-              className={`h-1.5 rounded-full transition-all ${
-                index === activeIndex ? "w-6 bg-white" : "w-1.5 bg-white/40"
-              }`}
-            />
-          ))}
-        </div>
-      </FadeInUp>
+          <FadeInUp delay={0.24} once={false}>
+            <div className="mt-5 min-h-[74px] text-center">
+              {activeCard ? (
+                <motion.div
+                  key={safeActiveIndex}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.28, ease: "easeOut" }}
+                >
+                  <p className="text-[24px] font-semibold leading-tight md:text-[30px]">
+                    {activeCard.team_name}
+                  </p>
+                  <p className="mt-2 text-[15px] font-medium text-white/65 md:text-[17px]">
+                    {activeCard.day} Artist
+                  </p>
+                </motion.div>
+              ) : null}
+            </div>
+          </FadeInUp>
+
+          <FadeInUp delay={0.26} once={false}>
+            <div className="mt-5 flex items-center justify-center gap-2">
+              {posterCards.map((card, index) => (
+                <button
+                  key={card.id}
+                  type="button"
+                  aria-label={`${index + 1}번째 카드로 이동`}
+                  onClick={() => setActiveIndex(index)}
+                  className={`h-1.5 rounded-full transition-all ${
+                    index === safeActiveIndex ? "w-6 bg-white" : "w-1.5 bg-white/40"
+                  }`}
+                />
+              ))}
+            </div>
+          </FadeInUp>
+        </>
+      )}
     </section>
   );
 }
