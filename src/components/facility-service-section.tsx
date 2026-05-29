@@ -2,23 +2,7 @@
 
 import FadeInUp from "@/components/fade-in-up";
 
-type ServiceCard = {
-  id:
-    | "TimeTableCard"
-    | "NoticeCard"
-    | "ContactUsCard"
-    | "Event&MDCard"
-    | "TicketInfoCard"
-    | "StageInfoCard";
-  englishLabel: string;
-  koreanLabel: string;
-};
-
-type IconProps = {
-  className?: string;
-};
-
-function StageInfoIcon({ className }: IconProps) {
+function StageInfoIcon({ className }) {
   return (
     <svg
       aria-hidden
@@ -66,7 +50,7 @@ function StageInfoIcon({ className }: IconProps) {
   );
 }
 
-function TimeTableIcon({ className }: IconProps) {
+function TimeTableIcon({ className }) {
   return (
     <svg
       aria-hidden
@@ -85,7 +69,7 @@ function TimeTableIcon({ className }: IconProps) {
   );
 }
 
-function TicketInfoIcon({ className }: IconProps) {
+function TicketInfoIcon({ className }) {
   return (
     <svg
       aria-hidden
@@ -122,7 +106,7 @@ function TicketInfoIcon({ className }: IconProps) {
   );
 }
 
-function EventMdIcon({ className }: IconProps) {
+function EventMdIcon({ className }) {
   return (
     <svg
       aria-hidden
@@ -139,7 +123,7 @@ function EventMdIcon({ className }: IconProps) {
   );
 }
 
-function ContactUsIcon({ className }: IconProps) {
+function ContactUsIcon({ className }) {
   return (
     <svg
       aria-hidden
@@ -153,7 +137,7 @@ function ContactUsIcon({ className }: IconProps) {
   );
 }
 
-function NoticeIcon({ className }: IconProps) {
+function NoticeIcon({ className }) {
   return (
     <svg
       aria-hidden
@@ -175,7 +159,7 @@ function NoticeIcon({ className }: IconProps) {
   );
 }
 
-function renderCardIcon(cardId: ServiceCard["id"]) {
+function renderCardIcon(cardId) {
   const iconClassName =
     "h-8 w-8 text-white transition-colors duration-300 group-hover:text-[#3b82f6] md:h-14 md:w-14";
 
@@ -197,7 +181,7 @@ function renderCardIcon(cardId: ServiceCard["id"]) {
   }
 }
 
-const serviceCards: ServiceCard[] = [
+const serviceCards = [
   {
     id: "StageInfoCard",
     englishLabel: "Stage Info",

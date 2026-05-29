@@ -1,15 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useEffect, useState, type PropsWithChildren } from "react";
-
-type FadeInUpProps = PropsWithChildren<{
-  className?: string;
-  delay?: number;
-  duration?: number;
-  y?: number;
-  once?: boolean;
-}>;
+import { useEffect, useState } from "react";
 
 export default function FadeInUp({
   children,
@@ -18,7 +10,7 @@ export default function FadeInUp({
   duration = 0.55,
   y = 28,
   once = true,
-}: FadeInUpProps) {
+}) {
   const [screenWidth, setScreenWidth] = useState(0);
 
   useEffect(() => {
