@@ -1,7 +1,15 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type PropsWithChildren } from "react";
+
+type FadeInUpProps = PropsWithChildren<{
+  className?: string;
+  delay?: number;
+  duration?: number;
+  y?: number;
+  once?: boolean;
+}>;
 
 export default function FadeInUp({
   children,
@@ -10,7 +18,7 @@ export default function FadeInUp({
   duration = 0.55,
   y = 28,
   once = true,
-}) {
+}: FadeInUpProps) {
   const [screenWidth, setScreenWidth] = useState(0);
 
   useEffect(() => {
@@ -29,7 +37,11 @@ export default function FadeInUp({
   const isDesktop = screenWidth >= 1024;
   const isTablet = screenWidth >= 768 && screenWidth < 1024;
 
-  const adjustedDelay = isDesktop ? delay * 0.65 : isTablet ? delay * 0.8 : delay;
+  const adjustedDelay = isDesktop
+    ? delay * 0.65
+    : isTablet
+      ? delay * 0.8
+      : delay;
   const adjustedDuration = isDesktop
     ? duration + 0.12
     : isTablet
@@ -44,7 +56,11 @@ export default function FadeInUp({
       initial={{ opacity: 0, y: adjustedY }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once, amount: viewportAmount }}
-      transition={{ duration: adjustedDuration, delay: adjustedDelay, ease: "easeOut" }}
+      transition={{
+        duration: adjustedDuration,
+        delay: adjustedDelay,
+        ease: "easeOut",
+      }}
     >
       {children}
     </motion.div>

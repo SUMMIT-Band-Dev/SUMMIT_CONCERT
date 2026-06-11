@@ -1,10 +1,17 @@
 "use client";
 
 import Image from "next/image";
-import { motion } from "framer-motion";
+import { motion, type PanInfo } from "framer-motion";
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import FadeInUp from "@/components/fade-in-up";
+
+type SetlistItem = {
+  id: number;
+  team_name: string;
+  day: string;
+  image_src: string;
+};
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
@@ -16,8 +23,9 @@ console.log("Supabase KEY 확인:", supabaseKey ? "정상" : "비어있음");
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 const SWIPE_THRESHOLD = 7000;
+type ViewportMode = "mobile" | "tablet" | "desktop";
 
-function getViewportMode(width) {
+function getViewportMode(width: number): ViewportMode {
   if (width >= 1280) {
     return "desktop";
   }
@@ -28,9 +36,9 @@ function getViewportMode(width) {
 }
 
 function getCircularDistance(
-  index,
-  activeIndex,
-  length,
+  index: number,
+  activeIndex: number,
+  length: number,
 ) {
   const rawDistance = index - activeIndex;
   const wrappedDistance =
@@ -43,7 +51,7 @@ function getCircularDistance(
   return wrappedDistance;
 }
 
-function getCardMotion(relativeIndex, viewportMode) {
+function getCardMotion(relativeIndex: number, viewportMode: ViewportMode) {
   const direction = relativeIndex < 0 ? -1 : 1;
   const absIndex = Math.abs(relativeIndex);
 
@@ -157,10 +165,10 @@ function swipePower(offset: number, velocity: number) {
 }
 
 export default function CardCarousel() {
-  const [posterCards, setPosterCards] = useState([]);
+  const [posterCards, setPosterCards] = useState<SetlistItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [viewportMode, setViewportMode] = useState("mobile");
+  const [viewportMode, setViewportMode] = useState<ViewportMode>("mobile");
   const totalCards = posterCards.length;
   const safeActiveIndex =
     totalCards === 0 ? 0 : Math.min(activeIndex, totalCards - 1);
@@ -180,14 +188,14 @@ export default function CardCarousel() {
           .order("id", { ascending: true });
 
         console.log("Fetched Data:", data);
-        console.error("Fetch Error:", error);
 
         if (error) {
+          console.error("Fetch Error:", error);
           return;
         }
 
         if (isMounted) {
-          setPosterCards(data ?? []);
+          setPosterCards((data ?? []) as SetlistItem[]);
         }
       } finally {
         if (isMounted) {
@@ -230,7 +238,7 @@ export default function CardCarousel() {
     };
   }, [totalCards]);
 
-  const moveCard = (direction, step = 1) => {
+  const moveCard = (direction: 1 | -1, step = 1) => {
     if (totalCards === 0) {
       return;
     }
@@ -240,7 +248,10 @@ export default function CardCarousel() {
     );
   };
 
-  const handleDragEnd = (_event, info) => {
+  const handleDragEnd = (
+    _event: MouseEvent | TouchEvent | PointerEvent,
+    info: PanInfo,
+  ) => {
     const swipe = swipePower(info.offset.x, info.velocity.x);
 
     if (swipe < -SWIPE_THRESHOLD) {
@@ -251,7 +262,7 @@ export default function CardCarousel() {
   };
 
   return (
-    <section className="px-4 pb-16 pt-10 md:px-6 lg:px-8">
+    <section className="px-5 pb-16 pt-10 md:px-8 lg:px-12">
       <FadeInUp delay={0.06} once={false}>
         <h2 className="text-[32px] font-semibold leading-[38px] md:text-[44px] md:leading-[52px]">
           셋리스트

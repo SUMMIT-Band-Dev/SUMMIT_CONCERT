@@ -2,7 +2,23 @@
 
 import FadeInUp from "@/components/fade-in-up";
 
-function StageInfoIcon({ className }) {
+type ServiceCard = {
+  id:
+    | "TimeTableCard"
+    | "NoticeCard"
+    | "ContactUsCard"
+    | "Event&MDCard"
+    | "TicketInfoCard"
+    | "StageInfoCard";
+  englishLabel: string;
+  koreanLabel: string;
+};
+
+type IconProps = {
+  className?: string;
+};
+
+function StageInfoIcon({ className }: IconProps) {
   return (
     <svg
       aria-hidden
@@ -50,7 +66,7 @@ function StageInfoIcon({ className }) {
   );
 }
 
-function TimeTableIcon({ className }) {
+function TimeTableIcon({ className }: IconProps) {
   return (
     <svg
       aria-hidden
@@ -69,7 +85,7 @@ function TimeTableIcon({ className }) {
   );
 }
 
-function TicketInfoIcon({ className }) {
+function TicketInfoIcon({ className }: IconProps) {
   return (
     <svg
       aria-hidden
@@ -106,7 +122,7 @@ function TicketInfoIcon({ className }) {
   );
 }
 
-function EventMdIcon({ className }) {
+function EventMdIcon({ className }: IconProps) {
   return (
     <svg
       aria-hidden
@@ -123,7 +139,7 @@ function EventMdIcon({ className }) {
   );
 }
 
-function ContactUsIcon({ className }) {
+function ContactUsIcon({ className }: IconProps) {
   return (
     <svg
       aria-hidden
@@ -137,7 +153,7 @@ function ContactUsIcon({ className }) {
   );
 }
 
-function NoticeIcon({ className }) {
+function NoticeIcon({ className }: IconProps) {
   return (
     <svg
       aria-hidden
@@ -159,9 +175,9 @@ function NoticeIcon({ className }) {
   );
 }
 
-function renderCardIcon(cardId) {
+function renderCardIcon(cardId: ServiceCard["id"]) {
   const iconClassName =
-    "h-8 w-8 text-white transition-colors duration-300 group-hover:text-[#3b82f6] md:h-14 md:w-14";
+    "h-8 w-8 shrink-0 text-white transition-colors duration-300 group-hover:text-[#3b82f6] md:h-14 md:w-14";
 
   switch (cardId) {
     case "StageInfoCard":
@@ -181,7 +197,7 @@ function renderCardIcon(cardId) {
   }
 }
 
-const serviceCards = [
+const serviceCards: ServiceCard[] = [
   {
     id: "StageInfoCard",
     englishLabel: "Stage Info",
@@ -216,7 +232,7 @@ const serviceCards = [
 
 export default function FacilityServiceSection() {
   return (
-    <section className="px-5 pb-16 pt-10 md:px-6 lg:px-8">
+    <section className="px-5 pb-16 pt-10 md:px-8 lg:px-12">
       <FadeInUp delay={0.08} once={false}>
         <h2 className="text-[32px] font-semibold leading-[38px] md:text-[44px] md:leading-[52px]">
           시설 및 서비스
@@ -224,19 +240,19 @@ export default function FacilityServiceSection() {
       </FadeInUp>
 
       <FadeInUp delay={0.16} once={false}>
-        <div className="mt-8 grid grid-cols-2 gap-6 md:mt-10 md:grid-cols-6 md:gap-5 lg:mt-12 lg:gap-6">
+        <div className="mt-8 grid grid-cols-2 gap-4 md:mt-10 md:grid-cols-3 md:gap-5 lg:mt-12 lg:grid-cols-6 lg:gap-6">
           {serviceCards.map((card) => (
             <article
               key={card.id}
-              className="group flex h-[149px] min-w-0 flex-col items-center rounded-[24px] border border-transparent bg-[#161920] px-4 pb-[29px] pt-[29px] transition-all duration-300 hover:-translate-y-1 hover:border-white hover:shadow-[0_20px_36px_rgba(0,0,0,0.36)] md:h-[204px] md:py-[42px]"
+              className="group flex h-[149px] min-w-0 flex-col items-center rounded-[24px] border border-transparent bg-[#161920] px-4 py-7 transition-all duration-300 hover:-translate-y-1 hover:border-white hover:shadow-[0_20px_36px_rgba(0,0,0,0.36)] md:h-[204px] md:py-10"
             >
               {renderCardIcon(card.id)}
 
-              <div className="mt-4 w-full text-center md:mt-8">
-                <p className="text-[12px] font-normal leading-[14.32px] text-white transition-colors duration-300 md:text-[13px] md:leading-[15.5px]">
+              <div className="mt-4 w-full text-center md:mt-6">
+                <p className="whitespace-nowrap text-[clamp(10px,2.6vw,13px)] font-normal leading-[1.2] text-white transition-colors duration-300">
                   {card.englishLabel}
                 </p>
-                <p className="mt-2 text-[18px] font-semibold leading-[21.48px] text-white transition-colors duration-300 md:text-[19px] md:leading-[22.67px]">
+                <p className="mt-2 whitespace-nowrap text-[clamp(13px,3.4vw,19px)] font-semibold leading-[1.2] text-white transition-colors duration-300">
                   {card.koreanLabel}
                 </p>
               </div>
