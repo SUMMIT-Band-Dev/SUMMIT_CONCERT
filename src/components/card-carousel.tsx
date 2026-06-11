@@ -188,9 +188,9 @@ export default function CardCarousel() {
           .order("id", { ascending: true });
 
         console.log("Fetched Data:", data);
-        console.error("Fetch Error:", error);
 
         if (error) {
+          console.error("Fetch Error:", error);
           return;
         }
 
@@ -262,7 +262,7 @@ export default function CardCarousel() {
   };
 
   return (
-    <section className="px-4 pb-16 pt-10 md:px-6 lg:px-8">
+    <section className="px-5 pb-16 pt-10 md:px-8 lg:px-12">
       <FadeInUp delay={0.06} once={false}>
         <h2 className="text-[32px] font-semibold leading-[38px] md:text-[44px] md:leading-[52px]">
           셋리스트

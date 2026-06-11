@@ -37,7 +37,11 @@ export default function FadeInUp({
   const isDesktop = screenWidth >= 1024;
   const isTablet = screenWidth >= 768 && screenWidth < 1024;
 
-  const adjustedDelay = isDesktop ? delay * 0.65 : isTablet ? delay * 0.8 : delay;
+  const adjustedDelay = isDesktop
+    ? delay * 0.65
+    : isTablet
+      ? delay * 0.8
+      : delay;
   const adjustedDuration = isDesktop
     ? duration + 0.12
     : isTablet
@@ -52,7 +56,11 @@ export default function FadeInUp({
       initial={{ opacity: 0, y: adjustedY }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once, amount: viewportAmount }}
-      transition={{ duration: adjustedDuration, delay: adjustedDelay, ease: "easeOut" }}
+      transition={{
+        duration: adjustedDuration,
+        delay: adjustedDelay,
+        ease: "easeOut",
+      }}
     >
       {children}
     </motion.div>

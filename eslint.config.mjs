@@ -11,6 +11,8 @@ const eslintConfig = defineConfig([
     ".next/**",
     "out/**",
     "build/**",
+    // Build output from other toolchains (e.g. Vite bundles)
+    "dist/**",
     "next-env.d.ts",
   ]),
 ]);

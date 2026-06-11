@@ -1,3 +1,4 @@
+import Image from "next/image";
 import CardCarousel from "@/components/card-carousel";
 import FacilityServiceSection from "@/components/facility-service-section";
 import SiteHeader from "@/components/site-header";
@@ -15,43 +16,41 @@ export default function Home() {
           <SiteHeader />
           <div className="pt-16">
             <section className="relative isolate h-[calc(100svh-64px)] min-h-[728px] overflow-hidden bg-black [contain:paint] md:min-h-[760px] lg:min-h-[820px]">
-                <div className="hero-poster-media absolute -left-14 top-0 z-0 h-full w-[542px] md:inset-0 md:h-full md:w-full">
-                  <video
-                    src="/concert-poster.mov"
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    className="hero-poster-video h-full w-full object-cover object-top"
-                  />
-                </div>
+              <div className="hero-poster-media absolute -left-14 bottom-0 z-0 h-full w-[542px] md:inset-0 md:h-full md:w-full">
+                <Image
+                  src="/concert-poster.png"
+                  alt="여름 공연 포스터 배경"
+                  fill
+                  priority
+                  sizes="100vw"
+                  className="hero-poster-video h-full w-full object-cover object-bottom"
+                />
+              </div>
 
-                <div className="absolute z-20 inset-x-0 bottom-0 w-full px-5 pb-10 text-white md:px-8 md:pb-10 lg:px-12 lg:pb-[120px]">
-                  <article className="w-fit">
-                    <h1
-                      className="whitespace-nowrap text-left text-2xl font-semibold leading-[28.64px] lg:text-4xl lg:leading-[1.2]"
-                      style={{
-                        fontFamily: "Pretendard, system-ui, sans-serif",
-                      }}
-                    >
-                      2025년 SUMMIT 겨울공연
-                    </h1>
+              <div className="absolute z-20 inset-x-0 bottom-0 w-full px-5 pb-10 text-white md:px-8 md:pb-10 lg:px-12 lg:pb-[120px]">
+                <article className="w-fit">
+                  <h1
+                    className="whitespace-nowrap text-left text-2xl font-semibold leading-[28.64px] lg:text-4xl lg:leading-[1.2]"
+                    style={{
+                      fontFamily: "Pretendard, system-ui, sans-serif",
+                    }}
+                  >
+                    2026년 SUMMIT 여름공연
+                  </h1>
 
-                    <div
-                      className="mt-3 w-fit text-[14px] font-medium leading-[16.71px] lg:mt-4 lg:text-base lg:leading-6"
-                      style={{
-                        fontFamily: "Pretendard, system-ui, sans-serif",
-                      }}
-                    >
-                      <p className="whitespace-nowrap text-left">
-                        드림홀 (서울 마포구 서교동 394-44)
-                      </p>
-                      <p className="mt-2 whitespace-nowrap text-left">
-                        2025-12-18 - 2025-12-19
-                      </p>
-                    </div>
-                  </article>
-                </div>
+                  <div
+                    className="mt-3 w-fit text-[14px] font-medium leading-[16.71px] lg:mt-4 lg:text-base lg:leading-6"
+                    style={{
+                      fontFamily: "Pretendard, system-ui, sans-serif",
+                    }}
+                  >
+                    <p className="whitespace-nowrap text-left">플렉스 라운지</p>
+                    <p className="mt-2 whitespace-nowrap text-left">
+                      2026-06-25 - 2026-06-26
+                    </p>
+                  </div>
+                </article>
+              </div>
             </section>
 
             <div className="md:mt-14 lg:mt-24">
