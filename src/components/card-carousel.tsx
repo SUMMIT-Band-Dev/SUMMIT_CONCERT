@@ -290,7 +290,7 @@ export default function CardCarousel() {
         <>
           <FadeInUp delay={0.2} once={false}>
             <div
-              className="relative mt-20 h-[340px] w-full overflow-visible md:mt-16 md:h-[396px] lg:mt-12 lg:h-[418px]"
+              className="relative mt-20 h-[308px] w-full overflow-visible md:mt-16 md:h-[356px] lg:mt-12 lg:h-[376px]"
               style={{ perspective: "1000px" }}
             >
               {posterCards.map((card, index) => {
@@ -309,7 +309,7 @@ export default function CardCarousel() {
                   <motion.button
                     key={card.id}
                     type="button"
-                    className="absolute left-1/2 top-0 h-[320px] w-[220px] -translate-x-1/2 cursor-grab active:cursor-grabbing md:h-[363px] md:w-[253px] lg:h-[374px] lg:w-[264px]"
+                    className="absolute left-1/2 top-0 h-[286px] w-[196px] -translate-x-1/2 cursor-grab active:cursor-grabbing md:h-[326px] md:w-[228px] lg:h-[338px] lg:w-[240px]"
                     style={{
                       zIndex: motionConfig.zIndex,
                       transformStyle: "preserve-3d",
@@ -341,7 +341,7 @@ export default function CardCarousel() {
                         alt={`${card.team_name} ${card.day} 포스터`}
                         fill
                         className="object-cover object-center"
-                        sizes="(min-width: 1280px) 264px, (min-width: 768px) 253px, 220px"
+                        sizes="(min-width: 1280px) 240px, (min-width: 768px) 228px, 196px"
                       />
                     </div>
                   </motion.button>
@@ -351,7 +351,7 @@ export default function CardCarousel() {
           </FadeInUp>
 
           <FadeInUp delay={0.24} once={false}>
-            <div className="mt-5 min-h-[74px] text-center">
+            <div className="mt-5 min-h-[86px] text-center">
               {activeCard ? (
                 <motion.div
                   key={safeActiveIndex}
@@ -362,7 +362,7 @@ export default function CardCarousel() {
                   <p className="text-[24px] font-semibold leading-tight md:text-[30px]">
                     {activeCard.team_name}
                   </p>
-                  <p className="mt-2 text-[15px] font-medium text-white/65 md:text-[17px]">
+                  <p className="mt-3 text-[15px] font-medium text-white/65 md:text-[17px]">
                     {activeCard.day} Artist
                   </p>
                 </motion.div>
@@ -379,7 +379,9 @@ export default function CardCarousel() {
                   aria-label={`${index + 1}번째 카드로 이동`}
                   onClick={() => setActiveIndex(index)}
                   className={`h-1.5 rounded-full transition-all ${
-                    index === safeActiveIndex ? "w-6 bg-white" : "w-1.5 bg-white/40"
+                    index === safeActiveIndex
+                      ? "w-6 bg-white"
+                      : "w-1.5 bg-white/40"
                   }`}
                 />
               ))}

@@ -14,26 +14,41 @@ const menuSections = [
   },
 ];
 
+const headerNavItems = ["홈", "예매하기", "셋리스트", "시설 및 서비스"];
+
 export default function SiteHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
     <>
       <header className="fixed inset-x-0 top-0 z-50 w-full">
-        <div className="flex h-[64px] w-full items-center justify-between border-b border-[#6a6a6a] bg-black px-5 md:px-6 lg:px-8">
+        <div className="flex h-[64px] w-full items-center justify-between border-b border-white/35 bg-black/20 px-5 backdrop-blur-[2px] md:h-[84px] md:px-8 lg:h-[102px] lg:px-[72px]">
           <p
-            className="text-[18px] leading-[19.8px]"
-            style={{ fontFamily: '"Puradak Gentle Gothic OTF", Pretendard, sans-serif' }}
+            className="text-[18px] leading-[19.8px] md:text-[32px] md:leading-[1.15] lg:text-[40px] lg:leading-[45.8px]"
+            style={{ fontFamily: '"GangwonEduAll", Pretendard, sans-serif' }}
           >
             SUMMIT
           </p>
+
+          <nav className="hidden items-center text-white md:flex md:gap-8 md:text-[22px] md:font-bold md:leading-[26px] lg:gap-12 lg:text-[28px] lg:leading-[33.41px]">
+            {headerNavItems.map((item) => (
+              <button
+                key={item}
+                type="button"
+                className="transition-opacity duration-200 hover:opacity-80"
+                style={{ fontFamily: "Pretendard, system-ui, sans-serif" }}
+              >
+                {item}
+              </button>
+            ))}
+          </nav>
 
           <button
             type="button"
             aria-label={isMenuOpen ? "메뉴 닫기" : "메뉴 열기"}
             aria-expanded={isMenuOpen}
             onClick={() => setIsMenuOpen((prev) => !prev)}
-            className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-white sm:text-sm"
+            className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-white sm:text-sm md:hidden"
           >
             <span>LIST</span>
             <span className="relative flex h-5 w-5 items-center justify-center">
@@ -65,7 +80,7 @@ export default function SiteHeader() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="fixed inset-0 z-40 bg-black/90 backdrop-blur-[1px]"
+            className="fixed inset-0 z-40 bg-black/90 backdrop-blur-[1px] md:hidden"
           >
             <motion.nav
               initial={{ opacity: 0, y: -28 }}
