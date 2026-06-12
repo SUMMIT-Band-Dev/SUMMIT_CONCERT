@@ -379,7 +379,9 @@ export default function CardCarousel() {
                   aria-label={`${index + 1}번째 카드로 이동`}
                   onClick={() => setActiveIndex(index)}
                   className={`h-1.5 rounded-full transition-all ${
-                    index === safeActiveIndex ? "w-6 bg-white" : "w-1.5 bg-white/40"
+                    index === safeActiveIndex
+                      ? "w-6 bg-white"
+                      : "w-1.5 bg-white/40"
                   }`}
                 />
               ))}
