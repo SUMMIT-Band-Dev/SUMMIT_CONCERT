@@ -7,7 +7,7 @@ import { useState } from "react";
 const menuSections = [
   {
     title: "셋리스트",
-    items: ["셋리스트"],
+    items: ["홈", "예매하기", "셋리스트"],
   },
   {
     title: "시설 및 서비스",
@@ -18,6 +18,8 @@ const menuSections = [
 const headerNavItems = ["홈", "예매하기", "셋리스트", "시설 및 서비스"];
 
 const mobileMenuHrefByItem: Record<string, string> = {
+  홈: "/",
+  예매하기: "/book",
   셋리스트: "/setlist",
   "공연장 안내": "https://flexlounge.creatorlink.net/",
   "타임 테이블": "/desktop-404",
@@ -25,6 +27,11 @@ const mobileMenuHrefByItem: Record<string, string> = {
   "이벤트 및 굿즈": "/desktop-404",
   "오시는 길": "/desktop-404",
   "관람 유의사항": "/desktop-404",
+};
+
+const headerNavHrefByItem: Record<string, string> = {
+  홈: "/",
+  예매하기: "/book",
 };
 
 export default function SiteHeader() {
@@ -44,10 +51,10 @@ export default function SiteHeader() {
 
           <nav className="hidden items-center text-white md:flex md:gap-8 md:text-[22px] md:font-bold md:leading-[26px] lg:gap-12 lg:text-[28px] lg:leading-[33.41px]">
             {headerNavItems.map((item) => (
-              item === "홈" ? (
+              headerNavHrefByItem[item] ? (
                 <Link
                   key={item}
-                  href="/"
+                  href={headerNavHrefByItem[item]}
                   className="transition-opacity duration-200 hover:opacity-80"
                   style={{ fontFamily: "Pretendard, system-ui, sans-serif" }}
                 >
