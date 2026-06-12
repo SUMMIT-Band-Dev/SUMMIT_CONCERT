@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import CardCarousel from "@/components/card-carousel";
 import FadeInUp from "@/components/fade-in-up";
 import FacilityServiceSection from "@/components/facility-service-section";
@@ -75,15 +76,15 @@ export default function Home() {
                   </FadeInUp>
 
                   <FadeInUp delay={0.3}>
-                    <button
-                      type="button"
+                    <Link
+                      href="/book"
                       className="mt-5 inline-flex h-[48px] w-[200px] items-center justify-center rounded-[12px] border border-white/20 bg-black/25 text-[20px] font-medium leading-none text-white backdrop-blur-[1px] md:mt-6 md:h-[48px] md:w-[152px] md:rounded-[14px] md:text-[22px] lg:h-[64px] lg:w-[180px] lg:rounded-[16px] lg:text-[28px]"
                       style={{
                         fontFamily: "Pretendard, system-ui, sans-serif",
                       }}
                     >
                       예매하기
-                    </button>
+                    </Link>
                   </FadeInUp>
                 </article>
               </div>
