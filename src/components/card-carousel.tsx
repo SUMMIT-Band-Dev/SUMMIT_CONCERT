@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, type PanInfo } from "framer-motion";
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
@@ -165,6 +167,7 @@ function swipePower(offset: number, velocity: number) {
 }
 
 export default function CardCarousel() {
+  const router = useRouter();
   const [posterCards, setPosterCards] = useState<SetlistItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -264,9 +267,12 @@ export default function CardCarousel() {
   return (
     <section className="px-5 pb-16 pt-10 md:px-8 lg:px-12">
       <FadeInUp delay={0.06} once={false}>
-        <h2 className="text-[32px] font-semibold leading-[38px] md:text-[44px] md:leading-[52px]">
+        <Link
+          href="/setlist"
+          className="inline-block text-[32px] font-semibold leading-[38px] transition-opacity hover:opacity-80 md:text-[44px] md:leading-[52px]"
+        >
           셋리스트
-        </h2>
+        </Link>
       </FadeInUp>
       <FadeInUp delay={0.12} once={false}>
         <p className="mb-0 mt-2 text-[18px] leading-[21.48px] text-white/70 md:mt-3">
@@ -331,7 +337,7 @@ export default function CardCarousel() {
                     dragConstraints={{ left: 0, right: 0 }}
                     dragElastic={0.18}
                     onDragEnd={handleDragEnd}
-                    onClick={() => setActiveIndex(index)}
+                    onClick={() => router.push("/setlist")}
                     whileHover={{ scale: motionConfig.scale * 1.04 }}
                     whileTap={{ scale: motionConfig.scale * 0.98 }}
                   >

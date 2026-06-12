@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import Link from "next/link";
 import { useState } from "react";
 
 const menuSections = [
@@ -16,6 +17,16 @@ const menuSections = [
 
 const headerNavItems = ["홈", "예매하기", "셋리스트", "시설 및 서비스"];
 
+const mobileMenuHrefByItem: Record<string, string> = {
+  셋리스트: "/setlist",
+  "공연장 안내": "https://flexlounge.creatorlink.net/",
+  "타임 테이블": "/desktop-404",
+  "티켓 안내": "/desktop-404",
+  "이벤트 및 굿즈": "/desktop-404",
+  "오시는 길": "/desktop-404",
+  "관람 유의사항": "/desktop-404",
+};
+
 export default function SiteHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -23,23 +34,35 @@ export default function SiteHeader() {
     <>
       <header className="fixed inset-x-0 top-0 z-50 w-full">
         <div className="flex h-[64px] w-full items-center justify-between border-b border-white/35 bg-black/20 px-5 backdrop-blur-[2px] md:h-[84px] md:px-8 lg:h-[102px] lg:px-[72px]">
-          <p
-            className="text-[18px] leading-[19.8px] md:text-[32px] md:leading-[1.15] lg:text-[40px] lg:leading-[45.8px]"
+          <Link
+            href="/"
+            className="text-[18px] leading-[19.8px] transition-opacity hover:opacity-80 md:text-[32px] md:leading-[1.15] lg:text-[40px] lg:leading-[45.8px]"
             style={{ fontFamily: '"GangwonEduAll", Pretendard, sans-serif' }}
           >
             SUMMIT
-          </p>
+          </Link>
 
           <nav className="hidden items-center text-white md:flex md:gap-8 md:text-[22px] md:font-bold md:leading-[26px] lg:gap-12 lg:text-[28px] lg:leading-[33.41px]">
             {headerNavItems.map((item) => (
-              <button
-                key={item}
-                type="button"
-                className="transition-opacity duration-200 hover:opacity-80"
-                style={{ fontFamily: "Pretendard, system-ui, sans-serif" }}
-              >
-                {item}
-              </button>
+              item === "홈" ? (
+                <Link
+                  key={item}
+                  href="/"
+                  className="transition-opacity duration-200 hover:opacity-80"
+                  style={{ fontFamily: "Pretendard, system-ui, sans-serif" }}
+                >
+                  {item}
+                </Link>
+              ) : (
+                <button
+                  key={item}
+                  type="button"
+                  className="transition-opacity duration-200 hover:opacity-80"
+                  style={{ fontFamily: "Pretendard, system-ui, sans-serif" }}
+                >
+                  {item}
+                </button>
+              )
             ))}
           </nav>
 
@@ -100,12 +123,34 @@ export default function SiteHeader() {
                     <ul className="mt-4 flex flex-wrap items-center gap-x-8 gap-y-3 md:mt-6 md:gap-x-10">
                       {section.items.map((item) => (
                         <li key={item}>
-                          <button
-                            type="button"
-                            className="text-left text-[15px] font-semibold leading-[1.35] text-[#b0b0b0] transition-colors hover:text-white md:text-[22px]"
-                          >
-                            {item}
-                          </button>
+                          {mobileMenuHrefByItem[item] ? (
+                            mobileMenuHrefByItem[item].startsWith("http") ? (
+                              <a
+                                href={mobileMenuHrefByItem[item]}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={() => setIsMenuOpen(false)}
+                                className="text-left text-[15px] font-semibold leading-[1.35] text-[#b0b0b0] transition-colors hover:text-white md:text-[22px]"
+                              >
+                                {item}
+                              </a>
+                            ) : (
+                              <Link
+                                href={mobileMenuHrefByItem[item]}
+                                onClick={() => setIsMenuOpen(false)}
+                                className="text-left text-[15px] font-semibold leading-[1.35] text-[#b0b0b0] transition-colors hover:text-white md:text-[22px]"
+                              >
+                                {item}
+                              </Link>
+                            )
+                          ) : (
+                            <button
+                              type="button"
+                              className="text-left text-[15px] font-semibold leading-[1.35] text-[#b0b0b0] transition-colors hover:text-white md:text-[22px]"
+                            >
+                              {item}
+                            </button>
+                          )}
                         </li>
                       ))}
                     </ul>

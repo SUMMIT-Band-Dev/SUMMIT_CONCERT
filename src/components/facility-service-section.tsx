@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import FadeInUp from "@/components/fade-in-up";
 
 type ServiceCard = {
@@ -230,6 +231,15 @@ const serviceCards: ServiceCard[] = [
   },
 ];
 
+const serviceCardHrefById: Partial<Record<ServiceCard["id"], string>> = {
+  StageInfoCard: "https://flexlounge.creatorlink.net/",
+  TimeTableCard: "/desktop-404",
+  TicketInfoCard: "/desktop-404",
+  "Event&MDCard": "/desktop-404",
+  ContactUsCard: "/desktop-404",
+  NoticeCard: "/desktop-404",
+};
+
 export default function FacilityServiceSection() {
   return (
     <section className="px-5 pb-16 pt-10 md:px-8 lg:px-12">
@@ -242,9 +252,18 @@ export default function FacilityServiceSection() {
       <FadeInUp delay={0.16} once={false}>
         <div className="mt-8 grid grid-cols-2 gap-4 md:mt-10 md:grid-cols-3 md:gap-5 lg:mt-12 lg:grid-cols-6 lg:gap-6">
           {serviceCards.map((card) => (
-            <article
+            <Link
               key={card.id}
-              className="group flex h-[149px] min-w-0 flex-col items-center rounded-[24px] border border-transparent bg-[#161920] px-4 py-7 transition-all duration-300 hover:-translate-y-1 hover:border-white hover:shadow-[0_20px_36px_rgba(0,0,0,0.36)] md:h-[204px] md:py-10"
+              href={serviceCardHrefById[card.id] ?? "#"}
+              className={`group flex h-[149px] min-w-0 flex-col items-center rounded-[24px] border border-transparent bg-[#161920] px-4 py-7 transition-all duration-300 hover:-translate-y-1 hover:border-white hover:shadow-[0_20px_36px_rgba(0,0,0,0.36)] md:h-[204px] md:py-10 ${
+                serviceCardHrefById[card.id] ? "cursor-pointer" : "cursor-default"
+              }`}
+              aria-disabled={!serviceCardHrefById[card.id]}
+              onClick={(event) => {
+                if (!serviceCardHrefById[card.id]) {
+                  event.preventDefault();
+                }
+              }}
             >
               {renderCardIcon(card.id)}
 
@@ -256,7 +275,7 @@ export default function FacilityServiceSection() {
                   {card.koreanLabel}
                 </p>
               </div>
-            </article>
+            </Link>
           ))}
         </div>
       </FadeInUp>
