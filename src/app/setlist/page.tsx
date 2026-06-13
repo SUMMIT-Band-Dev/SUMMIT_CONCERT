@@ -15,7 +15,7 @@ type SetlistCard = {
   title: string;
   artist: string;
   imageSrc: string;
-  isPosterDummy?: boolean;
+  isPosterDummy: boolean;
 };
 
 type TrackItem = {
@@ -46,46 +46,194 @@ type SetlistRow = Record<string, unknown> & {
 };
 
 const setlistCards: SetlistCard[] = [
-  { id: 1, day: 1, title: "8C8", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/day1-team1.png" },
-  { id: 2, day: 1, title: "뉴비", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/day1-team2.png" },
-  { id: 3, day: 1, title: "즐겜굴비", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/day1-team3.png" },
-  { id: 4, day: 1, title: "써밋 음악도둑", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/day1-team4.png" },
-  { id: 5, day: 1, title: "26살과 26학번", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/day1-team5.png" },
-  { id: 6, day: 1, title: "하로로는노는게제일좋아", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/day1-team6.png" },
-  { id: 7, day: 1, title: "숙취의 미학", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/day1-team7.png" },
-  { id: 8, day: 2, title: "오미자", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/day2-team1.png" },
-  { id: 9, day: 2, title: "낭만치사랑", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/day2-team2.png" },
-  { id: 10, day: 2, title: "쉬었음밴드", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/day2-team3.png" },
-  { id: 11, day: 2, title: "머리위 쥑쥑이", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/day2-team4.png" },
-  { id: 12, day: 2, title: "컴학 늙크크와 공주들", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/day2-team5.png" },
-  { id: 13, day: 2, title: "모스붕어", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/day2-team6.png" },
-  { id: 14, day: 2, title: "도레미파솔라석희", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/day2-team7.png" },
+  {
+    id: 1,
+    day: 1,
+    title: "8C8",
+    artist: "SUMMIT SUMMER CONCERT",
+    imageSrc: "/day1-team1.png",
+    isPosterDummy: false,
+  },
+  {
+    id: 2,
+    day: 1,
+    title: "뉴비",
+    artist: "SUMMIT SUMMER CONCERT",
+    imageSrc: "/day1-team2.png",
+    isPosterDummy: false,
+  },
+  {
+    id: 3,
+    day: 1,
+    title: "즐겜굴비",
+    artist: "SUMMIT SUMMER CONCERT",
+    imageSrc: "/day1-team3.png",
+    isPosterDummy: false,
+  },
+  {
+    id: 4,
+    day: 1,
+    title: "써밋 음악도둑",
+    artist: "SUMMIT SUMMER CONCERT",
+    imageSrc: "/day1-team4.png",
+    isPosterDummy: false,
+  },
+  {
+    id: 5,
+    day: 1,
+    title: "26살과 26학번",
+    artist: "SUMMIT SUMMER CONCERT",
+    imageSrc: "/day1-team5.png",
+    isPosterDummy: false,
+  },
+  {
+    id: 6,
+    day: 1,
+    title: "하로로는노는게제일좋아",
+    artist: "SUMMIT SUMMER CONCERT",
+    imageSrc: "/day1-team6.png",
+    isPosterDummy: false,
+  },
+  {
+    id: 7,
+    day: 1,
+    title: "숙취의 미학",
+    artist: "SUMMIT SUMMER CONCERT",
+    imageSrc: "/day1-team7.png",
+    isPosterDummy: false,
+  },
+  {
+    id: 8,
+    day: 2,
+    title: "오미자",
+    artist: "SUMMIT SUMMER CONCERT",
+    imageSrc: "/day2-team1.png",
+    isPosterDummy: false,
+  },
+  {
+    id: 9,
+    day: 2,
+    title: "낭만치사랑",
+    artist: "SUMMIT SUMMER CONCERT",
+    imageSrc: "/day2-team2.png",
+    isPosterDummy: false,
+  },
+  {
+    id: 10,
+    day: 2,
+    title: "쉬었음밴드",
+    artist: "SUMMIT SUMMER CONCERT",
+    imageSrc: "/day2-team3.png",
+    isPosterDummy: false,
+  },
+  {
+    id: 11,
+    day: 2,
+    title: "머리위 쥑쥑이",
+    artist: "SUMMIT SUMMER CONCERT",
+    imageSrc: "/day2-team4.png",
+    isPosterDummy: false,
+  },
+  {
+    id: 12,
+    day: 2,
+    title: "컴학 늙크크와 공주들",
+    artist: "SUMMIT SUMMER CONCERT",
+    imageSrc: "/day2-team5.png",
+    isPosterDummy: false,
+  },
+  {
+    id: 13,
+    day: 2,
+    title: "모스붕어",
+    artist: "SUMMIT SUMMER CONCERT",
+    imageSrc: "/day2-team6.png",
+    isPosterDummy: false,
+  },
+  {
+    id: 14,
+    day: 2,
+    title: "도레미파솔라석희",
+    artist: "SUMMIT SUMMER CONCERT",
+    imageSrc: "/day2-team7.png",
+    isPosterDummy: false,
+  },
 ];
 
 const trackListByDay: Record<DayType, TrackItem[]> = {
   1: [
     { id: 101, title: "Twilight", artist: "SUMMIT Band", coverShape: "square" },
-    { id: 102, title: "Sunset Sky", artist: "SUMMIT Band", coverShape: "square" },
+    {
+      id: 102,
+      title: "Sunset Sky",
+      artist: "SUMMIT Band",
+      coverShape: "square",
+    },
     { id: 103, title: "Dreaming", artist: "SUMMIT Band", coverShape: "square" },
-    { id: 104, title: "Blue Hour", artist: "SUMMIT Band", coverShape: "square" },
-    { id: 105, title: "After Party", artist: "SUMMIT Band", coverShape: "square" },
+    {
+      id: 104,
+      title: "Blue Hour",
+      artist: "SUMMIT Band",
+      coverShape: "square",
+    },
+    {
+      id: 105,
+      title: "After Party",
+      artist: "SUMMIT Band",
+      coverShape: "square",
+    },
     { id: 106, title: "Encore", artist: "SUMMIT Band", coverShape: "square" },
   ],
   2: [
-    { id: 201, title: "Night Drive", artist: "SUMMIT Band", coverShape: "square" },
-    { id: 202, title: "Moonlight", artist: "SUMMIT Band", coverShape: "square" },
-    { id: 203, title: "Afterglow", artist: "SUMMIT Band", coverShape: "square" },
-    { id: 204, title: "Last Song", artist: "SUMMIT Band", coverShape: "square" },
+    {
+      id: 201,
+      title: "Night Drive",
+      artist: "SUMMIT Band",
+      coverShape: "square",
+    },
+    {
+      id: 202,
+      title: "Moonlight",
+      artist: "SUMMIT Band",
+      coverShape: "square",
+    },
+    {
+      id: 203,
+      title: "Afterglow",
+      artist: "SUMMIT Band",
+      coverShape: "square",
+    },
+    {
+      id: 204,
+      title: "Last Song",
+      artist: "SUMMIT Band",
+      coverShape: "square",
+    },
     { id: 205, title: "Midnight", artist: "SUMMIT Band", coverShape: "square" },
     { id: 206, title: "Finale", artist: "SUMMIT Band", coverShape: "square" },
   ],
 };
 
 function getDayFromRow(row: LineUpRow): DayType | null {
-  const dayValue = typeof row.day === "string" ? row.day.toLowerCase().trim() : row.day;
+  const dayValue =
+    typeof row.day === "string" ? row.day.toLowerCase().trim() : row.day;
 
-  if (dayValue === 1 || dayValue === "1" || dayValue === "1일차" || dayValue === "1일차 공연" || dayValue === "day1") return 1;
-  if (dayValue === 2 || dayValue === "2" || dayValue === "2일차" || dayValue === "2일차 공연" || dayValue === "day2") return 2;
+  if (
+    dayValue === 1 ||
+    dayValue === "1" ||
+    dayValue === "1일차" ||
+    dayValue === "1일차 공연" ||
+    dayValue === "day1"
+  )
+    return 1;
+  if (
+    dayValue === 2 ||
+    dayValue === "2" ||
+    dayValue === "2일차" ||
+    dayValue === "2일차 공연" ||
+    dayValue === "day2"
+  )
+    return 2;
   if (typeof row.id === "number") {
     if (row.id >= 1 && row.id <= 7) return 1;
     if (row.id >= 8 && row.id <= 14) return 2;
@@ -94,17 +242,35 @@ function getDayFromRow(row: LineUpRow): DayType | null {
 }
 
 function normalizeTeamName(value: string) {
-  return value
-    .toLowerCase()
-    // 실무 입력에서 자주 섞이는 축약(젤)과 정식표기(제일)를 동일 키로 취급
-    .replace(/젤/g, "제일")
-    .replace(/[\s_-]+/g, "")
-    .trim();
+  return (
+    value
+      .toLowerCase()
+      // 실무 입력에서 자주 섞이는 축약(젤)과 정식표기(제일)를 동일 키로 취급
+      .replace(/젤/g, "제일")
+      .replace(/[\s_-]+/g, "")
+      .trim()
+  );
 }
 
 function getTeamFallbackName(id: number) {
-  const day1Names = ["8C8", "뉴비", "즐겜굴비", "써밋 음악도둑", "26살과 26학번", "하로로는노는게제일좋아", "숙취의 미학"];
-  const day2Names = ["오미자", "낭만치사랑", "쉬었음밴드", "머리위 쥑쥑이", "컴학 늙크크와 공주들", "모스붕어", "도레미파솔라석희"];
+  const day1Names = [
+    "8C8",
+    "뉴비",
+    "즐겜굴비",
+    "써밋 음악도둑",
+    "26살과 26학번",
+    "하로로는노는게제일좋아",
+    "숙취의 미학",
+  ];
+  const day2Names = [
+    "오미자",
+    "낭만치사랑",
+    "쉬었음밴드",
+    "머리위 쥑쥑이",
+    "컴학 늙크크와 공주들",
+    "모스붕어",
+    "도레미파솔라석희",
+  ];
 
   if (id >= 1 && id <= 7) return day1Names[id - 1];
   if (id >= 8 && id <= 14) return day2Names[id - 8];
@@ -121,14 +287,16 @@ function normalizeImageSource(value: unknown) {
   if (typeof value !== "string") return "";
   const trimmed = value.trim();
   if (!trimmed) return "";
-  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed;
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://"))
+    return trimmed;
   return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
 }
 
 function getTeamFromSetlistRow(row: SetlistRow, id: number) {
   const team = typeof row.team === "string" ? row.team.trim() : "";
   if (team) return team;
-  const teamName = typeof row.team_name === "string" ? row.team_name.trim() : "";
+  const teamName =
+    typeof row.team_name === "string" ? row.team_name.trim() : "";
   if (teamName) return teamName;
   return getTeamFallbackName(id);
 }
@@ -155,11 +323,59 @@ function DummyPosterArtwork() {
   );
 }
 
+function isExternalImageSource(src: string) {
+  return /^https?:\/\//i.test(src);
+}
+
+function TrackCoverImage({
+  src,
+  alt,
+  size,
+}: {
+  src: string;
+  alt: string;
+  size: number;
+}) {
+  const [hasLoadError, setHasLoadError] = useState(false);
+
+  if (hasLoadError) {
+    return <SquareGrayArtwork />;
+  }
+
+  // 외부 이미지(음원 사이트 URL)는 Next image optimizer를 거치지 않고 직접 렌더링해 깨짐을 방지한다.
+  if (isExternalImageSource(src)) {
+    return (
+      <Image
+        src={src}
+        alt={alt}
+        width={size}
+        height={size}
+        className="h-full w-full object-cover"
+        unoptimized
+        onError={() => setHasLoadError(true)}
+      />
+    );
+  }
+
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      width={size}
+      height={size}
+      className="h-full w-full object-cover"
+      onError={() => setHasLoadError(true)}
+    />
+  );
+}
+
 export default function SetlistPage() {
   const [selectedDay, setSelectedDay] = useState<DayType>(1);
   const [selectedCard, setSelectedCard] = useState<SetlistCard | null>(null);
   const [cardsData, setCardsData] = useState<SetlistCard[]>(setlistCards);
-  const [trackItemsByTeamKey, setTrackItemsByTeamKey] = useState<Record<string, TrackItem[]>>({});
+  const [trackItemsByTeamKey, setTrackItemsByTeamKey] = useState<
+    Record<string, TrackItem[]>
+  >({});
 
   useEffect(() => {
     let isMounted = true;
@@ -193,7 +409,9 @@ export default function SetlistPage() {
             const teamName = getTeamFromSetlistRow(row as SetlistRow, id);
             const useDummyPoster = shouldUseDummyPoster(teamName);
 
-            const imageSrc = normalizeImageSource(row.image_src) || (useDummyPoster ? "" : getImageFallbackPath(id));
+            const imageSrc =
+              normalizeImageSource(row.image_src) ||
+              (useDummyPoster ? "" : getImageFallbackPath(id));
 
             return {
               id,
@@ -232,7 +450,12 @@ export default function SetlistPage() {
       if (setlistRows.length > 0) {
         const lineUpTeamKeys = new Set(
           lineUpRows
-            .map((row) => getTeamFromSetlistRow(row as SetlistRow, typeof row.id === "number" ? row.id : 0))
+            .map((row) =>
+              getTeamFromSetlistRow(
+                row as SetlistRow,
+                typeof row.id === "number" ? row.id : 0,
+              ),
+            )
             .map((team) => normalizeTeamName(team))
             .filter(Boolean),
         );
@@ -251,9 +474,14 @@ export default function SetlistPage() {
           const title = typeof row.title === "string" ? row.title.trim() : "";
           if (!title) return;
 
-          const artist = typeof row.singer === "string" && row.singer.trim() ? row.singer.trim() : "SUMMIT Band";
+          const artist =
+            typeof row.singer === "string" && row.singer.trim()
+              ? row.singer.trim()
+              : "SUMMIT Band";
           const albumCoverSrc = normalizeImageSource(row.album);
-          const hasRealAlbumCover = Boolean(albumCoverSrc && albumCoverSrc !== "/default-album.png");
+          const hasRealAlbumCover = Boolean(
+            albumCoverSrc && albumCoverSrc !== "/default-album.png",
+          );
           const nextTrack: TrackItem = {
             id: id * 1000 + index + 1,
             title,
@@ -263,7 +491,11 @@ export default function SetlistPage() {
           };
 
           const prev = tracksByTeam[teamKey] ?? [];
-          const hasSameTrack = prev.some((item) => item.title === nextTrack.title && item.artist === nextTrack.artist);
+          const hasSameTrack = prev.some(
+            (item) =>
+              item.title === nextTrack.title &&
+              item.artist === nextTrack.artist,
+          );
           if (!hasSameTrack) {
             tracksByTeam[teamKey] = [...prev, nextTrack];
           }
@@ -283,9 +515,15 @@ export default function SetlistPage() {
     () => cardsData.filter((card) => card.day === selectedDay),
     [cardsData, selectedDay],
   );
-  const selectedTeamKey = selectedCard ? normalizeTeamName(selectedCard.title) : "";
-  const matchedTrackItems = selectedTeamKey ? trackItemsByTeamKey[selectedTeamKey] : undefined;
-  const trackItems = matchedTrackItems?.length ? matchedTrackItems : trackListByDay[selectedDay];
+  const selectedTeamKey = selectedCard
+    ? normalizeTeamName(selectedCard.title)
+    : "";
+  const matchedTrackItems = selectedTeamKey
+    ? trackItemsByTeamKey[selectedTeamKey]
+    : undefined;
+  const trackItems = matchedTrackItems?.length
+    ? matchedTrackItems
+    : trackListByDay[selectedDay];
   const shouldCenterTrackLayout = trackItems.length <= 4;
 
   return (
@@ -427,28 +665,35 @@ export default function SetlistPage() {
 
                 <div
                   className={`mt-8 bg-black/70 px-4 pb-4 pt-4 text-white ${
-                    shouldCenterTrackLayout ? "flex min-h-[360px] flex-col justify-center" : ""
+                    shouldCenterTrackLayout
+                      ? "flex min-h-[360px] flex-col justify-center"
+                      : ""
                   }`}
                 >
                   <div className="space-y-3 pr-1">
                     {trackItems.map((track) => (
-                      <article key={track.id} className="flex items-center gap-4">
+                      <article
+                        key={track.id}
+                        className="flex items-center gap-4"
+                      >
                         <div className="h-[96px] w-[96px] shrink-0 overflow-hidden rounded-[8px]">
                           {track.coverShape === "square" ? (
                             <SquareGrayArtwork />
                           ) : (
-                            <Image
+                            <TrackCoverImage
                               src={track.coverSrc ?? selectedCard.imageSrc}
                               alt={`${track.title} cover`}
-                              width={96}
-                              height={96}
-                              className="h-full w-full object-cover"
+                              size={96}
                             />
                           )}
                         </div>
                         <div>
-                          <p className="text-[20px] font-semibold leading-[23.87px]">{track.title}</p>
-                          <p className="mt-1 text-[14px] font-semibold leading-[16.71px] text-white/80">{track.artist}</p>
+                          <p className="text-[20px] font-semibold leading-[23.87px]">
+                            {track.title}
+                          </p>
+                          <p className="mt-1 text-[14px] font-semibold leading-[16.71px] text-white/80">
+                            {track.artist}
+                          </p>
                         </div>
                       </article>
                     ))}
@@ -487,9 +732,15 @@ export default function SetlistPage() {
                 </div>
 
                 <div className="w-[379px] bg-black/70 px-9 pb-6 pt-8 text-white">
-                  <div className={`flex h-full flex-col ${shouldCenterTrackLayout ? "justify-center" : ""}`}>
-                    <h2 className="text-[24px] font-semibold leading-[28.64px]">{selectedCard.title}</h2>
-                    <p className="mt-1 text-[10px] leading-[11.93px] text-white/70">앨범 커버를 클릭해보세요!</p>
+                  <div
+                    className={`flex h-full flex-col ${shouldCenterTrackLayout ? "justify-center" : ""}`}
+                  >
+                    <h2 className="text-[24px] font-semibold leading-[28.64px]">
+                      {selectedCard.title}
+                    </h2>
+                    <p className="mt-1 text-[10px] leading-[11.93px] text-white/70">
+                      앨범 커버를 클릭해보세요!
+                    </p>
 
                     <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-4">
                       {trackItems.map((track) => (
@@ -498,17 +749,19 @@ export default function SetlistPage() {
                             {track.coverShape === "square" ? (
                               <SquareGrayArtwork />
                             ) : (
-                              <Image
+                              <TrackCoverImage
                                 src={track.coverSrc ?? selectedCard.imageSrc}
                                 alt={`${track.title} cover`}
-                                width={133}
-                                height={133}
-                                className="h-full w-full object-cover"
+                                size={133}
                               />
                             )}
                           </div>
-                          <p className="mt-2 text-[14px] leading-[16.71px]">{track.title}</p>
-                          <p className="mt-0.5 text-[10px] leading-[11.93px] text-white/80">{track.artist}</p>
+                          <p className="mt-2 text-[14px] leading-[16.71px]">
+                            {track.title}
+                          </p>
+                          <p className="mt-0.5 text-[10px] leading-[11.93px] text-white/80">
+                            {track.artist}
+                          </p>
                         </article>
                       ))}
                     </div>
