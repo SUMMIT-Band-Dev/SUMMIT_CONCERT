@@ -112,3 +112,49 @@ body {
   /* 하단 가독성을 보강하는 보조 톤 다운 */
   filter: brightness(0.85) contrast(1.03);
 }
+
+@media (hover: hover) and (pointer: fine) {
+  :where(
+    a[href],
+    button:not(:disabled),
+    [role="button"]:not([aria-disabled="true"]),
+    input[type="button"]:not(:disabled),
+    input[type="submit"]:not(:disabled),
+    input[type="reset"]:not(:disabled),
+    summary
+  ) {
+    cursor: pointer;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  :where(
+    a[href],
+    button:not(:disabled),
+    [role="button"]:not([aria-disabled="true"]),
+    input[type="button"]:not(:disabled),
+    input[type="submit"]:not(:disabled),
+    input[type="reset"]:not(:disabled),
+    summary
+  ) {
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      transform 220ms ease,
+      box-shadow 220ms ease,
+      border-color 220ms ease,
+      filter 220ms ease;
+  }
+
+  :where(
+    a[href],
+    button:not(:disabled),
+    [role="button"]:not([aria-disabled="true"]),
+    input[type="button"]:not(:disabled),
+    input[type="submit"]:not(:disabled),
+    input[type="reset"]:not(:disabled),
+    summary
+  ):active {
+    transform: translateY(-4px);
+    filter: brightness(1.04);
+  }
+}

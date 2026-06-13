@@ -227,20 +227,6 @@ export default function CardCarousel() {
     };
   }, []);
 
-  useEffect(() => {
-    if (totalCards === 0) {
-      return;
-    }
-
-    const autoplayTimer = window.setInterval(() => {
-      setActiveIndex((prevIndex) => (prevIndex + 1) % totalCards);
-    }, 3000);
-
-    return () => {
-      window.clearInterval(autoplayTimer);
-    };
-  }, [totalCards]);
-
   const moveCard = (direction: 1 | -1, step = 1) => {
     if (totalCards === 0) {
       return;
@@ -299,6 +285,19 @@ export default function CardCarousel() {
               className="relative mt-20 h-[308px] w-full overflow-visible md:mt-16 md:h-[356px] lg:mt-12 lg:h-[376px]"
               style={{ perspective: "1000px" }}
             >
+              <button
+                type="button"
+                aria-label="이전 포스터로 이동"
+                onClick={() => moveCard(-1, 1)}
+                className="absolute inset-y-0 left-0 z-40 w-[36%] cursor-w-resize bg-transparent"
+              />
+              <button
+                type="button"
+                aria-label="다음 포스터로 이동"
+                onClick={() => moveCard(1, 1)}
+                className="absolute inset-y-0 right-0 z-40 w-[36%] cursor-e-resize bg-transparent"
+              />
+
               {posterCards.map((card, index) => {
                 const relativeIndex = getCircularDistance(
                   index,
@@ -360,14 +359,31 @@ export default function CardCarousel() {
             <div className="mt-5 min-h-[86px] text-center">
               {activeCard ? (
                 <motion.div
-                  key={safeActiveIndex}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.28, ease: "easeOut" }}
                 >
-                  <p className="text-[24px] font-semibold leading-tight md:text-[30px]">
-                    {activeCard.team_name}
-                  </p>
+                  <div className="mx-auto flex max-w-[360px] items-center justify-center gap-4 md:max-w-[440px] md:gap-5">
+                    <button
+                      type="button"
+                      aria-label="이전 포스터"
+                      onClick={() => moveCard(-1, 1)}
+                      className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/25 text-[24px] leading-none text-white transition-colors hover:bg-white/10 md:h-11 md:w-11 md:text-[26px]"
+                    >
+                      ‹
+                    </button>
+                    <p className="text-[24px] font-semibold leading-tight md:text-[30px]">
+                      {activeCard.team_name}
+                    </p>
+                    <button
+                      type="button"
+                      aria-label="다음 포스터"
+                      onClick={() => moveCard(1, 1)}
+                      className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/25 text-[24px] leading-none text-white transition-colors hover:bg-white/10 md:h-11 md:w-11 md:text-[26px]"
+                    >
+                      ›
+                    </button>
+                  </div>
                   <p className="mt-3 text-[15px] font-medium text-white/65 md:text-[17px]">
                     {activeCard.day} Artist
                   </p>

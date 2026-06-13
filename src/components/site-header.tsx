@@ -22,7 +22,7 @@ const mobileMenuHrefByItem: Record<string, string> = {
   예매하기: "/book",
   셋리스트: "/setlist",
   "공연장 안내": "https://flexlounge.creatorlink.net/",
-  "타임 테이블": "/desktop-404",
+  "타임 테이블": "/time-table",
   "티켓 안내": "/desktop-404",
   "이벤트 및 굿즈": "/desktop-404",
   "오시는 길": "/desktop-404",
@@ -32,6 +32,8 @@ const mobileMenuHrefByItem: Record<string, string> = {
 const headerNavHrefByItem: Record<string, string> = {
   홈: "/",
   예매하기: "/book",
+  셋리스트: "/setlist",
+  "시설 및 서비스": "/#facility-service",
 };
 
 export default function SiteHeader() {

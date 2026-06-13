@@ -3,7 +3,9 @@ import Link from "next/link";
 import CardCarousel from "@/components/card-carousel";
 import FadeInUp from "@/components/fade-in-up";
 import FacilityServiceSection from "@/components/facility-service-section";
+import OfficialChannelSection from "@/components/official-channel-section";
 import SiteHeader from "@/components/site-header";
+import SummitFooterSection from "@/components/sitie-footer";
 
 export default function Home() {
   return (
@@ -78,7 +80,7 @@ export default function Home() {
                   <FadeInUp delay={0.3}>
                     <Link
                       href="/book"
-                      className="mt-5 inline-flex h-[48px] w-[200px] items-center justify-center rounded-[12px] border border-white/20 bg-black/25 text-[20px] font-medium leading-none text-white backdrop-blur-[1px] md:mt-6 md:h-[48px] md:w-[152px] md:rounded-[14px] md:text-[22px] lg:h-[64px] lg:w-[180px] lg:rounded-[16px] lg:text-[28px]"
+                      className="mt-5 inline-flex h-[48px] w-[200px] items-center justify-center rounded-[12px] border border-white/20 bg-black/25 text-[20px] font-medium leading-none text-white backdrop-blur-[1px] transition-all duration-300 hover:-translate-y-1 hover:border-white hover:shadow-[0_14px_28px_rgba(0,0,0,0.38)] md:mt-6 md:h-[48px] md:w-[152px] md:rounded-[14px] md:text-[22px] lg:h-[64px] lg:w-[180px] lg:rounded-[16px] lg:text-[28px]"
                       style={{
                         fontFamily: "Pretendard, system-ui, sans-serif",
                       }}
@@ -101,6 +103,16 @@ export default function Home() {
               </div>
               <div className="relative z-20 md:mt-12 lg:mt-20">
                 <FacilityServiceSection />
+              </div>
+              <div className="relative z-20">
+                <section className="px-5 pb-16 pt-12 md:px-8 md:pb-20 md:pt-16 lg:px-12 lg:pb-24 lg:pt-20">
+                  <div className="w-full">
+                    <OfficialChannelSection />
+                    <div className="mt-10 md:mt-14">
+                      <SummitFooterSection />
+                    </div>
+                  </div>
+                </section>
               </div>
             </div>
           </div>

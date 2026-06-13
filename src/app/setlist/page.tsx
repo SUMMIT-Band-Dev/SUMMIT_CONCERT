@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo, useState } from "react";
+import FadeInUp from "@/components/fade-in-up";
 import SiteHeader from "@/components/site-header";
 
 type DayType = 1 | 2;
@@ -90,72 +91,80 @@ export default function SetlistPage() {
         </div>
 
         <section className="relative z-10 mx-auto w-full max-w-[1440px] px-5 pb-20 pt-10 md:px-8 md:pb-24 md:pt-16 lg:px-[72px] lg:pt-24">
-          <h1 className="text-[28px] font-semibold leading-[33.4px] md:text-[32px] md:leading-[38px] lg:text-[36px] lg:leading-[42.96px]">
-            Setlist
-          </h1>
+          <FadeInUp delay={0.04}>
+            <h1 className="text-[28px] font-semibold leading-[33.4px] md:text-[32px] md:leading-[38px] lg:text-[36px] lg:leading-[42.96px]">
+              Setlist
+            </h1>
+          </FadeInUp>
 
-          <div className="mt-4 flex items-center gap-5 md:mt-6 md:gap-8">
-            <button
-              type="button"
-              onClick={() => setSelectedDay(1)}
-              className={`text-[20px] font-semibold leading-[23.87px] transition-colors md:text-[24px] md:leading-[28.64px] lg:text-[28px] lg:leading-[33.41px] ${
-                selectedDay === 1 ? "text-white" : "text-[#ababab]"
-              }`}
-            >
-              1일차 공연
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedDay(2)}
-              className={`text-[20px] font-semibold leading-[23.87px] transition-colors md:text-[24px] md:leading-[28.64px] lg:text-[28px] lg:leading-[33.41px] ${
-                selectedDay === 2 ? "text-white" : "text-[#ababab]"
-              }`}
-            >
-              2일차 공연
-            </button>
-          </div>
-
-          <div className="mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 md:hidden">
-            {cards.map((card) => (
+          <FadeInUp delay={0.1}>
+            <div className="mt-4 flex items-center gap-5 md:mt-6 md:gap-8">
               <button
-                key={card.id}
                 type="button"
-                onClick={() => setSelectedCard(card)}
-                className="shrink-0 snap-center overflow-hidden rounded-[8px] border border-white/15 bg-white/5 text-left"
+                onClick={() => setSelectedDay(1)}
+                className={`text-[20px] font-semibold leading-[23.87px] transition-colors md:text-[24px] md:leading-[28.64px] lg:text-[28px] lg:leading-[33.41px] ${
+                  selectedDay === 1 ? "text-white" : "text-[#ababab]"
+                }`}
               >
-                <div className="relative h-[378px] w-[303px]">
-                  <Image
-                    src={card.imageSrc}
-                    alt={`${card.title} cover`}
-                    fill
-                    className="object-cover"
-                    sizes="303px"
-                  />
-                </div>
+                1일차 공연
               </button>
-            ))}
-          </div>
-
-          <div className="mt-10 hidden gap-x-8 gap-y-10 md:grid md:grid-cols-2 lg:grid-cols-4">
-            {cards.map((card) => (
               <button
-                key={card.id}
                 type="button"
-                onClick={() => setSelectedCard(card)}
-                className="overflow-hidden rounded-[8px] border border-white/15 bg-white/5 text-left transition-transform hover:-translate-y-1"
+                onClick={() => setSelectedDay(2)}
+                className={`text-[20px] font-semibold leading-[23.87px] transition-colors md:text-[24px] md:leading-[28.64px] lg:text-[28px] lg:leading-[33.41px] ${
+                  selectedDay === 2 ? "text-white" : "text-[#ababab]"
+                }`}
               >
-                <div className="relative aspect-[297/371] w-full">
-                  <Image
-                    src={card.imageSrc}
-                    alt={`${card.title} cover`}
-                    fill
-                    className="object-cover"
-                    sizes="(min-width: 1280px) 297px, (min-width: 768px) 44vw, 303px"
-                  />
-                </div>
+                2일차 공연
               </button>
-            ))}
-          </div>
+            </div>
+          </FadeInUp>
+
+          <FadeInUp delay={0.16} once={false}>
+            <div className="mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 md:hidden">
+              {cards.map((card) => (
+                <button
+                  key={card.id}
+                  type="button"
+                  onClick={() => setSelectedCard(card)}
+                  className="shrink-0 snap-center overflow-hidden rounded-[8px] border border-white/15 bg-white/5 text-left"
+                >
+                  <div className="relative h-[378px] w-[303px]">
+                    <Image
+                      src={card.imageSrc}
+                      alt={`${card.title} cover`}
+                      fill
+                      className="object-cover"
+                      sizes="303px"
+                    />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </FadeInUp>
+
+          <FadeInUp delay={0.2} once={false}>
+            <div className="mt-10 hidden gap-x-8 gap-y-10 md:grid md:grid-cols-2 lg:grid-cols-4">
+              {cards.map((card) => (
+                <button
+                  key={card.id}
+                  type="button"
+                  onClick={() => setSelectedCard(card)}
+                  className="overflow-hidden rounded-[8px] border border-white/15 bg-white/5 text-left transition-transform hover:-translate-y-1"
+                >
+                  <div className="relative aspect-[297/371] w-full">
+                    <Image
+                      src={card.imageSrc}
+                      alt={`${card.title} cover`}
+                      fill
+                      className="object-cover"
+                      sizes="(min-width: 1280px) 297px, (min-width: 768px) 44vw, 303px"
+                    />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </FadeInUp>
         </section>
       </main>
 
