@@ -10,10 +10,13 @@ export default function SummitFooterSection() {
           SUMMIT
         </h3>
         <div className="mt-6 space-y-2 text-[clamp(13px,3.4vw,19px)] font-medium leading-[1.32] text-white/90 md:mt-7">
-          <p>소속 숭실대학교 IT대학 X AI대학 연합 밴드 소모임</p>
+          <p>
+            <span className="font-medium">소속</span>
+            <span className="ml-4 font-normal">숭실대학교 IT대학 X AI대학 연합 밴드 소모임</span>
+          </p>
           <p>
             <span className="font-semibold">E-Mail</span>
-            <span className="ml-4">itsummit2022@gmail.com</span>
+            <span className="ml-4 font-normal">itsummit2022@gmail.com</span>
           </p>
         </div>
         <div className="mt-6 border-t border-white/30 pt-5 text-[clamp(10px,2.6vw,13px)] leading-[1.3] text-white/85 md:mt-8 md:pt-6">

@@ -233,7 +233,7 @@ const serviceCards: ServiceCard[] = [
 
 const serviceCardHrefById: Partial<Record<ServiceCard["id"], string>> = {
   StageInfoCard: "https://flexlounge.creatorlink.net/",
-  TimeTableCard: "/desktop-404",
+  TimeTableCard: "/time-table",
   TicketInfoCard: "/desktop-404",
   "Event&MDCard": "/desktop-404",
   ContactUsCard: "/desktop-404",

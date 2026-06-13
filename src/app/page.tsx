@@ -80,7 +80,7 @@ export default function Home() {
                   <FadeInUp delay={0.3}>
                     <Link
                       href="/book"
-                      className="mt-5 inline-flex h-[48px] w-[200px] items-center justify-center rounded-[12px] border border-white/20 bg-black/25 text-[20px] font-medium leading-none text-white backdrop-blur-[1px] md:mt-6 md:h-[48px] md:w-[152px] md:rounded-[14px] md:text-[22px] lg:h-[64px] lg:w-[180px] lg:rounded-[16px] lg:text-[28px]"
+                      className="mt-5 inline-flex h-[48px] w-[200px] items-center justify-center rounded-[12px] border border-white/20 bg-black/25 text-[20px] font-medium leading-none text-white backdrop-blur-[1px] transition-all duration-300 hover:-translate-y-1 hover:border-white hover:shadow-[0_14px_28px_rgba(0,0,0,0.38)] md:mt-6 md:h-[48px] md:w-[152px] md:rounded-[14px] md:text-[22px] lg:h-[64px] lg:w-[180px] lg:rounded-[16px] lg:text-[28px]"
                       style={{
                         fontFamily: "Pretendard, system-ui, sans-serif",
                       }}

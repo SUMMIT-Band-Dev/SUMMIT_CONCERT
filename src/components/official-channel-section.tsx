@@ -26,7 +26,12 @@ const channelCards: ChannelCard[] = [
 
 function InstagramIcon() {
   return (
-    <svg aria-hidden viewBox="0 0 32 32" className="h-[54px] w-[54px] text-white md:h-[58px] md:w-[58px]" fill="none">
+    <svg
+      aria-hidden
+      viewBox="0 0 32 32"
+      className="h-[54px] w-[54px] text-white transition-colors duration-300 group-hover:text-[#3b82f6] md:h-[58px] md:w-[58px]"
+      fill="none"
+    >
       <rect x="4" y="4" width="24" height="24" rx="7" stroke="currentColor" strokeWidth="2.6" />
       <circle cx="16" cy="16" r="5.5" stroke="currentColor" strokeWidth="2.6" />
       <circle cx="23.1" cy="8.9" r="1.7" fill="currentColor" />
@@ -36,7 +41,12 @@ function InstagramIcon() {
 
 function YoutubeIcon() {
   return (
-    <svg aria-hidden viewBox="0 0 32 32" className="h-[54px] w-[54px] text-white md:h-[58px] md:w-[58px]" fill="none">
+    <svg
+      aria-hidden
+      viewBox="0 0 32 32"
+      className="h-[54px] w-[54px] text-white transition-colors duration-300 group-hover:text-[#3b82f6] md:h-[58px] md:w-[58px]"
+      fill="none"
+    >
       <rect x="3.5" y="7" width="25" height="18" rx="6" fill="currentColor" />
       <path d="M14 12.6 21 16l-7 3.4v-6.8Z" fill="black" />
     </svg>
@@ -63,7 +73,7 @@ export default function OfficialChannelSection() {
               href={card.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex min-h-[148px] flex-col justify-center gap-2 rounded-[24px] border border-transparent bg-[#161920] px-6 py-5 shadow-[0_20px_38px_rgba(0,0,0,0.34)] transition-all duration-300 hover:-translate-y-1 hover:border-white/30 md:min-h-[228px] md:gap-3 md:px-8 md:py-6"
+              className="group flex min-h-[148px] flex-col justify-center gap-2 rounded-[24px] border border-transparent bg-[#161920] px-6 py-5 transition-all duration-300 hover:-translate-y-1 hover:border-white hover:shadow-[0_20px_36px_rgba(0,0,0,0.36)] md:min-h-[228px] md:gap-3 md:px-8 md:py-6"
             >
               <div>{renderChannelIcon(card.id)}</div>
               <div>
