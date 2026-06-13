@@ -5,8 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, type PanInfo } from "framer-motion";
 import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
 import FadeInUp from "@/components/fade-in-up";
+import { supabase } from "@/lib/supabase";
 
 type SetlistItem = {
   id: number;
@@ -14,15 +14,6 @@ type SetlistItem = {
   day: string;
   image_src: string;
 };
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-
-// 디버깅용: 환경 변수가 잘 들어오는지 콘솔에 출력 (배포 시에는 지울 것)
-console.log("Supabase URL 확인:", supabaseUrl ? "정상" : "비어있음");
-console.log("Supabase KEY 확인:", supabaseKey ? "정상" : "비어있음");
-
-export const supabase = createClient(supabaseUrl, supabaseKey);
 
 const SWIPE_THRESHOLD = 7000;
 type ViewportMode = "mobile" | "tablet" | "desktop";
@@ -185,20 +176,56 @@ export default function CardCarousel() {
 
     const fetchSetlist = async () => {
       try {
-        const { data, error } = await supabase
-          .from("setlist")
-          .select("*")
-          .order("id", { ascending: true });
+        const tableCandidates = ["Line Up", "line_up", "Setlist", "setlist"];
+        let loadedRows: SetlistItem[] = [];
 
-        console.log("Fetched Data:", data);
+        for (const tableName of tableCandidates) {
+          const { data, error } = await supabase
+            .from(tableName)
+            .select("*")
+            .order("id", { ascending: true });
 
-        if (error) {
-          console.error("Fetch Error:", error);
-          return;
+          if (error || !data || data.length === 0) {
+            continue;
+          }
+
+          loadedRows = (data as Array<Record<string, unknown>>)
+            .map((row) => {
+              const id = typeof row.id === "number" ? row.id : Number(row.id);
+              const teamNameRaw =
+                typeof row.team_name === "string"
+                  ? row.team_name
+                  : typeof row.team === "string"
+                    ? row.team
+                    : "";
+              const dayRaw = typeof row.day === "string" ? row.day : "";
+              const imageRaw = typeof row.image_src === "string" ? row.image_src : "";
+              const imageSrc = imageRaw
+                ? imageRaw.startsWith("/") || imageRaw.startsWith("http")
+                  ? imageRaw
+                  : `/${imageRaw}`
+                : "";
+
+              if (!Number.isFinite(id) || !teamNameRaw || !imageSrc) {
+                return null;
+              }
+
+              return {
+                id,
+                team_name: teamNameRaw,
+                day: dayRaw || "SUMMIT",
+                image_src: imageSrc,
+              } satisfies SetlistItem;
+            })
+            .filter((item): item is SetlistItem => item !== null);
+
+          if (loadedRows.length > 0) {
+            break;
+          }
         }
 
         if (isMounted) {
-          setPosterCards((data ?? []) as SetlistItem[]);
+          setPosterCards(loadedRows);
         }
       } finally {
         if (isMounted) {
