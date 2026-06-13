@@ -541,7 +541,7 @@ export default function SetlistPage() {
     <div className="min-h-screen bg-black text-white">
       <SiteHeader />
 
-      <main className="relative pt-16 md:pt-[84px] lg:pt-[102px]">
+      <main className="relative min-h-screen overflow-hidden pt-16 md:pt-[84px] lg:pt-[102px]">
         <div className="pointer-events-none absolute inset-0 z-0">
           <Image
             src="/concert-poster-latest.png"
@@ -549,10 +549,10 @@ export default function SetlistPage() {
             fill
             priority
             sizes="100vw"
-            className="object-cover object-top opacity-80"
+            className="object-cover object-bottom opacity-95"
           />
-          <div className="absolute inset-0 bg-black/70" />
-          <div className="absolute inset-x-0 bottom-0 h-[40vh] bg-gradient-to-b from-transparent to-black" />
+          <div className="absolute inset-0 bg-[#090b1f]/42" />
+          <div className="absolute inset-x-0 bottom-0 h-[48vh] bg-gradient-to-b from-transparent via-black/45 to-black/70" />
         </div>
 
         <section className="relative z-10 mx-auto w-full max-w-[1440px] px-5 pb-20 pt-10 md:px-8 md:pb-24 md:pt-16 lg:px-[72px] lg:pt-24">
