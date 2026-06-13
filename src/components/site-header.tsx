@@ -4,10 +4,24 @@ import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { useState } from "react";
 
-const menuSections = [
+type MobileMenuSection = {
+  title: string;
+  href?: string;
+  items?: string[];
+};
+
+const menuSections: MobileMenuSection[] = [
+  {
+    title: "홈",
+    href: "/",
+  },
+  {
+    title: "예매하기",
+    items: ["1일차 공연", "2일차 공연"],
+  },
   {
     title: "셋리스트",
-    items: ["홈", "예매하기", "셋리스트"],
+    href: "/setlist",
   },
   {
     title: "시설 및 서비스",
@@ -21,6 +35,8 @@ const mobileMenuHrefByItem: Record<string, string> = {
   홈: "/",
   예매하기: "/book",
   셋리스트: "/setlist",
+  "1일차 공연": "https://forms.gle/btyQmp4VH7PyiHav8",
+  "2일차 공연": "https://forms.gle/bZJJyJShKztjg72z8",
   "공연장 안내": "https://flexlounge.creatorlink.net/",
   "타임 테이블": "/time-table",
   "티켓 안내": "/desktop-404",
@@ -82,21 +98,20 @@ export default function SiteHeader() {
             onClick={() => setIsMenuOpen((prev) => !prev)}
             className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-white sm:text-sm md:hidden"
           >
-            <span>LIST</span>
-            <span className="relative flex h-5 w-5 items-center justify-center">
+            <span className="relative flex h-6 w-6 items-center justify-center">
               <span
-                className={`absolute block h-[2px] w-[16px] rounded-full bg-white transition-transform duration-300 ${
-                  isMenuOpen ? "rotate-45" : "-translate-y-[4px]"
+                className={`absolute block h-[2px] w-[18px] rounded-full bg-white transition-transform duration-300 ${
+                  isMenuOpen ? "rotate-45" : "-translate-y-[5px]"
                 }`}
               />
               <span
-                className={`absolute block h-[2px] w-[16px] rounded-full bg-white transition-opacity duration-300 ${
+                className={`absolute block h-[2px] w-[18px] rounded-full bg-white transition-opacity duration-300 ${
                   isMenuOpen ? "opacity-0" : "opacity-100"
                 }`}
               />
               <span
-                className={`absolute block h-[2px] w-[16px] rounded-full bg-white transition-transform duration-300 ${
-                  isMenuOpen ? "-rotate-45" : "translate-y-[4px]"
+                className={`absolute block h-[2px] w-[18px] rounded-full bg-white transition-transform duration-300 ${
+                  isMenuOpen ? "-rotate-45" : "translate-y-[5px]"
                 }`}
               />
             </span>
@@ -125,44 +140,71 @@ export default function SiteHeader() {
               <div className="space-y-12 md:space-y-16">
                 {menuSections.map((section) => (
                   <section key={section.title}>
-                    <h2 className="text-[22px] font-semibold leading-[1.2] text-white md:text-[36px]">
-                      {section.title}
-                    </h2>
-                    <div className="mt-3 h-px w-full bg-white/70 md:mt-5" />
-                    <ul className="mt-4 flex flex-wrap items-center gap-x-8 gap-y-3 md:mt-6 md:gap-x-10">
-                      {section.items.map((item) => (
-                        <li key={item}>
-                          {mobileMenuHrefByItem[item] ? (
-                            mobileMenuHrefByItem[item].startsWith("http") ? (
-                              <a
-                                href={mobileMenuHrefByItem[item]}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={() => setIsMenuOpen(false)}
-                                className="text-left text-[15px] font-semibold leading-[1.35] text-[#b0b0b0] transition-colors hover:text-white md:text-[22px]"
-                              >
-                                {item}
-                              </a>
-                            ) : (
-                              <Link
-                                href={mobileMenuHrefByItem[item]}
-                                onClick={() => setIsMenuOpen(false)}
-                                className="text-left text-[15px] font-semibold leading-[1.35] text-[#b0b0b0] transition-colors hover:text-white md:text-[22px]"
-                              >
-                                {item}
-                              </Link>
-                            )
-                          ) : (
-                            <button
-                              type="button"
-                              className="text-left text-[15px] font-semibold leading-[1.35] text-[#b0b0b0] transition-colors hover:text-white md:text-[22px]"
-                            >
-                              {item}
-                            </button>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
+                    {section.href ? (
+                      section.href.startsWith("http") ? (
+                        <a
+                          href={section.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => setIsMenuOpen(false)}
+                          className="text-[22px] font-semibold leading-[1.2] text-white transition-opacity hover:opacity-80 md:text-[36px]"
+                        >
+                          {section.title}
+                        </a>
+                      ) : (
+                        <Link
+                          href={section.href}
+                          onClick={() => setIsMenuOpen(false)}
+                          className="text-[22px] font-semibold leading-[1.2] text-white transition-opacity hover:opacity-80 md:text-[36px]"
+                        >
+                          {section.title}
+                        </Link>
+                      )
+                    ) : (
+                      <h2 className="text-[22px] font-semibold leading-[1.2] text-white md:text-[36px]">
+                        {section.title}
+                      </h2>
+                    )}
+
+                    {section.items ? (
+                      <>
+                        <div className="mt-3 h-px w-full bg-white/70 md:mt-5" />
+                        <ul className="mt-4 flex flex-wrap items-center gap-x-8 gap-y-3 md:mt-6 md:gap-x-10">
+                          {section.items.map((item) => (
+                            <li key={item}>
+                              {mobileMenuHrefByItem[item] ? (
+                                mobileMenuHrefByItem[item].startsWith("http") ? (
+                                  <a
+                                    href={mobileMenuHrefByItem[item]}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={() => setIsMenuOpen(false)}
+                                    className="text-left text-[15px] font-semibold leading-[1.35] text-[#b0b0b0] transition-colors hover:text-white md:text-[22px]"
+                                  >
+                                    {item}
+                                  </a>
+                                ) : (
+                                  <Link
+                                    href={mobileMenuHrefByItem[item]}
+                                    onClick={() => setIsMenuOpen(false)}
+                                    className="text-left text-[15px] font-semibold leading-[1.35] text-[#b0b0b0] transition-colors hover:text-white md:text-[22px]"
+                                  >
+                                    {item}
+                                  </Link>
+                                )
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="text-left text-[15px] font-semibold leading-[1.35] text-[#b0b0b0] transition-colors hover:text-white md:text-[22px]"
+                                >
+                                  {item}
+                                </button>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    ) : null}
                   </section>
                 ))}
               </div>

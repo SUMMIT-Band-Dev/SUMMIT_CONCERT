@@ -72,7 +72,7 @@ export default function Home() {
                         플렉스라운지 (서울특별시 마포구 양화로 100-10)
                       </p>
                       <p className="mt-1 whitespace-nowrap text-center md:mt-2">
-                        2026-06-26 ~ 2026-06-27
+                        2026-06-25 ~ 2026-06-26
                       </p>
                     </div>
                   </FadeInUp>
