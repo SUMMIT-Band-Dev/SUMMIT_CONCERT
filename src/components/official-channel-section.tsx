@@ -29,7 +29,7 @@ function InstagramIcon() {
     <svg
       aria-hidden
       viewBox="0 0 32 32"
-      className="h-[54px] w-[54px] text-white transition-colors duration-300 group-hover:text-[#3b82f6] md:h-[58px] md:w-[58px]"
+      className="h-[50px] w-[50px] text-white transition-colors duration-300 group-hover:text-[#3b82f6] md:h-[58px] md:w-[58px]"
       fill="none"
     >
       <rect x="4" y="4" width="24" height="24" rx="7" stroke="currentColor" strokeWidth="2.6" />
@@ -44,7 +44,7 @@ function YoutubeIcon() {
     <svg
       aria-hidden
       viewBox="0 0 32 32"
-      className="h-[54px] w-[54px] text-white transition-colors duration-300 group-hover:text-[#3b82f6] md:h-[58px] md:w-[58px]"
+      className="h-[50px] w-[50px] text-white transition-colors duration-300 group-hover:text-[#3b82f6] md:h-[58px] md:w-[58px]"
       fill="none"
     >
       <rect x="3.5" y="7" width="25" height="18" rx="6" fill="currentColor" />

@@ -1,11 +1,28 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import SiteHeader from "@/components/site-header";
 
 export default function TimeTablePage() {
   const [selectedDay, setSelectedDay] = useState<1 | 2>(1);
+  const [isZoomOpen, setIsZoomOpen] = useState(false);
+  const selectedImageSrc =
+    selectedDay === 1 ? "/time-table-day1-20260613-1702.png" : "/time-table-day2-20260613-1704.png";
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const isDesktopPointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+      if (isDesktopPointer && event.key === "Escape" && isZoomOpen) {
+        setIsZoomOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isZoomOpen]);
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -53,17 +70,46 @@ export default function TimeTablePage() {
           <div className="mx-auto mt-14 w-full md:mt-16 lg:mt-20">
             <Image
               key={selectedDay}
-              src={selectedDay === 1 ? "/time-table-day1-20260613-1702.png" : "/time-table-day2-20260613-1704.png"}
+              src={selectedImageSrc}
               alt={selectedDay === 1 ? "1일차 공연 타임 테이블" : "2일차 공연 타임 테이블"}
               width={966}
               height={770}
               sizes="100vw"
               unoptimized
-              className="h-auto w-full rounded-[20px] border border-white/20 object-contain"
+              className="h-auto w-full cursor-zoom-in rounded-[20px] border border-white/20 object-contain"
+              onClick={() => setIsZoomOpen(true)}
             />
           </div>
         </section>
       </main>
+
+      {isZoomOpen ? (
+        <div
+          className="fixed inset-0 z-[100] bg-black/92 backdrop-blur-[1px]"
+          onClick={() => setIsZoomOpen(false)}
+        >
+          <button
+            type="button"
+            aria-label="확대 이미지 닫기"
+            onClick={() => setIsZoomOpen(false)}
+            className="absolute right-4 top-4 z-[110] inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/35 bg-black/45 text-[28px] leading-none text-white transition-colors hover:bg-black/70 md:right-6 md:top-6"
+          >
+            ×
+          </button>
+          <div className="flex h-full w-full items-center justify-center p-5 md:p-8">
+            <Image
+              src={selectedImageSrc}
+              alt={selectedDay === 1 ? "1일차 공연 타임 테이블 확대 이미지" : "2일차 공연 타임 테이블 확대 이미지"}
+              width={966}
+              height={770}
+              sizes="100vw"
+              unoptimized
+              className="h-auto max-h-[90vh] w-auto max-w-[95vw] rounded-[14px] object-contain"
+              onClick={(event) => event.stopPropagation()}
+            />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
