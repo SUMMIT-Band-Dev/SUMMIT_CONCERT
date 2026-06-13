@@ -2,9 +2,10 @@
 
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import FadeInUp from "@/components/fade-in-up";
 import SiteHeader from "@/components/site-header";
+import { supabase } from "@/lib/supabase";
 
 type DayType = 1 | 2;
 
@@ -14,6 +15,7 @@ type SetlistCard = {
   title: string;
   artist: string;
   imageSrc: string;
+  isPosterDummy?: boolean;
 };
 
 type TrackItem = {
@@ -24,15 +26,40 @@ type TrackItem = {
   coverSrc?: string;
 };
 
+type LineUpRow = Record<string, unknown> & {
+  id?: number;
+  day?: string | number;
+  team?: string;
+  team_name?: string;
+  image_src?: string;
+};
+
+type SetlistRow = Record<string, unknown> & {
+  id?: number;
+  day?: string | number;
+  team?: string;
+  team_name?: string;
+  image_src?: string;
+  title?: string;
+  singer?: string;
+  album?: string;
+};
+
 const setlistCards: SetlistCard[] = [
-  { id: 1, day: 1, title: "Twilight", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/setlist-cover-temp.png" },
-  { id: 2, day: 1, title: "Sunset Sky", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/setlist-cover-temp.png" },
-  { id: 3, day: 1, title: "Dreaming", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/setlist-cover-temp.png" },
-  { id: 4, day: 1, title: "Blue Hour", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/setlist-cover-temp.png" },
-  { id: 5, day: 2, title: "Night Drive", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/setlist-cover-temp.png" },
-  { id: 6, day: 2, title: "Moonlight", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/setlist-cover-temp.png" },
-  { id: 7, day: 2, title: "Afterglow", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/setlist-cover-temp.png" },
-  { id: 8, day: 2, title: "Last Song", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/setlist-cover-temp.png" },
+  { id: 1, day: 1, title: "8C8", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/day1-team1.png" },
+  { id: 2, day: 1, title: "뉴비", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/day1-team2.png" },
+  { id: 3, day: 1, title: "즐겜굴비", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/day1-team3.png" },
+  { id: 4, day: 1, title: "써밋 음악도둑", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/day1-team4.png" },
+  { id: 5, day: 1, title: "26살과 26학번", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/day1-team5.png" },
+  { id: 6, day: 1, title: "하로로는노는게제일좋아", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/day1-team6.png" },
+  { id: 7, day: 1, title: "숙취의 미학", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/day1-team7.png" },
+  { id: 8, day: 2, title: "오미자", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/day2-team1.png" },
+  { id: 9, day: 2, title: "낭만치사랑", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/day2-team2.png" },
+  { id: 10, day: 2, title: "쉬었음밴드", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/day2-team3.png" },
+  { id: 11, day: 2, title: "머리위 쥑쥑이", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/day2-team4.png" },
+  { id: 12, day: 2, title: "컴학 늙크크와 공주들", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/day2-team5.png" },
+  { id: 13, day: 2, title: "모스붕어", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/day2-team6.png" },
+  { id: 14, day: 2, title: "도레미파솔라석희", artist: "SUMMIT SUMMER CONCERT", imageSrc: "/day2-team7.png" },
 ];
 
 const trackListByDay: Record<DayType, TrackItem[]> = {
@@ -54,6 +81,63 @@ const trackListByDay: Record<DayType, TrackItem[]> = {
   ],
 };
 
+function getDayFromRow(row: LineUpRow): DayType | null {
+  const dayValue = typeof row.day === "string" ? row.day.toLowerCase().trim() : row.day;
+
+  if (dayValue === 1 || dayValue === "1" || dayValue === "1일차" || dayValue === "1일차 공연" || dayValue === "day1") return 1;
+  if (dayValue === 2 || dayValue === "2" || dayValue === "2일차" || dayValue === "2일차 공연" || dayValue === "day2") return 2;
+  if (typeof row.id === "number") {
+    if (row.id >= 1 && row.id <= 7) return 1;
+    if (row.id >= 8 && row.id <= 14) return 2;
+  }
+  return null;
+}
+
+function normalizeTeamName(value: string) {
+  return value
+    .toLowerCase()
+    // 실무 입력에서 자주 섞이는 축약(젤)과 정식표기(제일)를 동일 키로 취급
+    .replace(/젤/g, "제일")
+    .replace(/[\s_-]+/g, "")
+    .trim();
+}
+
+function getTeamFallbackName(id: number) {
+  const day1Names = ["8C8", "뉴비", "즐겜굴비", "써밋 음악도둑", "26살과 26학번", "하로로는노는게제일좋아", "숙취의 미학"];
+  const day2Names = ["오미자", "낭만치사랑", "쉬었음밴드", "머리위 쥑쥑이", "컴학 늙크크와 공주들", "모스붕어", "도레미파솔라석희"];
+
+  if (id >= 1 && id <= 7) return day1Names[id - 1];
+  if (id >= 8 && id <= 14) return day2Names[id - 8];
+  return `Team ${id}`;
+}
+
+function getImageFallbackPath(id: number) {
+  if (id >= 1 && id <= 7) return `/day1-team${id}.png`;
+  if (id >= 8 && id <= 14) return `/day2-team${id - 7}.png`;
+  return "/day1-team1.png";
+}
+
+function normalizeImageSource(value: unknown) {
+  if (typeof value !== "string") return "";
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed;
+  return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+}
+
+function getTeamFromSetlistRow(row: SetlistRow, id: number) {
+  const team = typeof row.team === "string" ? row.team.trim() : "";
+  if (team) return team;
+  const teamName = typeof row.team_name === "string" ? row.team_name.trim() : "";
+  if (teamName) return teamName;
+  return getTeamFallbackName(id);
+}
+
+function shouldUseDummyPoster(teamName: string) {
+  const normalized = normalizeTeamName(teamName);
+  return normalized === normalizeTeamName("지연발생");
+}
+
 function SquareGrayArtwork() {
   return (
     <div className="flex h-full w-full items-center justify-center rounded-[8px] bg-[#d9d9d9]">
@@ -62,15 +146,147 @@ function SquareGrayArtwork() {
   );
 }
 
+function DummyPosterArtwork() {
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center rounded-[8px] bg-[#5a5a5a] text-center">
+      <div className="h-[24%] w-[24%] rounded-full bg-[#777777]" />
+      <p className="mt-4 text-[12px] font-medium text-white/80">임시 포스터</p>
+    </div>
+  );
+}
+
 export default function SetlistPage() {
   const [selectedDay, setSelectedDay] = useState<DayType>(1);
   const [selectedCard, setSelectedCard] = useState<SetlistCard | null>(null);
+  const [cardsData, setCardsData] = useState<SetlistCard[]>(setlistCards);
+  const [trackItemsByTeamKey, setTrackItemsByTeamKey] = useState<Record<string, TrackItem[]>>({});
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchData = async () => {
+      // 1) 카드/팀명/포스터는 Line Up(team_name) 기준
+      const lineUpTables = ["Line Up", "line_up", "LineUp", "lineup"];
+      let lineUpRows: LineUpRow[] = [];
+      for (const tableName of lineUpTables) {
+        const { data, error } = await supabase
+          .from(tableName)
+          .select("*")
+          .order("id", { ascending: true });
+
+        if (error || !data || data.length === 0) {
+          continue;
+        }
+        lineUpRows = data as LineUpRow[];
+        break;
+      }
+
+      if (!isMounted) return;
+
+      if (lineUpRows.length > 0) {
+        const parsedCards = lineUpRows
+          .filter((row) => typeof row.id === "number" && row.id >= 1)
+          .map((row) => {
+            const id = row.id as number;
+            const day = getDayFromRow(row);
+            if (!day) return null;
+            const teamName = getTeamFromSetlistRow(row as SetlistRow, id);
+            const useDummyPoster = shouldUseDummyPoster(teamName);
+
+            const imageSrc = normalizeImageSource(row.image_src) || (useDummyPoster ? "" : getImageFallbackPath(id));
+
+            return {
+              id,
+              day,
+              title: teamName,
+              artist: "SUMMIT SUMMER CONCERT",
+              imageSrc,
+              isPosterDummy: useDummyPoster,
+            } satisfies SetlistCard;
+          })
+          .filter((card): card is SetlistCard => card !== null);
+
+        if (parsedCards.length > 0) {
+          setCardsData(parsedCards);
+        }
+      }
+
+      // 2) 곡 목록은 Setlist(title/singer/team) 기준
+      const setlistTables = ["Setlist", "setlist", "set_list"];
+      let setlistRows: SetlistRow[] = [];
+      for (const tableName of setlistTables) {
+        const { data, error } = await supabase
+          .from(tableName)
+          .select("*")
+          .order("id", { ascending: true });
+
+        if (error || !data || data.length === 0) {
+          continue;
+        }
+        setlistRows = data as SetlistRow[];
+        break;
+      }
+
+      if (!isMounted) return;
+
+      if (setlistRows.length > 0) {
+        const lineUpTeamKeys = new Set(
+          lineUpRows
+            .map((row) => getTeamFromSetlistRow(row as SetlistRow, typeof row.id === "number" ? row.id : 0))
+            .map((team) => normalizeTeamName(team))
+            .filter(Boolean),
+        );
+
+        const tracksByTeam: Record<string, TrackItem[]> = {};
+
+        setlistRows.forEach((row, index) => {
+          const id = typeof row.id === "number" ? row.id : index + 1;
+          const teamName = getTeamFromSetlistRow(row, id);
+          const teamKey = normalizeTeamName(teamName);
+          if (!teamKey) return;
+
+          // 요청사항: Setlist.team 과 Line Up.team_name 이 일치하는 팀만 반영
+          if (lineUpTeamKeys.size > 0 && !lineUpTeamKeys.has(teamKey)) return;
+
+          const title = typeof row.title === "string" ? row.title.trim() : "";
+          if (!title) return;
+
+          const artist = typeof row.singer === "string" && row.singer.trim() ? row.singer.trim() : "SUMMIT Band";
+          const albumCoverSrc = normalizeImageSource(row.album);
+          const hasRealAlbumCover = Boolean(albumCoverSrc && albumCoverSrc !== "/default-album.png");
+          const nextTrack: TrackItem = {
+            id: id * 1000 + index + 1,
+            title,
+            artist,
+            coverShape: hasRealAlbumCover ? "image" : "square",
+            coverSrc: hasRealAlbumCover ? albumCoverSrc : undefined,
+          };
+
+          const prev = tracksByTeam[teamKey] ?? [];
+          const hasSameTrack = prev.some((item) => item.title === nextTrack.title && item.artist === nextTrack.artist);
+          if (!hasSameTrack) {
+            tracksByTeam[teamKey] = [...prev, nextTrack];
+          }
+        });
+
+        setTrackItemsByTeamKey(tracksByTeam);
+      }
+    };
+
+    void fetchData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const cards = useMemo(
-    () => setlistCards.filter((card) => card.day === selectedDay),
-    [selectedDay],
+    () => cardsData.filter((card) => card.day === selectedDay),
+    [cardsData, selectedDay],
   );
-  const trackItems = trackListByDay[selectedDay];
+  const selectedTeamKey = selectedCard ? normalizeTeamName(selectedCard.title) : "";
+  const matchedTrackItems = selectedTeamKey ? trackItemsByTeamKey[selectedTeamKey] : undefined;
+  const trackItems = matchedTrackItems?.length ? matchedTrackItems : trackListByDay[selectedDay];
+  const shouldCenterTrackLayout = trackItems.length <= 4;
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -127,16 +343,20 @@ export default function SetlistPage() {
                   key={card.id}
                   type="button"
                   onClick={() => setSelectedCard(card)}
-                  className="shrink-0 snap-center overflow-hidden rounded-[8px] border border-white/15 bg-white/5 text-left"
+                  className="shrink-0 snap-center overflow-hidden rounded-[8px] border border-white/15 bg-white/5 text-left transition-all duration-200 hover:border-white"
                 >
                   <div className="relative h-[378px] w-[303px]">
-                    <Image
-                      src={card.imageSrc}
-                      alt={`${card.title} cover`}
-                      fill
-                      className="object-cover"
-                      sizes="303px"
-                    />
+                    {card.isPosterDummy ? (
+                      <DummyPosterArtwork />
+                    ) : (
+                      <Image
+                        src={card.imageSrc}
+                        alt={`${card.title} cover`}
+                        fill
+                        className="object-cover"
+                        sizes="303px"
+                      />
+                    )}
                   </div>
                 </button>
               ))}
@@ -150,16 +370,20 @@ export default function SetlistPage() {
                   key={card.id}
                   type="button"
                   onClick={() => setSelectedCard(card)}
-                  className="overflow-hidden rounded-[8px] border border-white/15 bg-white/5 text-left transition-transform hover:-translate-y-1"
+                  className="overflow-hidden rounded-[8px] border border-white/15 bg-white/5 text-left transition-all duration-200 hover:-translate-y-1 hover:border-white"
                 >
                   <div className="relative aspect-[297/371] w-full">
-                    <Image
-                      src={card.imageSrc}
-                      alt={`${card.title} cover`}
-                      fill
-                      className="object-cover"
-                      sizes="(min-width: 1280px) 297px, (min-width: 768px) 44vw, 303px"
-                    />
+                    {card.isPosterDummy ? (
+                      <DummyPosterArtwork />
+                    ) : (
+                      <Image
+                        src={card.imageSrc}
+                        alt={`${card.title} cover`}
+                        fill
+                        className="object-cover"
+                        sizes="(min-width: 1280px) 297px, (min-width: 768px) 44vw, 303px"
+                      />
+                    )}
                   </div>
                 </button>
               ))}
@@ -187,17 +411,25 @@ export default function SetlistPage() {
               >
                 <div className="px-6 pt-8">
                   <div className="relative mx-auto h-[378px] w-[303px] overflow-hidden rounded-[8px]">
-                    <Image
-                      src={selectedCard.imageSrc}
-                      alt={`${selectedCard.title} cover`}
-                      fill
-                      className="object-cover"
-                      sizes="303px"
-                    />
+                    {selectedCard.isPosterDummy ? (
+                      <DummyPosterArtwork />
+                    ) : (
+                      <Image
+                        src={selectedCard.imageSrc}
+                        alt={`${selectedCard.title} cover`}
+                        fill
+                        className="object-cover"
+                        sizes="303px"
+                      />
+                    )}
                   </div>
                 </div>
 
-                <div className="mt-8 bg-black/70 px-4 pb-4 pt-4 text-white">
+                <div
+                  className={`mt-8 bg-black/70 px-4 pb-4 pt-4 text-white ${
+                    shouldCenterTrackLayout ? "flex min-h-[360px] flex-col justify-center" : ""
+                  }`}
+                >
                   <div className="space-y-3 pr-1">
                     {trackItems.map((track) => (
                       <article key={track.id} className="flex items-center gap-4">
@@ -240,49 +472,55 @@ export default function SetlistPage() {
               >
                 <div className="flex flex-1 items-center justify-center px-10 py-10">
                   <div className="relative h-[473px] w-[379px] overflow-hidden rounded-[8px]">
-                    <Image
-                      src={selectedCard.imageSrc}
-                      alt={`${selectedCard.title} cover`}
-                      fill
-                      className="object-cover"
-                      sizes="379px"
-                    />
+                    {selectedCard.isPosterDummy ? (
+                      <DummyPosterArtwork />
+                    ) : (
+                      <Image
+                        src={selectedCard.imageSrc}
+                        alt={`${selectedCard.title} cover`}
+                        fill
+                        className="object-cover"
+                        sizes="379px"
+                      />
+                    )}
                   </div>
                 </div>
 
                 <div className="w-[379px] bg-black/70 px-9 pb-6 pt-8 text-white">
-                  <h2 className="text-[24px] font-semibold leading-[28.64px]">{selectedCard.title}</h2>
-                  <p className="mt-1 text-[10px] leading-[11.93px] text-white/70">앨범 커버를 클릭해보세요!</p>
+                  <div className={`flex h-full flex-col ${shouldCenterTrackLayout ? "justify-center" : ""}`}>
+                    <h2 className="text-[24px] font-semibold leading-[28.64px]">{selectedCard.title}</h2>
+                    <p className="mt-1 text-[10px] leading-[11.93px] text-white/70">앨범 커버를 클릭해보세요!</p>
 
-                  <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-4">
-                    {trackItems.map((track) => (
-                      <article key={track.id} className="w-[133px]">
-                        <div className="h-[133px] w-[133px] overflow-hidden rounded-[8px]">
-                          {track.coverShape === "square" ? (
-                            <SquareGrayArtwork />
-                          ) : (
-                            <Image
-                              src={track.coverSrc ?? selectedCard.imageSrc}
-                              alt={`${track.title} cover`}
-                              width={133}
-                              height={133}
-                              className="h-full w-full object-cover"
-                            />
-                          )}
-                        </div>
-                        <p className="mt-2 text-[14px] leading-[16.71px]">{track.title}</p>
-                        <p className="mt-0.5 text-[10px] leading-[11.93px] text-white/80">{track.artist}</p>
-                      </article>
-                    ))}
+                    <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-4">
+                      {trackItems.map((track) => (
+                        <article key={track.id} className="w-[133px]">
+                          <div className="h-[133px] w-[133px] overflow-hidden rounded-[8px]">
+                            {track.coverShape === "square" ? (
+                              <SquareGrayArtwork />
+                            ) : (
+                              <Image
+                                src={track.coverSrc ?? selectedCard.imageSrc}
+                                alt={`${track.title} cover`}
+                                width={133}
+                                height={133}
+                                className="h-full w-full object-cover"
+                              />
+                            )}
+                          </div>
+                          <p className="mt-2 text-[14px] leading-[16.71px]">{track.title}</p>
+                          <p className="mt-0.5 text-[10px] leading-[11.93px] text-white/80">{track.artist}</p>
+                        </article>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCard(null)}
+                      className="mt-5 inline-flex h-[48px] w-full items-center justify-center rounded-[8px] bg-[#e2e2e2] text-[16px] font-medium text-black"
+                    >
+                      닫기
+                    </button>
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setSelectedCard(null)}
-                    className="mt-5 inline-flex h-[48px] w-full items-center justify-center rounded-[8px] bg-[#e2e2e2] text-[16px] font-medium text-black"
-                  >
-                    닫기
-                  </button>
                 </div>
               </motion.div>
             </div>
