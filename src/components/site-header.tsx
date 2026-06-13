@@ -32,6 +32,8 @@ const mobileMenuHrefByItem: Record<string, string> = {
 const headerNavHrefByItem: Record<string, string> = {
   홈: "/",
   예매하기: "/book",
+  셋리스트: "/setlist",
+  "시설 및 서비스": "/#facility-service",
 };
 
 export default function SiteHeader() {

@@ -242,7 +242,10 @@ const serviceCardHrefById: Partial<Record<ServiceCard["id"], string>> = {
 
 export default function FacilityServiceSection() {
   return (
-    <section className="px-5 pb-16 pt-10 md:px-8 lg:px-12">
+    <section
+      id="facility-service"
+      className="scroll-mt-[84px] px-5 pb-16 pt-10 md:scroll-mt-[104px] md:px-8 lg:scroll-mt-[124px] lg:px-12"
+    >
       <FadeInUp delay={0.08} once={false}>
         <h2 className="text-[32px] font-semibold leading-[38px] md:text-[44px] md:leading-[52px]">
           시설 및 서비스
@@ -251,32 +254,60 @@ export default function FacilityServiceSection() {
 
       <FadeInUp delay={0.16} once={false}>
         <div className="mt-8 grid grid-cols-2 gap-4 md:mt-10 md:grid-cols-3 md:gap-5 lg:mt-12 lg:grid-cols-6 lg:gap-6">
-          {serviceCards.map((card) => (
-            <Link
-              key={card.id}
-              href={serviceCardHrefById[card.id] ?? "#"}
-              className={`group flex h-[149px] min-w-0 flex-col items-center rounded-[24px] border border-transparent bg-[#161920] px-4 py-7 transition-all duration-300 hover:-translate-y-1 hover:border-white hover:shadow-[0_20px_36px_rgba(0,0,0,0.36)] md:h-[204px] md:py-10 ${
-                serviceCardHrefById[card.id] ? "cursor-pointer" : "cursor-default"
-              }`}
-              aria-disabled={!serviceCardHrefById[card.id]}
-              onClick={(event) => {
-                if (!serviceCardHrefById[card.id]) {
-                  event.preventDefault();
-                }
-              }}
-            >
-              {renderCardIcon(card.id)}
+          {serviceCards.map((card) => {
+            const href = serviceCardHrefById[card.id];
+            const className = `group flex h-[149px] min-w-0 flex-col items-center rounded-[24px] border border-transparent bg-[#161920] px-4 py-7 transition-all duration-300 hover:-translate-y-1 hover:border-white hover:shadow-[0_20px_36px_rgba(0,0,0,0.36)] md:h-[204px] md:py-10 ${
+              href ? "cursor-pointer" : "cursor-default"
+            }`;
 
-              <div className="mt-4 w-full text-center md:mt-6">
-                <p className="whitespace-nowrap text-[clamp(10px,2.6vw,13px)] font-normal leading-[1.2] text-white transition-colors duration-300">
-                  {card.englishLabel}
-                </p>
-                <p className="mt-2 whitespace-nowrap text-[clamp(13px,3.4vw,19px)] font-semibold leading-[1.2] text-white transition-colors duration-300">
-                  {card.koreanLabel}
-                </p>
-              </div>
-            </Link>
-          ))}
+            const cardContent = (
+              <>
+                {renderCardIcon(card.id)}
+
+                <div className="mt-4 w-full text-center md:mt-6">
+                  <p className="whitespace-nowrap text-[clamp(10px,2.6vw,13px)] font-normal leading-[1.2] text-white transition-colors duration-300">
+                    {card.englishLabel}
+                  </p>
+                  <p className="mt-2 whitespace-nowrap text-[clamp(13px,3.4vw,19px)] font-semibold leading-[1.2] text-white transition-colors duration-300">
+                    {card.koreanLabel}
+                  </p>
+                </div>
+              </>
+            );
+
+            if (!href) {
+              return (
+                <button
+                  key={card.id}
+                  type="button"
+                  className={className}
+                  aria-disabled
+                >
+                  {cardContent}
+                </button>
+              );
+            }
+
+            if (href.startsWith("http")) {
+              return (
+                <a
+                  key={card.id}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={className}
+                >
+                  {cardContent}
+                </a>
+              );
+            }
+
+            return (
+              <Link key={card.id} href={href} className={className}>
+                {cardContent}
+              </Link>
+            );
+          })}
         </div>
       </FadeInUp>
     </section>

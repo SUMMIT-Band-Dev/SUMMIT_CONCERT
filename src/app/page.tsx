@@ -3,7 +3,9 @@ import Link from "next/link";
 import CardCarousel from "@/components/card-carousel";
 import FadeInUp from "@/components/fade-in-up";
 import FacilityServiceSection from "@/components/facility-service-section";
+import OfficialChannelSection from "@/components/official-channel-section";
 import SiteHeader from "@/components/site-header";
+import SummitFooterSection from "@/components/sitie-footer";
 
 export default function Home() {
   return (
@@ -101,6 +103,16 @@ export default function Home() {
               </div>
               <div className="relative z-20 md:mt-12 lg:mt-20">
                 <FacilityServiceSection />
+              </div>
+              <div className="relative z-20">
+                <section className="px-5 pb-16 pt-12 md:px-8 md:pb-20 md:pt-16 lg:px-12 lg:pb-24 lg:pt-20">
+                  <div className="w-full">
+                    <OfficialChannelSection />
+                    <div className="mt-10 md:mt-14">
+                      <SummitFooterSection />
+                    </div>
+                  </div>
+                </section>
               </div>
             </div>
           </div>

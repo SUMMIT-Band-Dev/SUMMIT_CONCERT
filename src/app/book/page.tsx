@@ -81,7 +81,9 @@ export default function BookPage() {
 
                     <a
                       href={card.href}
-                      className="mt-7 inline-flex h-[52px] w-[216px] items-center justify-center rounded-[14px] bg-black/45 text-[20px] font-semibold leading-none text-white transition-colors hover:bg-black/60 md:mt-8 md:h-[58px] md:w-[236px] md:text-[22px]"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-7 inline-flex h-[52px] w-[216px] items-center justify-center rounded-[14px] bg-black/45 text-[20px] font-semibold leading-none text-white transition-colors duration-200 hover:bg-[#2b315f]/90 active:bg-[#3a427f] md:mt-8 md:h-[58px] md:w-[236px] md:text-[22px]"
                     >
                       사전 예매하기
                     </a>
