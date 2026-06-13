@@ -369,6 +369,17 @@ function TrackCoverImage({
   );
 }
 
+function getTopYouTubeVideoUrl(track: TrackItem) {
+  const query = `${track.title} ${track.artist}`.trim();
+  const params = new URLSearchParams({
+    query,
+    title: track.title,
+    artist: track.artist,
+    redirect: "1",
+  });
+  return `/api/youtube/top-video?${params.toString()}`;
+}
+
 export default function SetlistPage() {
   const [selectedDay, setSelectedDay] = useState<DayType>(1);
   const [selectedCard, setSelectedCard] = useState<SetlistCard | null>(null);
@@ -672,9 +683,12 @@ export default function SetlistPage() {
                 >
                   <div className="space-y-3 pr-1">
                     {trackItems.map((track) => (
-                      <article
+                      <a
                         key={track.id}
-                        className="flex items-center gap-4"
+                        href={getTopYouTubeVideoUrl(track)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-4 rounded-[8px] transition-colors hover:bg-white/5"
                       >
                         <div className="h-[96px] w-[96px] shrink-0 overflow-hidden rounded-[8px]">
                           {track.coverShape === "square" ? (
@@ -695,7 +709,7 @@ export default function SetlistPage() {
                             {track.artist}
                           </p>
                         </div>
-                      </article>
+                      </a>
                     ))}
                   </div>
                   <button
@@ -744,7 +758,13 @@ export default function SetlistPage() {
 
                     <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-4">
                       {trackItems.map((track) => (
-                        <article key={track.id} className="w-[133px]">
+                        <a
+                          key={track.id}
+                          href={getTopYouTubeVideoUrl(track)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block w-[133px] rounded-[8px] transition-colors hover:bg-white/5"
+                        >
                           <div className="h-[133px] w-[133px] overflow-hidden rounded-[8px]">
                             {track.coverShape === "square" ? (
                               <SquareGrayArtwork />
@@ -762,7 +782,7 @@ export default function SetlistPage() {
                           <p className="mt-0.5 text-[10px] leading-[11.93px] text-white/80">
                             {track.artist}
                           </p>
-                        </article>
+                        </a>
                       ))}
                     </div>
 
