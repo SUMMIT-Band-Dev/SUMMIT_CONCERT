@@ -199,11 +199,17 @@ export default function CardCarousel() {
                     ? row.team
                     : "";
               const dayRaw = typeof row.day === "string" ? row.day : "";
-              const imageRaw = typeof row.image_src === "string" ? row.image_src : "";
-              const imageSrc = imageRaw
-                ? imageRaw.startsWith("/") || imageRaw.startsWith("http")
-                  ? imageRaw
-                  : `/${imageRaw}`
+              const imageRaw =
+                typeof row.image_src === "string" ? row.image_src : "";
+              const normalizedImageRaw = imageRaw
+                .trim()
+                .replaceAll("\\", "/")
+                .replace(/^(public|dist)\//i, "");
+              const imageSrc = normalizedImageRaw
+                ? normalizedImageRaw.startsWith("/") ||
+                  normalizedImageRaw.startsWith("http")
+                  ? normalizedImageRaw
+                  : `/${normalizedImageRaw}`
                 : "";
 
               if (!Number.isFinite(id) || !teamNameRaw || !imageSrc) {
