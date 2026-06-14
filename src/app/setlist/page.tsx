@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import FadeInUp from "@/components/fade-in-up";
+import SetlistDetailModal from "@/components/setlist-detail-modal";
+import SetlistLineupSections from "@/components/setlist-lineup-sections";
 import SiteHeader from "@/components/site-header";
 import { supabase } from "@/lib/supabase";
 
@@ -285,11 +286,13 @@ function getImageFallbackPath(id: number) {
 
 function normalizeImageSource(value: unknown) {
   if (typeof value !== "string") return "";
-  const trimmed = value.trim();
+  const trimmed = value.trim().replaceAll("\\", "/");
   if (!trimmed) return "";
-  if (trimmed.startsWith("http://") || trimmed.startsWith("https://"))
-    return trimmed;
-  return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+  const withoutAssetPrefix = trimmed.replace(/^(public|dist)\//i, "");
+  const normalized = withoutAssetPrefix;
+  if (normalized.startsWith("http://") || normalized.startsWith("https://"))
+    return normalized;
+  return normalized.startsWith("/") ? normalized : `/${normalized}`;
 }
 
 function getTeamFromSetlistRow(row: SetlistRow, id: number) {
@@ -302,8 +305,8 @@ function getTeamFromSetlistRow(row: SetlistRow, id: number) {
 }
 
 function shouldUseDummyPoster(teamName: string) {
-  const normalized = normalizeTeamName(teamName);
-  return normalized === normalizeTeamName("지연발생");
+  void teamName;
+  return false;
 }
 
 function SquareGrayArtwork() {
@@ -535,8 +538,12 @@ export default function SetlistPage() {
   const trackItems = matchedTrackItems?.length
     ? matchedTrackItems
     : trackListByDay[selectedDay];
-  const shouldCenterTrackLayout = trackItems.length <= 4;
-
+  const handleSelectCard = useCallback((card: SetlistCard) => {
+    setSelectedCard(card);
+  }, []);
+  const handleCloseCard = useCallback(() => {
+    setSelectedCard(null);
+  }, []);
   return (
     <div className="min-h-screen bg-black text-white">
       <SiteHeader />
@@ -585,221 +592,23 @@ export default function SetlistPage() {
             </div>
           </FadeInUp>
 
-          <FadeInUp delay={0.16} once={false}>
-            <div className="mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 md:hidden">
-              {cards.map((card) => (
-                <button
-                  key={card.id}
-                  type="button"
-                  onClick={() => setSelectedCard(card)}
-                  className="shrink-0 snap-center overflow-hidden rounded-[8px] border border-white/15 bg-white/5 text-left transition-all duration-200 hover:border-white"
-                >
-                  <div className="relative h-[378px] w-[303px]">
-                    {card.isPosterDummy ? (
-                      <DummyPosterArtwork />
-                    ) : (
-                      <Image
-                        src={card.imageSrc}
-                        alt={`${card.title} cover`}
-                        fill
-                        className="object-cover"
-                        sizes="303px"
-                      />
-                    )}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </FadeInUp>
-
-          <FadeInUp delay={0.2} once={false}>
-            <div className="mt-10 hidden gap-x-8 gap-y-10 md:grid md:grid-cols-2 lg:grid-cols-4">
-              {cards.map((card) => (
-                <button
-                  key={card.id}
-                  type="button"
-                  onClick={() => setSelectedCard(card)}
-                  className="overflow-hidden rounded-[8px] border border-white/15 bg-white/5 text-left transition-all duration-200 hover:-translate-y-1 hover:border-white"
-                >
-                  <div className="relative aspect-[297/371] w-full">
-                    {card.isPosterDummy ? (
-                      <DummyPosterArtwork />
-                    ) : (
-                      <Image
-                        src={card.imageSrc}
-                        alt={`${card.title} cover`}
-                        fill
-                        className="object-cover"
-                        sizes="(min-width: 1280px) 297px, (min-width: 768px) 44vw, 303px"
-                      />
-                    )}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </FadeInUp>
+          <SetlistLineupSections
+            cards={cards}
+            selectedDay={selectedDay}
+            onSelectCard={handleSelectCard}
+          />
         </section>
       </main>
 
-      <AnimatePresence>
-        {selectedCard ? (
-          <motion.div
-            className="fixed inset-0 z-[90]"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <div className="absolute inset-0 bg-black/70 backdrop-blur-[1px]" />
-            <div className="relative flex h-full w-full items-start justify-center px-4 pt-[176px] md:items-center md:p-8">
-              <motion.div
-                className="max-h-[calc(100svh-188px)] w-[min(360px,92vw)] overflow-y-auto rounded-t-2xl bg-black/70 md:hidden"
-                initial={{ y: "100%", opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: "100%", opacity: 0 }}
-                transition={{ type: "spring", stiffness: 150, damping: 22 }}
-              >
-                <div className="px-6 pt-8">
-                  <div className="relative mx-auto h-[378px] w-[303px] overflow-hidden rounded-[8px]">
-                    {selectedCard.isPosterDummy ? (
-                      <DummyPosterArtwork />
-                    ) : (
-                      <Image
-                        src={selectedCard.imageSrc}
-                        alt={`${selectedCard.title} cover`}
-                        fill
-                        className="object-cover"
-                        sizes="303px"
-                      />
-                    )}
-                  </div>
-                </div>
-
-                <div
-                  className={`mt-8 bg-black/70 px-4 pb-4 pt-4 text-white ${
-                    shouldCenterTrackLayout
-                      ? "flex min-h-[360px] flex-col justify-center"
-                      : ""
-                  }`}
-                >
-                  <div className="space-y-3 pr-1">
-                    {trackItems.map((track) => (
-                      <a
-                        key={track.id}
-                        href={getTopYouTubeVideoUrl(track)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-4 rounded-[8px] transition-colors hover:bg-white/5"
-                      >
-                        <div className="h-[96px] w-[96px] shrink-0 overflow-hidden rounded-[8px]">
-                          {track.coverShape === "square" ? (
-                            <SquareGrayArtwork />
-                          ) : (
-                            <TrackCoverImage
-                              src={track.coverSrc ?? selectedCard.imageSrc}
-                              alt={`${track.title} cover`}
-                              size={96}
-                            />
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-[20px] font-semibold leading-[23.87px]">
-                            {track.title}
-                          </p>
-                          <p className="mt-1 text-[14px] font-semibold leading-[16.71px] text-white/80">
-                            {track.artist}
-                          </p>
-                        </div>
-                      </a>
-                    ))}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedCard(null)}
-                    className="mt-4 inline-flex h-[41px] w-full items-center justify-center rounded-[8px] bg-[#e2e2e2] text-[16px] font-medium text-black"
-                  >
-                    닫기
-                  </button>
-                </div>
-              </motion.div>
-
-              <motion.div
-                className="hidden h-[min(720px,84svh)] w-[min(1080px,92vw)] overflow-hidden bg-black/70 md:flex"
-                initial={{ y: 120, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: 120, opacity: 0 }}
-                transition={{ type: "spring", stiffness: 150, damping: 22 }}
-              >
-                <div className="flex flex-1 items-center justify-center px-10 py-10">
-                  <div className="relative h-[473px] w-[379px] overflow-hidden rounded-[8px]">
-                    {selectedCard.isPosterDummy ? (
-                      <DummyPosterArtwork />
-                    ) : (
-                      <Image
-                        src={selectedCard.imageSrc}
-                        alt={`${selectedCard.title} cover`}
-                        fill
-                        className="object-cover"
-                        sizes="379px"
-                      />
-                    )}
-                  </div>
-                </div>
-
-                <div className="w-[379px] bg-black/70 px-9 pb-6 pt-8 text-white">
-                  <div
-                    className={`flex h-full flex-col ${shouldCenterTrackLayout ? "justify-center" : ""}`}
-                  >
-                    <h2 className="text-[24px] font-semibold leading-[28.64px]">
-                      {selectedCard.title}
-                    </h2>
-                    <p className="mt-1 text-[10px] leading-[11.93px] text-white/70">
-                      앨범 커버를 클릭해보세요!
-                    </p>
-
-                    <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-4">
-                      {trackItems.map((track) => (
-                        <a
-                          key={track.id}
-                          href={getTopYouTubeVideoUrl(track)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block w-[133px] rounded-[8px] transition-colors hover:bg-white/5"
-                        >
-                          <div className="h-[133px] w-[133px] overflow-hidden rounded-[8px]">
-                            {track.coverShape === "square" ? (
-                              <SquareGrayArtwork />
-                            ) : (
-                              <TrackCoverImage
-                                src={track.coverSrc ?? selectedCard.imageSrc}
-                                alt={`${track.title} cover`}
-                                size={133}
-                              />
-                            )}
-                          </div>
-                          <p className="mt-2 text-[14px] leading-[16.71px]">
-                            {track.title}
-                          </p>
-                          <p className="mt-0.5 text-[10px] leading-[11.93px] text-white/80">
-                            {track.artist}
-                          </p>
-                        </a>
-                      ))}
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setSelectedCard(null)}
-                      className="mt-5 inline-flex h-[48px] w-full items-center justify-center rounded-[8px] bg-[#e2e2e2] text-[16px] font-medium text-black"
-                    >
-                      닫기
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+      <SetlistDetailModal
+        selectedCard={selectedCard}
+        trackItems={trackItems}
+        onClose={handleCloseCard}
+        getTopYouTubeVideoUrl={getTopYouTubeVideoUrl}
+        TrackCoverImage={TrackCoverImage}
+        DummyPosterArtwork={DummyPosterArtwork}
+        SquareGrayArtwork={SquareGrayArtwork}
+      />
     </div>
   );
 }

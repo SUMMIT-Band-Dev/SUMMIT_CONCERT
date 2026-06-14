@@ -1,11 +1,22 @@
 import Image from "next/image";
 import Link from "next/link";
-import CardCarousel from "@/components/card-carousel";
+import dynamic from "next/dynamic";
 import FadeInUp from "@/components/fade-in-up";
 import FacilityServiceSection from "@/components/facility-service-section";
 import OfficialChannelSection from "@/components/official-channel-section";
 import SiteHeader from "@/components/site-header";
 import SummitFooterSection from "@/components/sitie-footer";
+
+const CardCarousel = dynamic(
+  () => import("@/components/card-carousel"),
+  {
+    loading: () => (
+      <section className="px-5 pb-16 pt-10 text-white/60 md:px-8 lg:px-12">
+        셋리스트를 불러오는 중입니다...
+      </section>
+    ),
+  },
+);
 
 export default function Home() {
   return (
@@ -101,18 +112,23 @@ export default function Home() {
               <div className="relative z-20">
                 <CardCarousel />
               </div>
-              <div className="relative z-20 md:mt-12 lg:mt-20">
-                <FacilityServiceSection />
-              </div>
-              <div className="relative z-20">
-                <section className="px-5 pb-16 pt-12 md:px-8 md:pb-20 md:pt-16 lg:px-12 lg:pb-24 lg:pt-20">
-                  <div className="w-full">
-                    <OfficialChannelSection />
-                    <div className="mt-10 md:mt-14">
-                      <SummitFooterSection />
+              <div className="relative overflow-hidden">
+                <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
+                  <div className="shared-flow-background" />
+                </div>
+                <div className="relative z-20 md:mt-12 lg:mt-20">
+                  <FacilityServiceSection />
+                </div>
+                <div className="relative z-20">
+                  <section className="px-5 pb-16 pt-12 md:px-8 md:pb-20 md:pt-16 lg:px-12 lg:pb-24 lg:pt-20">
+                    <div className="w-full">
+                      <OfficialChannelSection />
+                      <div className="mt-10 md:mt-14">
+                        <SummitFooterSection />
+                      </div>
                     </div>
-                  </div>
-                </section>
+                  </section>
+                </div>
               </div>
             </div>
           </div>
