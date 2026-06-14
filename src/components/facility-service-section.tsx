@@ -234,7 +234,7 @@ const serviceCardHrefById: Partial<Record<ServiceCard["id"], string>> = {
   TimeTableCard: "/time-table",
   TicketInfoCard: "/desktop-404",
   "Event&MDCard": "/desktop-404",
-  ContactUsCard: "/desktop-404",
+  ContactUsCard: "/location",
   NoticeCard: "/desktop-404",
 };
 

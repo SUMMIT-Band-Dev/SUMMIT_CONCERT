@@ -41,7 +41,7 @@ const mobileMenuHrefByItem: Record<string, string> = {
   "타임 테이블": "/time-table",
   "티켓 안내": "/desktop-404",
   "이벤트 및 굿즈": "/desktop-404",
-  "오시는 길": "/desktop-404",
+  "오시는 길": "/location",
   "관람 유의사항": "/desktop-404",
 };
 
