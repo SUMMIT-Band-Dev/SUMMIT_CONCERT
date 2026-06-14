@@ -59,7 +59,7 @@ function renderChannelIcon(id: ChannelCard["id"]) {
 
 export default function OfficialChannelSection() {
   return (
-    <>
+    <section id="official-channel-section">
       <FadeInUp delay={0.06}>
         <h2 className="text-[32px] font-semibold leading-[38px] md:text-[44px] md:leading-[52px]">
           Official Channels
@@ -88,6 +88,6 @@ export default function OfficialChannelSection() {
           </FadeInUp>
         ))}
       </div>
-    </>
+    </section>
   );
 }

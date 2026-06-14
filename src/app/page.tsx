@@ -101,18 +101,23 @@ export default function Home() {
               <div className="relative z-20">
                 <CardCarousel />
               </div>
-              <div className="relative z-20 md:mt-12 lg:mt-20">
-                <FacilityServiceSection />
-              </div>
-              <div className="relative z-20">
-                <section className="px-5 pb-16 pt-12 md:px-8 md:pb-20 md:pt-16 lg:px-12 lg:pb-24 lg:pt-20">
-                  <div className="w-full">
-                    <OfficialChannelSection />
-                    <div className="mt-10 md:mt-14">
-                      <SummitFooterSection />
+              <div className="relative overflow-hidden">
+                <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
+                  <div className="shared-flow-background" />
+                </div>
+                <div className="relative z-20 md:mt-12 lg:mt-20">
+                  <FacilityServiceSection />
+                </div>
+                <div className="relative z-20">
+                  <section className="px-5 pb-16 pt-12 md:px-8 md:pb-20 md:pt-16 lg:px-12 lg:pb-24 lg:pt-20">
+                    <div className="w-full">
+                      <OfficialChannelSection />
+                      <div className="mt-10 md:mt-14">
+                        <SummitFooterSection />
+                      </div>
                     </div>
-                  </div>
-                </section>
+                  </section>
+                </div>
               </div>
             </div>
           </div>

@@ -284,7 +284,8 @@ export default function CardCarousel() {
   };
 
   return (
-    <section className="px-5 pb-16 pt-10 md:px-8 lg:px-12">
+    <section className="relative overflow-hidden px-5 pb-16 pt-10 md:px-8 lg:px-12">
+      <div className="relative z-10">
       <FadeInUp delay={0.06} once={false}>
         <Link
           href="/setlist"
@@ -445,6 +446,7 @@ export default function CardCarousel() {
           </FadeInUp>
         </>
       )}
+      </div>
     </section>
   );
 }

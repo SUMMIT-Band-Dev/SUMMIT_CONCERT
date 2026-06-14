@@ -83,6 +83,63 @@ body {
   opacity: 0.15;
 }
 
+@keyframes shared-background-flow {
+  0% {
+    transform: translate3d(-2.5%, -1.5%, 0) scale(1);
+    background-position:
+      32% 44%,
+      66% 56%,
+      50% 52%;
+    opacity: 0.58;
+  }
+  50% {
+    transform: translate3d(2.5%, 1.8%, 0) scale(1.04);
+    background-position:
+      40% 40%,
+      60% 60%,
+      50% 48%;
+    opacity: 0.76;
+  }
+  100% {
+    transform: translate3d(-2%, -1.8%, 0) scale(1);
+    background-position:
+      34% 46%,
+      64% 54%,
+      50% 52%;
+    opacity: 0.58;
+  }
+}
+
+.shared-flow-background {
+  position: absolute;
+  inset: -6% -4%;
+  background:
+    radial-gradient(
+      36% 30% at 32% 44%,
+      rgba(220, 236, 255, 0.54) 0%,
+      rgba(118, 170, 255, 0.28) 45%,
+      rgba(22, 32, 96, 0.02) 82%,
+      rgba(0, 0, 0, 0) 100%
+    ),
+    radial-gradient(
+      36% 30% at 66% 56%,
+      rgba(210, 232, 255, 0.48) 0%,
+      rgba(96, 150, 248, 0.24) 44%,
+      rgba(14, 24, 90, 0.02) 82%,
+      rgba(0, 0, 0, 0) 100%
+    ),
+    radial-gradient(
+      50% 42% at 50% 52%,
+      rgba(150, 190, 255, 0.22) 0%,
+      rgba(20, 26, 80, 0.04) 66%,
+      rgba(0, 0, 0, 0) 100%
+    );
+  filter: blur(18px);
+  mix-blend-mode: screen;
+  will-change: transform, background-position, opacity;
+  animation: shared-background-flow 8.5s ease-in-out infinite;
+}
+
 .hero-poster-media {
   isolation: isolate;
   contain: paint;
