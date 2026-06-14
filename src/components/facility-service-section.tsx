@@ -121,7 +121,7 @@ function TicketInfoIcon({ className }: IconProps) {
   );
 }
 
-function EventMdIcon({ className }: IconProps) {
+function SetlistFullIcon({ className }: IconProps) {
   return (
     <svg
       aria-hidden
@@ -129,11 +129,15 @@ function EventMdIcon({ className }: IconProps) {
       className={className}
       fill="currentColor"
     >
-      <rect x="6" y="11" width="20" height="15" rx="2.5" />
-      <rect x="15" y="11" width="2" height="15" fill="rgba(0,0,0,0.3)" />
-      <rect x="6" y="16" width="20" height="2" fill="rgba(0,0,0,0.3)" />
-      <rect x="10.8" y="7.2" width="4.2" height="4" rx="2" />
-      <rect x="17" y="7.2" width="4.2" height="4" rx="2" />
+      <rect x="6" y="7" width="5" height="5" rx="1" />
+      <rect x="13" y="8.2" width="11" height="1.8" rx="0.9" />
+      <rect x="13" y="11" width="8" height="1.4" rx="0.7" fill="rgba(0,0,0,0.32)" />
+      <rect x="6" y="13.5" width="5" height="5" rx="1" />
+      <rect x="13" y="14.7" width="11" height="1.8" rx="0.9" />
+      <rect x="13" y="17.5" width="8" height="1.4" rx="0.7" fill="rgba(0,0,0,0.32)" />
+      <rect x="6" y="20" width="5" height="5" rx="1" />
+      <rect x="13" y="21.2" width="11" height="1.8" rx="0.9" />
+      <rect x="13" y="24" width="8" height="1.4" rx="0.7" fill="rgba(0,0,0,0.32)" />
     </svg>
   );
 }
@@ -186,7 +190,7 @@ function renderCardIcon(cardId: ServiceCard["id"]) {
     case "TicketInfoCard":
       return <TicketInfoIcon className={iconClassName} />;
     case "Event&MDCard":
-      return <EventMdIcon className={iconClassName} />;
+      return <SetlistFullIcon className={iconClassName} />;
     case "ContactUsCard":
       return <ContactUsIcon className={iconClassName} />;
     case "NoticeCard":
@@ -214,8 +218,8 @@ const serviceCards: ServiceCard[] = [
   },
   {
     id: "Event&MDCard",
-    englishLabel: "Event & MD",
-    koreanLabel: "이벤트 및 굿즈",
+    englishLabel: "Full Setlist",
+    koreanLabel: "셋리스트 전체 보기",
   },
   {
     id: "ContactUsCard",
@@ -232,10 +236,10 @@ const serviceCards: ServiceCard[] = [
 const serviceCardHrefById: Partial<Record<ServiceCard["id"], string>> = {
   StageInfoCard: "https://flexlounge.creatorlink.net/",
   TimeTableCard: "/time-table",
-  TicketInfoCard: "/desktop-404",
-  "Event&MDCard": "/desktop-404",
-  ContactUsCard: "/desktop-404",
-  NoticeCard: "/desktop-404",
+  TicketInfoCard: "/ticket-info",
+  "Event&MDCard": "/event-goods",
+  ContactUsCard: "/location",
+  NoticeCard: "/notice",
 };
 
 export default function FacilityServiceSection() {
