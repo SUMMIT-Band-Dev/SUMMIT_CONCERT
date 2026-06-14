@@ -302,8 +302,8 @@ function getTeamFromSetlistRow(row: SetlistRow, id: number) {
 }
 
 function shouldUseDummyPoster(teamName: string) {
-  const normalized = normalizeTeamName(teamName);
-  return normalized === normalizeTeamName("지연발생");
+  void teamName;
+  return false;
 }
 
 function SquareGrayArtwork() {
@@ -602,6 +602,7 @@ export default function SetlistPage() {
                         src={card.imageSrc}
                         alt={`${card.title} cover`}
                         fill
+                        unoptimized
                         className="object-cover"
                         sizes="303px"
                       />
@@ -629,6 +630,7 @@ export default function SetlistPage() {
                         src={card.imageSrc}
                         alt={`${card.title} cover`}
                         fill
+                        unoptimized
                         className="object-cover"
                         sizes="(min-width: 1280px) 297px, (min-width: 768px) 44vw, 303px"
                       />
@@ -667,6 +669,7 @@ export default function SetlistPage() {
                         src={selectedCard.imageSrc}
                         alt={`${selectedCard.title} cover`}
                         fill
+                        unoptimized
                         className="object-cover"
                         sizes="303px"
                       />
@@ -738,6 +741,7 @@ export default function SetlistPage() {
                         src={selectedCard.imageSrc}
                         alt={`${selectedCard.title} cover`}
                         fill
+                        unoptimized
                         className="object-cover"
                         sizes="379px"
                       />

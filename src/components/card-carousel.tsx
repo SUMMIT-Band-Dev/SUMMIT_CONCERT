@@ -372,6 +372,7 @@ export default function CardCarousel() {
                         src={card.image_src}
                         alt={`${card.team_name} ${card.day} 포스터`}
                         fill
+                        unoptimized
                         className="object-cover object-center"
                         sizes="(min-width: 1280px) 240px, (min-width: 768px) 228px, 196px"
                       />
