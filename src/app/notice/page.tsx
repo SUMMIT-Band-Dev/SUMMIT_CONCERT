@@ -43,7 +43,9 @@ export default function NoticePage() {
               <FadeInUp delay={0.1}>
                 <article className="overflow-hidden rounded-[18px] border border-white/25 bg-[#0f1223]/28 shadow-[0_18px_44px_rgba(0,0,0,0.3)] backdrop-blur-[6px] transition-all duration-300 hover:-translate-y-1 hover:border-white hover:shadow-[0_20px_36px_rgba(0,0,0,0.36)]">
                   <div className="flex items-center border-b border-white/20 bg-[#0f1223]/36 px-5 py-3 md:px-7 md:py-4">
-                    <h2 className="text-[18px] font-semibold md:text-[24px]">[관객 안전 안내]</h2>
+                    <h2 className="text-[18px] font-semibold md:text-[24px]">
+                      관객 안전 안내
+                    </h2>
                   </div>
                   <ul className="space-y-4 px-5 py-5 text-[14px] leading-[1.65] text-white/92 md:px-7 md:py-6 md:text-[17px]">
                     {safetyNoticeItems.map((item, index) => (
@@ -61,7 +63,9 @@ export default function NoticePage() {
               <FadeInUp delay={0.16}>
                 <article className="overflow-hidden rounded-[18px] border border-white/25 bg-[#0f1223]/28 shadow-[0_18px_44px_rgba(0,0,0,0.3)] backdrop-blur-[6px] transition-all duration-300 hover:-translate-y-1 hover:border-white hover:shadow-[0_20px_36px_rgba(0,0,0,0.36)]">
                   <div className="flex items-center border-b border-white/20 bg-[#0f1223]/36 px-5 py-3 md:px-7 md:py-4">
-                    <h2 className="text-[18px] font-semibold md:text-[24px]">[주차 안내]</h2>
+                    <h2 className="text-[18px] font-semibold md:text-[24px]">
+                      주차 안내
+                    </h2>
                   </div>
                   <ul className="space-y-4 px-5 py-5 text-[14px] leading-[1.65] text-white/92 md:px-7 md:py-6 md:text-[17px]">
                     {parkingNoticeItems.map((item, index) => (
