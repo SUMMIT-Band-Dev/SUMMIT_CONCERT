@@ -25,7 +25,7 @@ const menuSections: MobileMenuSection[] = [
   },
   {
     title: "시설 및 서비스",
-    items: ["공연장 안내", "타임 테이블", "티켓 안내", "이벤트 및 굿즈", "오시는 길", "관람 유의사항"],
+    items: ["공연장 안내", "타임 테이블", "티켓 안내", "셋리스트 전체 보기", "오시는 길", "관람 유의사항"],
   },
 ];
 
@@ -39,10 +39,10 @@ const mobileMenuHrefByItem: Record<string, string> = {
   "2일차 공연": "https://forms.gle/bZJJyJShKztjg72z8",
   "공연장 안내": "https://flexlounge.creatorlink.net/",
   "타임 테이블": "/time-table",
-  "티켓 안내": "/desktop-404",
-  "이벤트 및 굿즈": "/desktop-404",
+  "티켓 안내": "/ticket-info",
+  "셋리스트 전체 보기": "/event-goods",
   "오시는 길": "/location",
-  "관람 유의사항": "/desktop-404",
+  "관람 유의사항": "/notice",
 };
 
 const headerNavHrefByItem: Record<string, string> = {
