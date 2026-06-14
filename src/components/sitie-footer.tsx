@@ -1,5 +1,3 @@
-"use client";
-
 import FadeInUp from "@/components/fade-in-up";
 
 export default function SummitFooterSection() {

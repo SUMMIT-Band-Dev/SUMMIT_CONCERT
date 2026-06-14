@@ -130,21 +130,21 @@ function getCardMotion(relativeIndex: number, viewportMode: ViewportMode) {
 
   if (absIndex === 1) {
     return {
-      x: 162 * direction,
-      scale: 0.86,
+      x: 116 * direction,
+      scale: 0.84,
       rotateY: -36 * direction,
       z: 40,
-      opacity: 0.8,
+      opacity: 0.78,
       zIndex: 20,
     };
   }
 
   if (absIndex === 2) {
     return {
-      x: 290 * direction,
-      scale: 0.78,
-      rotateY: -45 * direction,
-      z: -20,
+      x: 180 * direction,
+      scale: 0.68,
+      rotateY: -42 * direction,
+      z: -28,
       opacity: 0.5,
       zIndex: 10,
     };
@@ -285,6 +285,10 @@ export default function CardCarousel() {
 
   return (
     <section className="relative overflow-hidden px-5 pb-16 pt-10 md:px-8 lg:px-12">
+      <div className="pointer-events-none absolute inset-0 z-[5] md:hidden">
+        <div className="mobile-setlist-motion-bg" />
+      </div>
+
       <div className="relative z-10">
       <FadeInUp delay={0.06} once={false}>
         <Link
