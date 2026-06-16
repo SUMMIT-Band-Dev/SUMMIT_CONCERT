@@ -104,7 +104,7 @@ export async function GET(request: Request) {
 
   const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
   if (shouldRedirect) {
-    return NextResponse.redirect(videoUrl);
+    return NextResponse.redirect(`${videoUrl}&autoplay=1`);
   }
 
   return NextResponse.json({ url: videoUrl });
