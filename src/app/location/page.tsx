@@ -1,14 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import FadeInUp from "@/components/fade-in-up";
+import NaverMap from "@/components/naver-map";
 import SiteHeader from "@/components/site-header";
 
 const NAVER_MAP_URL =
   "https://map.naver.com/p/search/%ED%94%8C%EB%A0%89%EC%8A%A4%EB%9D%BC%EC%9A%B4%EC%A7%80/place/37392237?placePath=%3FabtExp%3DN-PLC-AD-UI-26%253A2%26bk_query%3D%25ED%2594%258C%25EB%25A0%2589%25EC%258A%25A4%25EB%259D%25BC%25EC%259A%25B4%25EC%25A7%2580%26entry%3Dpll%26from%3Dnx%26fromNxList%3Dtrue&placeSearchOption=abtExp%3DN-PLC-AD-UI-26%253A2%26bk_query%3D%25ED%2594%258C%25EB%25A0%2589%25EC%258A%25A4%25EB%259D%25BC%25EC%259A%25B4%25EC%25A7%2580%26entry%3Dpll%26fromNxList%3Dtrue%26originalQuery%3D%25ED%2594%258C%25EB%25A0%2589%25EC%258A%25A4%25EB%259D%25BC%25EC%259A%25B4%25EC%25A7%2580%26x%3D126.949900%26y%3D37.503300&searchType=place";
-
-// 네이버 embed는 모바일(m.map.naver.com)에서 iframe 차단 → 지도만 보이는 OSM embed 사용
-const MAP_IFRAME_URL =
-  "https://www.openstreetmap.org/export/embed.html?bbox=126.9464%2C37.5014%2C126.9534%2C37.5052&layer=mapnik&marker=37.503300%2C126.949900";
 
 export default function LocationPage() {
   return (
@@ -40,13 +37,7 @@ export default function LocationPage() {
             <FadeInUp delay={0.12} className="w-full">
               <div className="relative left-1/2 flex w-[calc(100vw-72px)] -translate-x-1/2 flex-col items-center justify-center space-y-4 md:w-[calc(100vw-128px)] lg:w-[calc(100vw-220px)]">
                 <div className="relative h-[56svh] min-h-[360px] w-full overflow-hidden rounded-[4px] bg-[#d9d9d9] shadow-[0_18px_34px_rgba(0,0,0,0.28)] md:h-[47svh] md:min-h-[360px] lg:h-[53svh] lg:min-h-[460px]">
-                  <iframe
-                    src={MAP_IFRAME_URL}
-                    title="플렉스 라운지 지도"
-                    className="h-full w-full border-0"
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                  />
+                  <NaverMap />
                 </div>
                 <div className="flex flex-col items-center justify-center gap-3 text-center md:flex-row md:flex-wrap md:gap-4">
                   <Link
