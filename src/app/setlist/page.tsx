@@ -378,12 +378,12 @@ function handleTrackClick(track: TrackItem) {
   if (track.youtubeUrl) {
     const url = new URL(track.youtubeUrl);
     url.searchParams.set("autoplay", "1");
-    window.open(url.toString(), "_blank", "noopener,noreferrer");
+    window.open(url.toString(), "_blank");
     return;
   }
 
-  // 팝업 차단 방지: 클릭 이벤트 내에서 즉시 새 창 열기
-  const win = window.open("about:blank", "_blank", "noopener,noreferrer");
+  // noopener 없이 열어야 win.location.href 제어 가능
+  const win = window.open("", "_blank");
 
   const query = `${track.title} ${track.artist}`.trim();
   const params = new URLSearchParams({
@@ -395,18 +395,26 @@ function handleTrackClick(track: TrackItem) {
   fetch(`/api/youtube/top-video?${params.toString()}`)
     .then((r) => r.json())
     .then((data: { url?: string }) => {
-      const target = win ?? window;
-      if (data.url) {
-        const url = new URL(data.url);
-        url.searchParams.set("autoplay", "1");
-        target.location.href = url.toString();
+      const dest = data.url
+        ? (() => {
+            const u = new URL(data.url);
+            u.searchParams.set("autoplay", "1");
+            return u.toString();
+          })()
+        : `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+      if (win) {
+        win.location.href = dest;
       } else {
-        target.location.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+        window.open(dest, "_blank");
       }
     })
     .catch(() => {
-      const target = win ?? window;
-      target.location.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+      const fallback = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+      if (win) {
+        win.location.href = fallback;
+      } else {
+        window.open(fallback, "_blank");
+      }
     });
 }
 
