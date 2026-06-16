@@ -375,7 +375,11 @@ function TrackCoverImage({
 }
 
 function getTopYouTubeVideoUrl(track: TrackItem) {
-  if (track.youtubeUrl) return track.youtubeUrl;
+  if (track.youtubeUrl) {
+    const url = new URL(track.youtubeUrl);
+    url.searchParams.set("autoplay", "1");
+    return url.toString();
+  }
   const query = `${track.title} ${track.artist}`.trim();
   const params = new URLSearchParams({
     query,
