@@ -374,15 +374,25 @@ function TrackCoverImage({
   );
 }
 
+function openInNewTab(url: string) {
+  const a = document.createElement("a");
+  a.href = url;
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
 function handleTrackClick(track: TrackItem) {
   if (track.youtubeUrl) {
     const url = new URL(track.youtubeUrl);
     url.searchParams.set("autoplay", "1");
-    window.open(url.toString(), "_blank");
+    openInNewTab(url.toString());
     return;
   }
 
-  // noopener 없이 열어야 win.location.href 제어 가능
+  // 팝업 차단 방지: 클릭 이벤트 내에서 즉시 새 창 열기
   const win = window.open("", "_blank");
 
   const query = `${track.title} ${track.artist}`.trim();
@@ -405,7 +415,7 @@ function handleTrackClick(track: TrackItem) {
       if (win) {
         win.location.href = dest;
       } else {
-        window.open(dest, "_blank");
+        openInNewTab(dest);
       }
     })
     .catch(() => {
@@ -413,7 +423,7 @@ function handleTrackClick(track: TrackItem) {
       if (win) {
         win.location.href = fallback;
       } else {
-        window.open(fallback, "_blank");
+        openInNewTab(fallback);
       }
     });
 }
