@@ -374,20 +374,40 @@ function TrackCoverImage({
   );
 }
 
-function getTopYouTubeVideoUrl(track: TrackItem) {
+function handleTrackClick(track: TrackItem) {
   if (track.youtubeUrl) {
     const url = new URL(track.youtubeUrl);
     url.searchParams.set("autoplay", "1");
-    return url.toString();
+    window.open(url.toString(), "_blank", "noopener,noreferrer");
+    return;
   }
+
+  // 팝업 차단 방지: 클릭 이벤트 내에서 즉시 새 창 열기
+  const win = window.open("about:blank", "_blank", "noopener,noreferrer");
+
   const query = `${track.title} ${track.artist}`.trim();
   const params = new URLSearchParams({
     query,
     title: track.title,
     artist: track.artist,
-    redirect: "1",
   });
-  return `/api/youtube/top-video?${params.toString()}`;
+
+  fetch(`/api/youtube/top-video?${params.toString()}`)
+    .then((r) => r.json())
+    .then((data: { url?: string }) => {
+      const target = win ?? window;
+      if (data.url) {
+        const url = new URL(data.url);
+        url.searchParams.set("autoplay", "1");
+        target.location.href = url.toString();
+      } else {
+        target.location.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+      }
+    })
+    .catch(() => {
+      const target = win ?? window;
+      target.location.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+    });
 }
 
 export default function SetlistPage() {
@@ -616,7 +636,7 @@ export default function SetlistPage() {
         selectedCard={selectedCard}
         trackItems={trackItems}
         onClose={handleCloseCard}
-        getTopYouTubeVideoUrl={getTopYouTubeVideoUrl}
+        onTrackClick={handleTrackClick}
         TrackCoverImage={TrackCoverImage}
         DummyPosterArtwork={DummyPosterArtwork}
         SquareGrayArtwork={SquareGrayArtwork}

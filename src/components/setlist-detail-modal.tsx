@@ -21,6 +21,7 @@ type TrackItem = {
   artist: string;
   coverShape: "square" | "image";
   coverSrc?: string;
+  youtubeUrl?: string;
 };
 
 type CoverImageProps = {
@@ -33,7 +34,7 @@ type SetlistDetailModalProps = {
   selectedCard: SetlistCard | null;
   trackItems: TrackItem[];
   onClose: () => void;
-  getTopYouTubeVideoUrl: (track: TrackItem) => string;
+  onTrackClick: (track: TrackItem) => void;
   TrackCoverImage: ComponentType<CoverImageProps>;
   DummyPosterArtwork: ComponentType;
   SquareGrayArtwork: ComponentType;
@@ -43,7 +44,7 @@ export default function SetlistDetailModal({
   selectedCard,
   trackItems,
   onClose,
-  getTopYouTubeVideoUrl,
+  onTrackClick,
   TrackCoverImage,
   DummyPosterArtwork,
   SquareGrayArtwork,
@@ -168,12 +169,11 @@ export default function SetlistDetailModal({
                   </p>
                   <div className="mt-3 space-y-2 pr-1">
                     {trackItems.map((track, index) => (
-                      <a
+                      <button
                         key={track.id}
-                        href={getTopYouTubeVideoUrl(track)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-3 rounded-[10px] border border-white/10 bg-white/[0.04] px-3 py-2.5 transition-all hover:border-white/30 hover:bg-white/[0.1]"
+                        type="button"
+                        onClick={() => onTrackClick(track)}
+                        className="flex w-full items-center gap-3 rounded-[10px] border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left transition-all hover:border-white/30 hover:bg-white/[0.1]"
                       >
                         <div className="w-[22px] shrink-0 text-center text-[11px] font-semibold text-white/55">
                           {String(index + 1).padStart(2, "0")}
@@ -200,7 +200,7 @@ export default function SetlistDetailModal({
                         <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/35 text-[12px] text-white/85">
                           ▶
                         </div>
-                      </a>
+                      </button>
                     ))}
                   </div>
                   <button
@@ -328,12 +328,11 @@ export default function SetlistDetailModal({
 
                   <div className="mt-4 max-h-[390px] space-y-2 overflow-y-auto pr-1">
                     {trackItems.map((track, index) => (
-                      <a
+                      <button
                         key={track.id}
-                        href={getTopYouTubeVideoUrl(track)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-3 rounded-[10px] border border-white/10 bg-white/[0.04] px-3 py-2.5 transition-all hover:border-white/30 hover:bg-white/[0.1]"
+                        type="button"
+                        onClick={() => onTrackClick(track)}
+                        className="flex w-full items-center gap-3 rounded-[10px] border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left transition-all hover:border-white/30 hover:bg-white/[0.1]"
                       >
                         <div className="w-[24px] shrink-0 text-center text-[12px] font-semibold text-white/55">
                           {String(index + 1).padStart(2, "0")}
@@ -360,7 +359,7 @@ export default function SetlistDetailModal({
                         <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/35 text-[12px] text-white/85">
                           ▶
                         </div>
-                      </a>
+                      </button>
                     ))}
                   </div>
 
