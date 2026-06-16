@@ -25,6 +25,7 @@ type TrackItem = {
   artist: string;
   coverShape: "square" | "image";
   coverSrc?: string;
+  youtubeUrl?: string;
 };
 
 type LineUpRow = Record<string, unknown> & {
@@ -44,6 +45,7 @@ type SetlistRow = Record<string, unknown> & {
   title?: string;
   singer?: string;
   album?: string;
+  youtube_url?: string;
 };
 
 const setlistCards: SetlistCard[] = [
@@ -373,6 +375,7 @@ function TrackCoverImage({
 }
 
 function getTopYouTubeVideoUrl(track: TrackItem) {
+  if (track.youtubeUrl) return track.youtubeUrl;
   const query = `${track.title} ${track.artist}`.trim();
   const params = new URLSearchParams({
     query,
@@ -496,12 +499,17 @@ export default function SetlistPage() {
           const hasRealAlbumCover = Boolean(
             albumCoverSrc && albumCoverSrc !== "/default-album.png",
           );
+          const youtubeUrl =
+            typeof row.youtube_url === "string" && row.youtube_url.trim()
+              ? row.youtube_url.trim()
+              : undefined;
           const nextTrack: TrackItem = {
             id: id * 1000 + index + 1,
             title,
             artist,
             coverShape: hasRealAlbumCover ? "image" : "square",
             coverSrc: hasRealAlbumCover ? albumCoverSrc : undefined,
+            youtubeUrl,
           };
 
           const prev = tracksByTeam[teamKey] ?? [];
