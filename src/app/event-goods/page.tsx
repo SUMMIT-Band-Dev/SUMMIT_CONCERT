@@ -15,6 +15,7 @@ type TrackItem = {
   artist: string;
   coverShape: "square" | "image";
   coverSrc?: string;
+  youtubeUrl?: string;
 };
 
 type TeamPlaylist = {
@@ -39,6 +40,7 @@ type SetlistRow = Record<string, unknown> & {
   title?: string;
   singer?: string;
   album?: string;
+  youtube_url?: string;
 };
 
 const dayLabels: Record<DayType, string> = {
@@ -135,15 +137,56 @@ function getTeamFromRow(row: SetlistRow, id: number) {
   return getTeamFallbackName(id);
 }
 
-function getTopYouTubeVideoUrl(track: TrackItem) {
+function openInNewTab(url: string) {
+  const a = document.createElement("a");
+  a.href = url;
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function handleTrackClick(track: TrackItem) {
+  if (track.youtubeUrl) {
+    const url = new URL(track.youtubeUrl);
+    url.searchParams.set("autoplay", "1");
+    openInNewTab(url.toString());
+    return;
+  }
+
+  const win = window.open("", "_blank");
   const query = `${track.title} ${track.artist}`.trim();
   const params = new URLSearchParams({
     query,
     title: track.title,
     artist: track.artist,
-    redirect: "1",
   });
-  return `/api/youtube/top-video?${params.toString()}`;
+
+  fetch(`/api/youtube/top-video?${params.toString()}`)
+    .then((r) => r.json())
+    .then((data: { url?: string }) => {
+      const dest = data.url
+        ? (() => {
+            const u = new URL(data.url);
+            u.searchParams.set("autoplay", "1");
+            return u.toString();
+          })()
+        : `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+      if (win) {
+        win.location.href = dest;
+      } else {
+        openInNewTab(dest);
+      }
+    })
+    .catch(() => {
+      const fallback = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+      if (win) {
+        win.location.href = fallback;
+      } else {
+        openInNewTab(fallback);
+      }
+    });
 }
 
 function SquareGrayArtwork() {
@@ -237,12 +280,11 @@ function DayPlaylistSection({
                     const displayIndex = trackIndex;
 
                     return (
-                      <a
+                      <button
                         key={track.id}
-                        href={getTopYouTubeVideoUrl(track)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-3 rounded-[10px] border border-white/10 bg-white/[0.04] px-3 py-2.5 transition-all hover:border-white/30 hover:bg-white/[0.1]"
+                        type="button"
+                        onClick={() => handleTrackClick(track)}
+                        className="flex w-full items-center gap-3 rounded-[10px] border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left transition-all hover:border-white/30 hover:bg-white/[0.1]"
                       >
                         <div className="w-[24px] shrink-0 text-center text-[12px] font-semibold text-white/55">
                           {String(displayIndex).padStart(2, "0")}
@@ -269,7 +311,7 @@ function DayPlaylistSection({
                         <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/35 text-[12px] text-white/85">
                           ▶
                         </div>
-                      </a>
+                      </button>
                     );
                   })}
                 </div>
@@ -353,12 +395,18 @@ export default function EventGoodsPage() {
           albumCoverSrc && albumCoverSrc !== "/default-album.png",
         );
 
+        const youtubeUrl =
+          typeof row.youtube_url === "string" && row.youtube_url.trim()
+            ? row.youtube_url.trim()
+            : undefined;
+
         const nextTrack: TrackItem = {
           id: id * 1000 + index + 1,
           title,
           artist,
           coverShape: hasRealAlbumCover ? "image" : "square",
           coverSrc: hasRealAlbumCover ? albumCoverSrc : undefined,
+          youtubeUrl,
         };
 
         const prev = tracksByTeam[teamKey] ?? [];
