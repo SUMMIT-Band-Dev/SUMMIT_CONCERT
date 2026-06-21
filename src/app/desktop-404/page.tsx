@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import SiteHeader from "@/components/site-header";
+import SiteHeader from "@/components/layout/site-header";
 
 export default function Desktop404Page() {
   return (

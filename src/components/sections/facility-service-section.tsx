@@ -1,5 +1,5 @@
 import Link from "next/link";
-import FadeInUp from "@/components/fade-in-up";
+import FadeInUp from "@/components/common/fade-in-up";
 
 type ServiceCard = {
   id:
@@ -270,7 +270,7 @@ export default function FacilityServiceSection() {
                   <p className="whitespace-nowrap text-[clamp(10px,2.6vw,13px)] font-normal leading-[1.2] text-white transition-colors duration-300">
                     {card.englishLabel}
                   </p>
-                  <p className="mt-2 whitespace-nowrap text-[clamp(13px,3.4vw,19px)] font-semibold leading-[1.2] text-white transition-colors duration-300">
+                  <p className="mt-2 break-keep text-[clamp(13px,3.4vw,19px)] font-semibold leading-[1.2] text-white transition-colors duration-300">
                     {card.koreanLabel}
                   </p>
                 </div>

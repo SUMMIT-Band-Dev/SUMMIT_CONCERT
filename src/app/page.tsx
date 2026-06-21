@@ -1,14 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import FadeInUp from "@/components/fade-in-up";
-import FacilityServiceSection from "@/components/facility-service-section";
-import OfficialChannelSection from "@/components/official-channel-section";
-import SiteHeader from "@/components/site-header";
-import SummitFooterSection from "@/components/sitie-footer";
+import FadeInUp from "@/components/common/fade-in-up";
+import FacilityServiceSection from "@/components/sections/facility-service-section";
+import OfficialChannelSection from "@/components/sections/official-channel-section";
+import SiteHeader from "@/components/layout/site-header";
+import SummitFooterSection from "@/components/layout/site-footer";
 
 const CardCarousel = dynamic(
-  () => import("@/components/card-carousel"),
+  () => import("@/components/ui/card-carousel"),
   {
     loading: () => (
       <section className="px-5 pb-16 pt-10 text-white/60 md:px-8 lg:px-12">

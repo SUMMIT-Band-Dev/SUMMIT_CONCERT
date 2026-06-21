@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { memo } from "react";
-import FadeInUp from "@/components/fade-in-up";
+import FadeInUp from "@/components/common/fade-in-up";
 
 type DayType = 1 | 2;
 

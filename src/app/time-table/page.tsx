@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import SiteHeader from "@/components/site-header";
+import SiteHeader from "@/components/layout/site-header";
 
 export default function TimeTablePage() {
   const [selectedDay, setSelectedDay] = useState<1 | 2>(1);

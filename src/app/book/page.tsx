@@ -1,6 +1,6 @@
 import Image from "next/image";
-import FadeInUp from "@/components/fade-in-up";
-import SiteHeader from "@/components/site-header";
+import FadeInUp from "@/components/common/fade-in-up";
+import SiteHeader from "@/components/layout/site-header";
 
 type BookDayCard = {
   id: string;
@@ -20,7 +20,7 @@ const bookDayCards: BookDayCard[] = [
       "써밋 음악도둑, 26살과 26학번,",
       "하로로는노는게제일좋아, 숙취의 미학",
     ],
-    // 1일차 사전 예매 페이지 이동 
+    // 1일차 사전 예매 페이지 이동
     href: "https://forms.gle/btyQmp4VH7PyiHav8",
   },
   {
@@ -30,9 +30,9 @@ const bookDayCards: BookDayCard[] = [
     artists: [
       "오미자, 낭만치사량, 쉬었음밴드,",
       "머리위 쥑쥑이, 컴학늙크크와 공주들,",
-      "모스붕어, 도레미파솔라석희, 자연발생",
+      "모스붕어, 도레미파솔라석희, 지연발생",
     ],
-    // 2일차 사전 예매 페이지 이동 
+    // 2일차 사전 예매 페이지 이동
     href: "https://forms.gle/bZJJyJShKztjg72z8",
   },
 ];
@@ -66,7 +66,12 @@ export default function BookPage() {
 
             <div className="mt-10 grid w-full max-w-[900px] grid-cols-1 gap-5 md:mx-auto md:mt-12 md:grid-cols-2 md:gap-8 lg:mt-14">
               {bookDayCards.map((card, index) => (
-                <FadeInUp key={card.id} delay={0.1 + index * 0.08} y={20} className="w-full">
+                <FadeInUp
+                  key={card.id}
+                  delay={0.1 + index * 0.08}
+                  y={20}
+                  className="w-full"
+                >
                   <article className="mx-auto flex w-full max-w-[360px] flex-col items-center rounded-[18px] border border-white/25 bg-[#0f1223]/28 px-6 pb-6 pt-7 shadow-[0_18px_44px_rgba(0,0,0,0.3)] backdrop-blur-[6px] transition-all duration-300 hover:-translate-y-1 hover:border-white hover:shadow-[0_20px_36px_rgba(0,0,0,0.36)] md:min-h-[320px] md:max-w-none md:px-8 md:pb-8 md:pt-8">
                     <h2 className="text-[34px] font-semibold leading-none md:text-[40px]">
                       {card.dayLabel}
