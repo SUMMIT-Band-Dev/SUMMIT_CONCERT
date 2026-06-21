@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, type PanInfo } from "framer-motion";
 import { useEffect, useState } from "react";
-import FadeInUp from "@/components/fade-in-up";
+import FadeInUp from "@/components/common/fade-in-up";
 import { supabase } from "@/lib/supabase";
 
 type SetlistItem = {

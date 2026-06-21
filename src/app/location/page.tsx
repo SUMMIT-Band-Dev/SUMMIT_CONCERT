@@ -1,8 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
-import FadeInUp from "@/components/fade-in-up";
-import NaverMap from "@/components/naver-map";
-import SiteHeader from "@/components/site-header";
+import FadeInUp from "@/components/common/fade-in-up";
+import NaverMap from "@/components/common/naver-map";
+import SiteHeader from "@/components/layout/site-header";
 
 const NAVER_MAP_URL =
   "https://map.naver.com/p/search/%ED%94%8C%EB%A0%89%EC%8A%A4%EB%9D%BC%EC%9A%B4%EC%A7%80/place/37392237?placePath=%3FabtExp%3DN-PLC-AD-UI-26%253A2%26bk_query%3D%25ED%2594%258C%25EB%25A0%2589%25EC%258A%25A4%25EB%259D%25BC%25EC%259A%25B4%25EC%25A7%2580%26entry%3Dpll%26from%3Dnx%26fromNxList%3Dtrue&placeSearchOption=abtExp%3DN-PLC-AD-UI-26%253A2%26bk_query%3D%25ED%2594%258C%25EB%25A0%2589%25EC%258A%25A4%25EB%259D%25BC%25EC%259A%25B4%25EC%25A7%2580%26entry%3Dpll%26fromNxList%3Dtrue%26originalQuery%3D%25ED%2594%258C%25EB%25A0%2589%25EC%258A%25A4%25EB%259D%25BC%25EC%259A%25B4%25EC%25A7%2580%26x%3D126.949900%26y%3D37.503300&searchType=place";

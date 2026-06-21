@@ -1,5 +1,5 @@
 import Link from "next/link";
-import FadeInUp from "@/components/fade-in-up";
+import FadeInUp from "@/components/common/fade-in-up";
 
 type ServiceCard = {
   id:

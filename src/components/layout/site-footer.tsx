@@ -1,4 +1,4 @@
-import FadeInUp from "@/components/fade-in-up";
+import FadeInUp from "@/components/common/fade-in-up";
 
 export default function SummitFooterSection() {
   return (

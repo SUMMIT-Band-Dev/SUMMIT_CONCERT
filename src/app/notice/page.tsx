@@ -1,6 +1,6 @@
 import Image from "next/image";
-import FadeInUp from "@/components/fade-in-up";
-import SiteHeader from "@/components/site-header";
+import FadeInUp from "@/components/common/fade-in-up";
+import SiteHeader from "@/components/layout/site-header";
 
 const safetyNoticeItems = [
   "관객분들의 안전한 공연 관람을 위해 계단 위, 실내 계단 앞에서 서서 관람하는 행위는 삼가해 주시기 바라며, 난간에 기대거나 장내 2층에 서서 관람하시는 행위는 추락 위험이 있으니 삼가해 주시기 바랍니다.",

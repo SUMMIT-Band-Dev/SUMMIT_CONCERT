@@ -1,6 +1,6 @@
 import Image from "next/image";
-import FadeInUp from "@/components/fade-in-up";
-import SiteHeader from "@/components/site-header";
+import FadeInUp from "@/components/common/fade-in-up";
+import SiteHeader from "@/components/layout/site-header";
 
 type BookDayCard = {
   id: string;

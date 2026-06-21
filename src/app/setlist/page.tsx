@@ -2,10 +2,10 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import FadeInUp from "@/components/fade-in-up";
-import SetlistDetailModal from "@/components/setlist-detail-modal";
-import SetlistLineupSections from "@/components/setlist-lineup-sections";
-import SiteHeader from "@/components/site-header";
+import FadeInUp from "@/components/common/fade-in-up";
+import SetlistDetailModal from "@/components/ui/setlist-detail-modal";
+import SetlistLineupSections from "@/components/sections/setlist-lineup-sections";
+import SiteHeader from "@/components/layout/site-header";
 import { supabase } from "@/lib/supabase";
 
 type DayType = 1 | 2;

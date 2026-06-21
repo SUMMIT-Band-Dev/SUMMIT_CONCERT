@@ -22,9 +22,9 @@ export default function FadeInUp({
   const [forceVisible, setForceVisible] = useState(false);
 
   useEffect(() => {
-    const navigationEntry = performance
-      .getEntriesByType("navigation")
-      .at(0) as PerformanceNavigationTiming | undefined;
+    const navigationEntry = performance.getEntriesByType("navigation").at(0) as
+      | PerformanceNavigationTiming
+      | undefined;
     const isBackForwardNavigation = navigationEntry?.type === "back_forward";
     const hasExternalReferrer =
       document.referrer.length > 0 &&

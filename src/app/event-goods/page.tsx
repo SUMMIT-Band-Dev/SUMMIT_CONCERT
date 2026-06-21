@@ -3,8 +3,8 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
-import FadeInUp from "@/components/fade-in-up";
-import SiteHeader from "@/components/site-header";
+import FadeInUp from "@/components/common/fade-in-up";
+import SiteHeader from "@/components/layout/site-header";
 import { supabase } from "@/lib/supabase";
 
 type DayType = 1 | 2;
