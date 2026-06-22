@@ -4,16 +4,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { memo } from "react";
 import FadeInUp from "@/components/common/fade-in-up";
-
-type DayType = 1 | 2; // 1일차 or 2일차
-
-type SetlistCard = {
-  id: number; // id
-  day: DayType; // 날짜
-  title: string; // 제목
-  imageSrc: string; // 이미지
-  isPosterDummy: boolean; // 더미 이미지
-};
+import type { DayType, SetlistCard } from "@/types/setlist";
 
 type SetlistLineupSectionsProps = {
   cards: SetlistCard[]; // SetlistCard 배열

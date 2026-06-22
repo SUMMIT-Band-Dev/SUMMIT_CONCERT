@@ -7,17 +7,7 @@ import SetlistDetailModal from "@/components/ui/setlist-detail-modal";
 import SetlistLineupSections from "@/components/sections/setlist-lineup-sections";
 import SiteHeader from "@/components/layout/site-header";
 import { supabase } from "@/lib/supabase";
-
-type DayType = 1 | 2;
-
-type SetlistCard = {
-  id: number;
-  day: DayType;
-  title: string;
-  artist: string;
-  imageSrc: string;
-  isPosterDummy: boolean;
-};
+import type { DayType, SetlistCard } from "@/types/setlist";
 
 type TrackItem = {
   id: number;
