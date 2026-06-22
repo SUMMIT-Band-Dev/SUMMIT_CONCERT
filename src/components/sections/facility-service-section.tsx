@@ -1,3 +1,4 @@
+import type { ComponentType } from "react";
 import Link from "next/link";
 import FadeInUp from "@/components/common/fade-in-up";
 
@@ -6,7 +7,7 @@ type ServiceCard = {
     | "TimeTableCard"
     | "NoticeCard"
     | "ContactUsCard"
-    | "Event&MDCard"
+    | "EventMDCard"
     | "TicketInfoCard"
     | "StageInfoCard";
   englishLabel: string;
@@ -178,27 +179,18 @@ function NoticeIcon({ className }: IconProps) {
   );
 }
 
-function renderCardIcon(cardId: ServiceCard["id"]) {
-  const iconClassName =
-    "h-8 w-8 shrink-0 text-white transition-colors duration-300 group-hover:text-[#3b82f6] md:h-14 md:w-14";
+const serviceCardIconClassName =
+  "h-8 w-8 shrink-0 text-white transition-colors duration-300 group-hover:text-[#3b82f6] md:h-14 md:w-14";
 
-  switch (cardId) {
-    case "StageInfoCard":
-      return <StageInfoIcon className={iconClassName} />;
-    case "TimeTableCard":
-      return <TimeTableIcon className={iconClassName} />;
-    case "TicketInfoCard":
-      return <TicketInfoIcon className={iconClassName} />;
-    case "Event&MDCard":
-      return <SetlistFullIcon className={iconClassName} />;
-    case "ContactUsCard":
-      return <ContactUsIcon className={iconClassName} />;
-    case "NoticeCard":
-      return <NoticeIcon className={iconClassName} />;
-    default:
-      return null;
-  }
-}
+// 카드 id별 아이콘을 객체로 매핑해 switch 없이 조회한다.
+const serviceCardIconById: Record<ServiceCard["id"], ComponentType<IconProps>> = {
+  StageInfoCard: StageInfoIcon,
+  TimeTableCard: TimeTableIcon,
+  TicketInfoCard: TicketInfoIcon,
+  EventMDCard: SetlistFullIcon,
+  ContactUsCard: ContactUsIcon,
+  NoticeCard: NoticeIcon,
+};
 
 const serviceCards: ServiceCard[] = [
   {
@@ -217,7 +209,7 @@ const serviceCards: ServiceCard[] = [
     koreanLabel: "티켓 안내",
   },
   {
-    id: "Event&MDCard",
+    id: "EventMDCard",
     englishLabel: "Full Setlist",
     koreanLabel: "셋리스트 전체 보기",
   },
@@ -237,10 +229,67 @@ const serviceCardHrefById: Partial<Record<ServiceCard["id"], string>> = {
   StageInfoCard: "https://flexlounge.creatorlink.net/",
   TimeTableCard: "/time-table",
   TicketInfoCard: "/ticket-info",
-  "Event&MDCard": "/event-goods",
+  EventMDCard: "/event-goods",
   ContactUsCard: "/location",
   NoticeCard: "/notice",
 };
+
+const serviceCardBaseClassName =
+  "group flex h-[149px] min-w-0 flex-col items-center rounded-[24px] border border-transparent bg-[#161920] px-4 py-7 transition-all duration-300 hover:-translate-y-1 hover:border-white hover:shadow-[0_20px_36px_rgba(0,0,0,0.36)] md:h-[204px] md:py-10";
+
+type ServiceCardProps = {
+  card: ServiceCard;
+  href?: string;
+};
+
+function ServiceCard({ card, href }: ServiceCardProps) {
+  const className = `${serviceCardBaseClassName} ${
+    href ? "cursor-pointer" : "cursor-default"
+  }`;
+  const CardIcon = serviceCardIconById[card.id];
+
+  const cardContent = (
+    <>
+      <CardIcon className={serviceCardIconClassName} />
+
+      <div className="mt-4 w-full text-center md:mt-6">
+        <p className="whitespace-nowrap text-[clamp(10px,2.6vw,13px)] font-normal leading-[1.2] text-white transition-colors duration-300">
+          {card.englishLabel}
+        </p>
+        <p className="mt-2 break-keep text-[clamp(13px,3.4vw,19px)] font-semibold leading-[1.2] text-white transition-colors duration-300">
+          {card.koreanLabel}
+        </p>
+      </div>
+    </>
+  );
+
+  if (!href) {
+    return (
+      <button type="button" className={className} aria-disabled>
+        {cardContent}
+      </button>
+    );
+  }
+
+  if (href.startsWith("http")) {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={className}
+      >
+        {cardContent}
+      </a>
+    );
+  }
+
+  return (
+    <Link href={href} className={className}>
+      {cardContent}
+    </Link>
+  );
+}
 
 export default function FacilityServiceSection() {
   return (
@@ -256,60 +305,13 @@ export default function FacilityServiceSection() {
 
       <FadeInUp delay={0.16} once={false}>
         <div className="mt-8 grid grid-cols-2 gap-4 md:mt-10 md:grid-cols-3 md:gap-5 lg:mt-12 lg:grid-cols-6 lg:gap-6">
-          {serviceCards.map((card) => {
-            const href = serviceCardHrefById[card.id];
-            const className = `group flex h-[149px] min-w-0 flex-col items-center rounded-[24px] border border-transparent bg-[#161920] px-4 py-7 transition-all duration-300 hover:-translate-y-1 hover:border-white hover:shadow-[0_20px_36px_rgba(0,0,0,0.36)] md:h-[204px] md:py-10 ${
-              href ? "cursor-pointer" : "cursor-default"
-            }`;
-
-            const cardContent = (
-              <>
-                {renderCardIcon(card.id)}
-
-                <div className="mt-4 w-full text-center md:mt-6">
-                  <p className="whitespace-nowrap text-[clamp(10px,2.6vw,13px)] font-normal leading-[1.2] text-white transition-colors duration-300">
-                    {card.englishLabel}
-                  </p>
-                  <p className="mt-2 break-keep text-[clamp(13px,3.4vw,19px)] font-semibold leading-[1.2] text-white transition-colors duration-300">
-                    {card.koreanLabel}
-                  </p>
-                </div>
-              </>
-            );
-
-            if (!href) {
-              return (
-                <button
-                  key={card.id}
-                  type="button"
-                  className={className}
-                  aria-disabled
-                >
-                  {cardContent}
-                </button>
-              );
-            }
-
-            if (href.startsWith("http")) {
-              return (
-                <a
-                  key={card.id}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={className}
-                >
-                  {cardContent}
-                </a>
-              );
-            }
-
-            return (
-              <Link key={card.id} href={href} className={className}>
-                {cardContent}
-              </Link>
-            );
-          })}
+          {serviceCards.map((card) => (
+            <ServiceCard
+              key={card.id}
+              card={card}
+              href={serviceCardHrefById[card.id]}
+            />
+          ))}
         </div>
       </FadeInUp>
     </section>

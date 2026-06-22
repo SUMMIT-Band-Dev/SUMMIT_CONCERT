@@ -3,17 +3,7 @@
 import type { ComponentType } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
-
-type DayType = 1 | 2;
-
-type SetlistCard = {
-  id: number;
-  day: DayType;
-  title: string;
-  artist: string;
-  imageSrc: string;
-  isPosterDummy: boolean;
-};
+import type { SetlistCard } from "@/types/setlist";
 
 type TrackItem = {
   id: number;
