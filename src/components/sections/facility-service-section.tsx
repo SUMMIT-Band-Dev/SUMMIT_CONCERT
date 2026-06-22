@@ -1,3 +1,4 @@
+import type { ComponentType } from "react";
 import Link from "next/link";
 import FadeInUp from "@/components/common/fade-in-up";
 
@@ -6,7 +7,7 @@ type ServiceCard = {
     | "TimeTableCard"
     | "NoticeCard"
     | "ContactUsCard"
-    | "Event&MDCard"
+    | "EventMDCard"
     | "TicketInfoCard"
     | "StageInfoCard";
   englishLabel: string;
@@ -178,27 +179,18 @@ function NoticeIcon({ className }: IconProps) {
   );
 }
 
-function renderCardIcon(cardId: ServiceCard["id"]) {
-  const iconClassName =
-    "h-8 w-8 shrink-0 text-white transition-colors duration-300 group-hover:text-[#3b82f6] md:h-14 md:w-14";
+const serviceCardIconClassName =
+  "h-8 w-8 shrink-0 text-white transition-colors duration-300 group-hover:text-[#3b82f6] md:h-14 md:w-14";
 
-  switch (cardId) {
-    case "StageInfoCard":
-      return <StageInfoIcon className={iconClassName} />;
-    case "TimeTableCard":
-      return <TimeTableIcon className={iconClassName} />;
-    case "TicketInfoCard":
-      return <TicketInfoIcon className={iconClassName} />;
-    case "Event&MDCard":
-      return <SetlistFullIcon className={iconClassName} />;
-    case "ContactUsCard":
-      return <ContactUsIcon className={iconClassName} />;
-    case "NoticeCard":
-      return <NoticeIcon className={iconClassName} />;
-    default:
-      return null;
-  }
-}
+// 카드 id별 아이콘을 객체로 매핑해 switch 없이 조회한다.
+const serviceCardIconById: Record<ServiceCard["id"], ComponentType<IconProps>> = {
+  StageInfoCard: StageInfoIcon,
+  TimeTableCard: TimeTableIcon,
+  TicketInfoCard: TicketInfoIcon,
+  EventMDCard: SetlistFullIcon,
+  ContactUsCard: ContactUsIcon,
+  NoticeCard: NoticeIcon,
+};
 
 const serviceCards: ServiceCard[] = [
   {
@@ -217,7 +209,7 @@ const serviceCards: ServiceCard[] = [
     koreanLabel: "티켓 안내",
   },
   {
-    id: "Event&MDCard",
+    id: "EventMDCard",
     englishLabel: "Full Setlist",
     koreanLabel: "셋리스트 전체 보기",
   },
@@ -237,7 +229,7 @@ const serviceCardHrefById: Partial<Record<ServiceCard["id"], string>> = {
   StageInfoCard: "https://flexlounge.creatorlink.net/",
   TimeTableCard: "/time-table",
   TicketInfoCard: "/ticket-info",
-  "Event&MDCard": "/event-goods",
+  EventMDCard: "/event-goods",
   ContactUsCard: "/location",
   NoticeCard: "/notice",
 };
@@ -254,10 +246,11 @@ function ServiceCard({ card, href }: ServiceCardProps) {
   const className = `${serviceCardBaseClassName} ${
     href ? "cursor-pointer" : "cursor-default"
   }`;
+  const CardIcon = serviceCardIconById[card.id];
 
   const cardContent = (
     <>
-      {renderCardIcon(card.id)}
+      <CardIcon className={serviceCardIconClassName} />
 
       <div className="mt-4 w-full text-center md:mt-6">
         <p className="whitespace-nowrap text-[clamp(10px,2.6vw,13px)] font-normal leading-[1.2] text-white transition-colors duration-300">
