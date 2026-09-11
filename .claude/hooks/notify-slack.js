@@ -3,6 +3,7 @@
 // 알림 전송에 실패하더라도 Claude Code 작업 흐름을 막으면 안 되므로 항상 exit 0으로 종료한다.
 
 const https = require("https");
+const path = require("path");
 
 function readStdin() {
   return new Promise((resolve) => {
@@ -47,20 +48,48 @@ function postToSlack(webhookUrl, text) {
   });
 }
 
+function formatTime() {
+  return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  })
+    .format(new Date())
+    .replace(/\. /g, "-")
+    .replace(".", "")
+    .replace(/-(\d+):/, " $1:");
+}
+
 function buildMessage(payload) {
   const eventName = payload.hook_event_name;
   const cwd = payload.cwd || process.cwd();
+  const project = path.basename(cwd);
+  const time = formatTime();
+
+  let title;
+  let status;
 
   if (eventName === "Notification") {
-    const detail = payload.message || "권한 확인이 필요합니다.";
-    return `🔔 *Claude Code 권한 요청*\n${detail}\n\`${cwd}\``;
+    title = "🔔 Claude Code 권한 요청";
+    status = payload.message || "권한 확인이 필요합니다.";
+  } else if (eventName === "Stop") {
+    title = "✅ Claude Code 작업 완료";
+    status = "작업 완료";
+  } else {
+    return null;
   }
 
-  if (eventName === "Stop") {
-    return `✅ *Claude Code 작업 완료*\n\`${cwd}\``;
-  }
-
-  return null;
+  return (
+    `*${title}*\n` +
+    `1. 프로젝트: ${project}\n` +
+    `2. 상태: ${status}\n` +
+    `3. 시간: ${time}`
+  );
 }
 
 async function main() {
