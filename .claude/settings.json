@@ -9,13 +9,13 @@
     "Notification": [
       {
         "matcher": "",
-        "hooks": [{ "type": "command", "command": "node .claude/hooks/notify-slack.js" }]
+        "hooks": [{ "type": "command", "command": "node .claude/hooks/notify-slack-notification.js" }]
       }
     ],
     "Stop": [
       {
         "matcher": "",
-        "hooks": [{ "type": "command", "command": "node .claude/hooks/notify-slack.js" }]
+        "hooks": [{ "type": "command", "command": "node .claude/hooks/notify-slack-stop.js" }]
       }
     ]
   }

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Claude Code hook: 권한 요청(Notification)/작업 완료(Stop) 이벤트를 Slack Webhook으로 전송한다.
+// Claude Code hook: 권한 요청(Notification) 이벤트를 Slack Webhook으로 전송한다.
 // 알림 전송에 실패하더라도 Claude Code 작업 흐름을 막으면 안 되므로 항상 exit 0으로 종료한다.
 
 const https = require("https");
@@ -34,7 +34,7 @@ function postToSlack(webhookUrl, text) {
       (res) => {
         res.on("data", () => {});
         res.on("end", () => resolve());
-      }
+      },
     );
 
     req.on("error", () => resolve());
@@ -71,18 +71,12 @@ function buildMessage(payload) {
   const project = path.basename(cwd);
   const time = formatTime();
 
-  let title;
-  let status;
-
-  if (eventName === "Notification") {
-    title = "🔔 Claude Code 권한 요청";
-    status = payload.message || "권한 확인이 필요합니다.";
-  } else if (eventName === "Stop") {
-    title = "✅ Claude Code 작업 완료";
-    status = "작업 완료";
-  } else {
+  if (eventName !== "Notification") {
     return null;
   }
+
+  const title = "🔔 Claude Code 권한 요청";
+  const status = payload.message || "권한 확인이 필요합니다.";
 
   return (
     `*${title}*\n` +
