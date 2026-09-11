@@ -4,5 +4,19 @@
     "deny": [],
     "ask": [],
     "defaultMode": "plan"
+  },
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [{ "type": "command", "command": "node .claude/hooks/notify-slack.js" }]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [{ "type": "command", "command": "node .claude/hooks/notify-slack.js" }]
+      }
+    ]
   }
 }
