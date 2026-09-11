@@ -196,6 +196,7 @@ src/
 
 - **AGENTS.md**: Next.js v16의 주요 변경사항 경고 (코드 작성 전 필독)
 - **REFACTOR_NOTES.md**: Lighthouse 데이터를 포함한 전체 성능 진단 및 다음 단계 (우선순위별 로드맵)
+- **REFACTOR_HYPOTHESIS_LOG.md**: 최초 가설(public 폴더 문제)이 실제 진단 결과(외부 CDN 이미지)로 수정된 과정 기록 — 면접 준비용 판단 근거
 - **.claude/rules/code-style.md**: 코드 스타일 규칙
 - **.claude/rules/git-rules.md**: Git 브랜치/커밋 규칙
 - **.claude/rules/work-01-refactoring.md**: work01 상세 범위
