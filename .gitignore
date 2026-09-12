@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# playwright mcp (qa-tester 세션 캐시)
+.playwright-mcp/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
