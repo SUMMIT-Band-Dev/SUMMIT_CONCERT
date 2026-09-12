@@ -1,5 +1,7 @@
 # work01 — 리팩토링 (웹 성능 지표 개선)
 
+> 이 문서는 **리팩토링/성능 개선(work01) 작업을 시작할 때만** 참조합니다.
+
 ## 상태
 
 진행 중. Before 측정 및 원인 진단 완료 (`REFACTOR_NOTES.md`, `REFACTOR_HYPOTHESIS_LOG.md` 참조). 실제 수정 작업은 아직 미착수.
