@@ -14,7 +14,9 @@ description: 성능 개선 작업 단위가 끝났을 때 수동으로 실행 �
    - 측정 대상 페이지
    - Before 값과 Before 측정 조건 (동일 조건으로 재현해야 함)
    - 2단계에서 정리한 코드 변경 요약 / 원리 설명 / 개념 노트 텍스트
-   - 지시: Playwright MCP로 LCP/CLS/FCP/TBT(근사)를 실측하고, 리포 루트에 최신 `lighthouse-*.json`이 있으면 Performance 점수/Speed Index를 거기서 채우고 없으면 "N/A (Lighthouse 미실행)"으로 남길 것. 측정이 끝나면 `PERFORMANCE_LOG.md` 항목 템플릿에 맞춰 파일 최하단에 append까지 완료할 것 (기존 항목 수정 금지).
+   - 지시 (Lighthouse — 공식 Before/After 비교용): 프로덕션 서버가 실제로 떠 있는지(단순 포트 응답이 아니라 dev 서버 마커 유무까지) 확인하고, 아니면 `npm run build && npm start`로 새로 띄운 뒤 `npx lighthouse [URL] --preset=perf --form-factor=mobile --screenEmulation.mobile --throttling-method=simulate --output=json --output-path=[경로]`를 실행할 것. 결과 JSON에서 `categories.performance.score`, LCP/FCP/TBT/Speed Index/CLS/Total Byte Weight를 추출할 것. 자신이 새로 띄운 서버는 측정 후 반드시 종료할 것.
+   - 지시 (Playwright 실측 — 네트워크 요청/바이트 변화 확인용): 기존과 동일하게 Playwright MCP로 LCP/CLS/FCP/TBT(근사)와 실제 네트워크 요청/바이트를 실측할 것.
+   - 지시 (기록): 두 결과를 **하나로 합치지 말고** `PERFORMANCE_LOG.md` 항목 템플릿의 Lighthouse 섹션 / Playwright 섹션에 각각 채워 파일 최하단에 append까지 완료할 것 (기존 항목 수정 금지).
 
 4. **완료 확인**: qa-tester가 append를 완료하면 결과를 그대로 신뢰한다 (다시 읽어서 검증할 필요 없음 — Edit이 실패했다면 에러가 났을 것).
 
@@ -26,3 +28,4 @@ description: 성능 개선 작업 단위가 끝났을 때 수동으로 실행 �
 - 측정 조건이 Before와 다른데 조용히 비교표만 채우는 것 금지 — 조건이 다르면 그 사실을 표/기록에 명시하고, 필요하면 사용자에게 조건을 맞출지 물어본다.
 - 지표가 악화됐을 때 포장하거나 누락하는 것 금지 — 악화도 그대로 기록하고, 원리 설명에서 왜 악화됐는지(또는 원인 불명이면 그것도) 정직하게 남긴다.
 - Performance 점수/Speed Index를 Lighthouse 리포트 없이 임의로 추정해서 채우는 것 금지.
+- Lighthouse 실측과 Playwright 실측을 하나의 표로 통합하는 것 금지 — 역할(공식 비교용 vs 네트워크/바이트 실측용)이 다르므로 항상 별도 섹션에 남긴다.

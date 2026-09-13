@@ -35,9 +35,9 @@
 
 - 커밋/브랜치: (예: feature/event-goods-image-resize, 커밋 해시)
 - 측정 대상 페이지: (예: /event-goods)
-- 측정 조건: (디바이스/네트워크 스로틀링/dev·prod 여부 — Baseline과 다르면 반드시 명시)
+- 측정 조건: (Lighthouse/Playwright 각각의 디바이스·네트워크 스로틀링·dev/prod 여부 — Baseline과 다르면 반드시 명시)
 
-### Before/After
+### Lighthouse (공식 Before/After 비교용)
 
 | 지표 | Before | After |
 | --- | --- | --- |
@@ -47,8 +47,16 @@
 | TBT | | |
 | Speed Index | | |
 | CLS | | |
+| Total Byte Weight | | |
 
-(Performance 점수/Speed Index는 Lighthouse 리포트가 없으면 "N/A (Lighthouse 미실행)"으로 표기)
+(Lighthouse 실행 자체가 실패했으면 전체 항목을 "N/A (Lighthouse 실행 실패: 사유)"로 표기)
+
+### Playwright 실측 (네트워크 요청/바이트 변화 확인용)
+
+| 지표 | Before | After |
+| --- | --- | --- |
+
+(Lighthouse 표와 절대 하나로 합치지 않는다 — 역할이 다르다: Lighthouse는 Baseline과 비교 가능한 공식 지표, Playwright는 실제 네트워크 요청/바이트 실측)
 
 ### 코드 변경 요약
 - (git diff 근거로 무엇을 바꿨는지 1~3줄)
