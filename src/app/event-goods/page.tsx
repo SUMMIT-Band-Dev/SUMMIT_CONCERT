@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import FadeInUp from "@/components/common/fade-in-up";
 import SiteHeader from "@/components/layout/site-header";
 import { supabase } from "@/lib/supabase";
+import { shrinkAlbumCoverUrl } from "@/lib/mzstatic";
 
 type DayType = 1 | 2;
 
@@ -390,7 +391,10 @@ export default function EventGoodsPage() {
           typeof row.singer === "string" && row.singer.trim()
             ? row.singer.trim()
             : "SUMMIT Band";
-        const albumCoverSrc = normalizeImageSource(row.album);
+        const rawAlbumCoverSrc = normalizeImageSource(row.album);
+        const albumCoverSrc = rawAlbumCoverSrc.startsWith("http")
+          ? shrinkAlbumCoverUrl(rawAlbumCoverSrc)
+          : rawAlbumCoverSrc;
         const hasRealAlbumCover = Boolean(
           albumCoverSrc && albumCoverSrc !== "/default-album.png",
         );
