@@ -1,33 +1,16 @@
 "use client";
 
-import type { ComponentType } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
-import type { SetlistCard } from "@/types/setlist";
-
-type TrackItem = {
-  id: number;
-  title: string;
-  artist: string;
-  coverShape: "square" | "image";
-  coverSrc?: string;
-  youtubeUrl?: string;
-};
-
-type CoverImageProps = {
-  src: string;
-  alt: string;
-  size: number;
-};
+import TrackCoverImage from "@/components/ui/track-cover-image";
+import { DummyPosterArtwork, SquareGrayArtwork } from "@/components/ui/artwork-placeholders";
+import type { SetlistCard, TrackItem } from "@/types/setlist";
 
 type SetlistDetailModalProps = {
   selectedCard: SetlistCard | null;
   trackItems: TrackItem[];
   onClose: () => void;
   onTrackClick: (track: TrackItem) => void;
-  TrackCoverImage: ComponentType<CoverImageProps>;
-  DummyPosterArtwork: ComponentType;
-  SquareGrayArtwork: ComponentType;
 };
 
 export default function SetlistDetailModal({
@@ -35,9 +18,6 @@ export default function SetlistDetailModal({
   trackItems,
   onClose,
   onTrackClick,
-  TrackCoverImage,
-  DummyPosterArtwork,
-  SquareGrayArtwork,
 }: SetlistDetailModalProps) {
   return (
     <AnimatePresence>

@@ -4,6 +4,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { memo } from "react";
 import FadeInUp from "@/components/common/fade-in-up";
+import { DummyPosterArtwork } from "@/components/ui/artwork-placeholders";
 import type { DayType, SetlistCard } from "@/types/setlist";
 
 type SetlistLineupSectionsProps = {
@@ -44,16 +45,6 @@ const cardVariantStyles: Record<
       "text-center text-[21px] font-semibold leading-[1.2] text-white md:text-[22px]",
   },
 };
-
-function DummyPosterArtwork() {
-  // 임시 더미 포스터 출력
-  return (
-    <div className="flex h-full w-full flex-col items-center justify-center rounded-[8px] bg-[#5a5a5a] text-center">
-      <div className="h-[24%] w-[24%] rounded-full bg-[#777777]" />
-      <p className="mt-4 text-[12px] font-medium text-white/80">임시 포스터</p>
-    </div>
-  );
-}
 
 type LineupCardProps = {
   card: SetlistCard; // 카드 한 장의 데이터
