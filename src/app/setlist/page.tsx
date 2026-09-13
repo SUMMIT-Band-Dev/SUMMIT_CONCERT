@@ -7,6 +7,7 @@ import SetlistDetailModal from "@/components/ui/setlist-detail-modal";
 import SetlistLineupSections from "@/components/sections/setlist-lineup-sections";
 import SiteHeader from "@/components/layout/site-header";
 import { supabase } from "@/lib/supabase";
+import { shrinkAlbumCoverUrl } from "@/lib/mzstatic";
 import type { DayType, SetlistCard } from "@/types/setlist";
 
 type TrackItem = {
@@ -527,7 +528,10 @@ export default function SetlistPage() {
             typeof row.singer === "string" && row.singer.trim()
               ? row.singer.trim()
               : "SUMMIT Band";
-          const albumCoverSrc = normalizeImageSource(row.album);
+          const rawAlbumCoverSrc = normalizeImageSource(row.album);
+          const albumCoverSrc = rawAlbumCoverSrc.startsWith("http")
+            ? shrinkAlbumCoverUrl(rawAlbumCoverSrc)
+            : rawAlbumCoverSrc;
           const hasRealAlbumCover = Boolean(
             albumCoverSrc && albumCoverSrc !== "/default-album.png",
           );
