@@ -1,43 +1,13 @@
-"use client";
-
-import Image from "next/image";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import FadeInUp from "@/components/common/fade-in-up";
-import SetlistDetailModal from "@/components/ui/setlist-detail-modal";
-import SetlistLineupSections from "@/components/sections/setlist-lineup-sections";
-import SiteHeader from "@/components/layout/site-header";
-import { supabase } from "@/lib/supabase";
+import {
+  fetchLineUpRows,
+  fetchSetlistRows,
+  type LineUpRow,
+  type SetlistRow,
+} from "@/lib/fetch-line-up-and-setlist";
 import { shrinkAlbumCoverUrl } from "@/lib/mzstatic";
-import type { DayType, SetlistCard } from "@/types/setlist";
-
-type TrackItem = {
-  id: number;
-  title: string;
-  artist: string;
-  coverShape: "square" | "image";
-  coverSrc?: string;
-  youtubeUrl?: string;
-};
-
-type LineUpRow = Record<string, unknown> & {
-  id?: number;
-  day?: string | number;
-  team?: string;
-  team_name?: string;
-  image_src?: string;
-};
-
-type SetlistRow = Record<string, unknown> & {
-  id?: number;
-  day?: string | number;
-  team?: string;
-  team_name?: string;
-  image_src?: string;
-  title?: string;
-  singer?: string;
-  album?: string;
-  youtube_url?: string;
-};
+import FadeInUp from "@/components/common/fade-in-up";
+import SetlistView from "@/components/sections/setlist-view";
+import type { DayType, SetlistCard, TrackItem } from "@/types/setlist";
 
 const setlistCards: SetlistCard[] = [
   {
@@ -154,60 +124,6 @@ const setlistCards: SetlistCard[] = [
   },
 ];
 
-const trackListByDay: Record<DayType, TrackItem[]> = {
-  1: [
-    { id: 101, title: "Twilight", artist: "SUMMIT Band", coverShape: "square" },
-    {
-      id: 102,
-      title: "Sunset Sky",
-      artist: "SUMMIT Band",
-      coverShape: "square",
-    },
-    { id: 103, title: "Dreaming", artist: "SUMMIT Band", coverShape: "square" },
-    {
-      id: 104,
-      title: "Blue Hour",
-      artist: "SUMMIT Band",
-      coverShape: "square",
-    },
-    {
-      id: 105,
-      title: "After Party",
-      artist: "SUMMIT Band",
-      coverShape: "square",
-    },
-    { id: 106, title: "Encore", artist: "SUMMIT Band", coverShape: "square" },
-  ],
-  2: [
-    {
-      id: 201,
-      title: "Night Drive",
-      artist: "SUMMIT Band",
-      coverShape: "square",
-    },
-    {
-      id: 202,
-      title: "Moonlight",
-      artist: "SUMMIT Band",
-      coverShape: "square",
-    },
-    {
-      id: 203,
-      title: "Afterglow",
-      artist: "SUMMIT Band",
-      coverShape: "square",
-    },
-    {
-      id: 204,
-      title: "Last Song",
-      artist: "SUMMIT Band",
-      coverShape: "square",
-    },
-    { id: 205, title: "Midnight", artist: "SUMMIT Band", coverShape: "square" },
-    { id: 206, title: "Finale", artist: "SUMMIT Band", coverShape: "square" },
-  ],
-};
-
 function getDayFromRow(row: LineUpRow): DayType | null {
   const dayValue =
     typeof row.day === "string" ? row.day.toLowerCase().trim() : row.day;
@@ -302,357 +218,128 @@ function shouldUseDummyPoster(teamName: string) {
   return false;
 }
 
-function SquareGrayArtwork() {
-  return (
-    <div className="flex h-full w-full items-center justify-center rounded-[8px] bg-[#d9d9d9]">
-      <div className="h-[34%] w-[34%] rounded-full bg-[#bcbcbc]" />
-    </div>
-  );
-}
+async function buildSetlistData(): Promise<{
+  cardsData: SetlistCard[];
+  trackItemsByTeamKey: Record<string, TrackItem[]>;
+}> {
+  const [lineUpRows, setlistRows] = await Promise.all([
+    fetchLineUpRows(),
+    fetchSetlistRows(),
+  ]);
 
-function DummyPosterArtwork() {
-  return (
-    <div className="flex h-full w-full flex-col items-center justify-center rounded-[8px] bg-[#5a5a5a] text-center">
-      <div className="h-[24%] w-[24%] rounded-full bg-[#777777]" />
-      <p className="mt-4 text-[12px] font-medium text-white/80">임시 포스터</p>
-    </div>
-  );
-}
+  // 1) 카드/팀명/포스터는 Line Up(team_name) 기준
+  let cardsData: SetlistCard[] = setlistCards;
 
-function isExternalImageSource(src: string) {
-  return /^https?:\/\//i.test(src);
-}
+  if (lineUpRows.length > 0) {
+    const parsedCards = lineUpRows
+      .filter((row) => typeof row.id === "number" && row.id >= 1)
+      .map((row) => {
+        const id = row.id as number;
+        const day = getDayFromRow(row);
+        if (!day) return null;
+        const teamName = getTeamFromSetlistRow(row as SetlistRow, id);
+        const useDummyPoster = shouldUseDummyPoster(teamName);
 
-function TrackCoverImage({
-  src,
-  alt,
-  size,
-}: {
-  src: string;
-  alt: string;
-  size: number;
-}) {
-  const [hasLoadError, setHasLoadError] = useState(false);
+        const imageSrc =
+          normalizeImageSource(row.image_src) ||
+          (useDummyPoster ? "" : getImageFallbackPath(id));
 
-  if (hasLoadError) {
-    return <SquareGrayArtwork />;
+        return {
+          id,
+          day,
+          title: teamName,
+          artist: "SUMMIT SUMMER CONCERT",
+          imageSrc,
+          isPosterDummy: useDummyPoster,
+        } satisfies SetlistCard;
+      })
+      .filter((card): card is SetlistCard => card !== null);
+
+    if (parsedCards.length > 0) {
+      cardsData = parsedCards;
+    }
   }
 
-  // 외부 이미지(음원 사이트 URL)는 Next image optimizer를 거치지 않고 직접 렌더링해 깨짐을 방지한다.
-  if (isExternalImageSource(src)) {
-    return (
-      <Image
-        src={src}
-        alt={alt}
-        width={size}
-        height={size}
-        className="h-full w-full object-cover"
-        unoptimized
-        onError={() => setHasLoadError(true)}
-      />
+  // 2) 곡 목록은 Setlist(title/singer/team) 기준
+  const tracksByTeam: Record<string, TrackItem[]> = {};
+
+  if (setlistRows.length > 0) {
+    const lineUpTeamKeys = new Set(
+      lineUpRows
+        .map((row) =>
+          getTeamFromSetlistRow(
+            row as SetlistRow,
+            typeof row.id === "number" ? row.id : 0,
+          ),
+        )
+        .map((team) => normalizeTeamName(team))
+        .filter(Boolean),
     );
-  }
 
-  return (
-    <Image
-      src={src}
-      alt={alt}
-      width={size}
-      height={size}
-      className="h-full w-full object-cover"
-      onError={() => setHasLoadError(true)}
-    />
-  );
-}
+    setlistRows.forEach((row, index) => {
+      const id = typeof row.id === "number" ? row.id : index + 1;
+      const teamName = getTeamFromSetlistRow(row, id);
+      const teamKey = normalizeTeamName(teamName);
+      if (!teamKey) return;
 
-function openInNewTab(url: string) {
-  const a = document.createElement("a");
-  a.href = url;
-  a.target = "_blank";
-  a.rel = "noopener noreferrer";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
+      // 요청사항: Setlist.team 과 Line Up.team_name 이 일치하는 팀만 반영
+      if (lineUpTeamKeys.size > 0 && !lineUpTeamKeys.has(teamKey)) return;
 
-function handleTrackClick(track: TrackItem) {
-  if (track.youtubeUrl) {
-    const url = new URL(track.youtubeUrl);
-    url.searchParams.set("autoplay", "1");
-    openInNewTab(url.toString());
-    return;
-  }
+      const title = typeof row.title === "string" ? row.title.trim() : "";
+      if (!title) return;
 
-  // 팝업 차단 방지: 클릭 이벤트 내에서 즉시 새 창 열기
-  const win = window.open("", "_blank");
+      const artist =
+        typeof row.singer === "string" && row.singer.trim()
+          ? row.singer.trim()
+          : "SUMMIT Band";
+      const rawAlbumCoverSrc = normalizeImageSource(row.album);
+      const albumCoverSrc = rawAlbumCoverSrc.startsWith("http")
+        ? shrinkAlbumCoverUrl(rawAlbumCoverSrc)
+        : rawAlbumCoverSrc;
+      const hasRealAlbumCover = Boolean(
+        albumCoverSrc && albumCoverSrc !== "/default-album.png",
+      );
+      const youtubeUrl =
+        typeof row.youtube_url === "string" && row.youtube_url.trim()
+          ? row.youtube_url.trim()
+          : undefined;
+      const nextTrack: TrackItem = {
+        id: id * 1000 + index + 1,
+        title,
+        artist,
+        coverShape: hasRealAlbumCover ? "image" : "square",
+        coverSrc: hasRealAlbumCover ? albumCoverSrc : undefined,
+        youtubeUrl,
+      };
 
-  const query = `${track.title} ${track.artist}`.trim();
-  const params = new URLSearchParams({
-    query,
-    title: track.title,
-    artist: track.artist,
-  });
-
-  fetch(`/api/youtube/top-video?${params.toString()}`)
-    .then((r) => r.json())
-    .then((data: { url?: string }) => {
-      const dest = data.url
-        ? (() => {
-            const u = new URL(data.url);
-            u.searchParams.set("autoplay", "1");
-            return u.toString();
-          })()
-        : `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
-      if (win) {
-        win.location.href = dest;
-      } else {
-        openInNewTab(dest);
-      }
-    })
-    .catch(() => {
-      const fallback = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
-      if (win) {
-        win.location.href = fallback;
-      } else {
-        openInNewTab(fallback);
+      const prev = tracksByTeam[teamKey] ?? [];
+      const hasSameTrack = prev.some(
+        (item) =>
+          item.title === nextTrack.title && item.artist === nextTrack.artist,
+      );
+      if (!hasSameTrack) {
+        tracksByTeam[teamKey] = [...prev, nextTrack];
       }
     });
+  }
+
+  return { cardsData, trackItemsByTeamKey: tracksByTeam };
 }
 
-export default function SetlistPage() {
-  const [selectedDay, setSelectedDay] = useState<DayType>(1);
-  const [selectedCard, setSelectedCard] = useState<SetlistCard | null>(null);
-  const [cardsData, setCardsData] = useState<SetlistCard[]>(setlistCards);
-  const [trackItemsByTeamKey, setTrackItemsByTeamKey] = useState<
-    Record<string, TrackItem[]>
-  >({});
+export default async function SetlistPage() {
+  const { cardsData, trackItemsByTeamKey } = await buildSetlistData();
 
-  useEffect(() => {
-    let isMounted = true;
-
-    const fetchData = async () => {
-      // 1) 카드/팀명/포스터는 Line Up(team_name) 기준
-      const lineUpTables = ["Line Up", "line_up", "LineUp", "lineup"];
-      let lineUpRows: LineUpRow[] = [];
-      for (const tableName of lineUpTables) {
-        const { data, error } = await supabase
-          .from(tableName)
-          .select("*")
-          .order("id", { ascending: true });
-
-        if (error || !data || data.length === 0) {
-          continue;
-        }
-        lineUpRows = data as LineUpRow[];
-        break;
-      }
-
-      if (!isMounted) return;
-
-      if (lineUpRows.length > 0) {
-        const parsedCards = lineUpRows
-          .filter((row) => typeof row.id === "number" && row.id >= 1)
-          .map((row) => {
-            const id = row.id as number;
-            const day = getDayFromRow(row);
-            if (!day) return null;
-            const teamName = getTeamFromSetlistRow(row as SetlistRow, id);
-            const useDummyPoster = shouldUseDummyPoster(teamName);
-
-            const imageSrc =
-              normalizeImageSource(row.image_src) ||
-              (useDummyPoster ? "" : getImageFallbackPath(id));
-
-            return {
-              id,
-              day,
-              title: teamName,
-              artist: "SUMMIT SUMMER CONCERT",
-              imageSrc,
-              isPosterDummy: useDummyPoster,
-            } satisfies SetlistCard;
-          })
-          .filter((card): card is SetlistCard => card !== null);
-
-        if (parsedCards.length > 0) {
-          setCardsData(parsedCards);
-        }
-      }
-
-      // 2) 곡 목록은 Setlist(title/singer/team) 기준
-      const setlistTables = ["Setlist", "setlist", "set_list"];
-      let setlistRows: SetlistRow[] = [];
-      for (const tableName of setlistTables) {
-        const { data, error } = await supabase
-          .from(tableName)
-          .select("*")
-          .order("id", { ascending: true });
-
-        if (error || !data || data.length === 0) {
-          continue;
-        }
-        setlistRows = data as SetlistRow[];
-        break;
-      }
-
-      if (!isMounted) return;
-
-      if (setlistRows.length > 0) {
-        const lineUpTeamKeys = new Set(
-          lineUpRows
-            .map((row) =>
-              getTeamFromSetlistRow(
-                row as SetlistRow,
-                typeof row.id === "number" ? row.id : 0,
-              ),
-            )
-            .map((team) => normalizeTeamName(team))
-            .filter(Boolean),
-        );
-
-        const tracksByTeam: Record<string, TrackItem[]> = {};
-
-        setlistRows.forEach((row, index) => {
-          const id = typeof row.id === "number" ? row.id : index + 1;
-          const teamName = getTeamFromSetlistRow(row, id);
-          const teamKey = normalizeTeamName(teamName);
-          if (!teamKey) return;
-
-          // 요청사항: Setlist.team 과 Line Up.team_name 이 일치하는 팀만 반영
-          if (lineUpTeamKeys.size > 0 && !lineUpTeamKeys.has(teamKey)) return;
-
-          const title = typeof row.title === "string" ? row.title.trim() : "";
-          if (!title) return;
-
-          const artist =
-            typeof row.singer === "string" && row.singer.trim()
-              ? row.singer.trim()
-              : "SUMMIT Band";
-          const rawAlbumCoverSrc = normalizeImageSource(row.album);
-          const albumCoverSrc = rawAlbumCoverSrc.startsWith("http")
-            ? shrinkAlbumCoverUrl(rawAlbumCoverSrc)
-            : rawAlbumCoverSrc;
-          const hasRealAlbumCover = Boolean(
-            albumCoverSrc && albumCoverSrc !== "/default-album.png",
-          );
-          const youtubeUrl =
-            typeof row.youtube_url === "string" && row.youtube_url.trim()
-              ? row.youtube_url.trim()
-              : undefined;
-          const nextTrack: TrackItem = {
-            id: id * 1000 + index + 1,
-            title,
-            artist,
-            coverShape: hasRealAlbumCover ? "image" : "square",
-            coverSrc: hasRealAlbumCover ? albumCoverSrc : undefined,
-            youtubeUrl,
-          };
-
-          const prev = tracksByTeam[teamKey] ?? [];
-          const hasSameTrack = prev.some(
-            (item) =>
-              item.title === nextTrack.title &&
-              item.artist === nextTrack.artist,
-          );
-          if (!hasSameTrack) {
-            tracksByTeam[teamKey] = [...prev, nextTrack];
-          }
-        });
-
-        setTrackItemsByTeamKey(tracksByTeam);
-      }
-    };
-
-    void fetchData();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  const cards = useMemo(
-    () => cardsData.filter((card) => card.day === selectedDay),
-    [cardsData, selectedDay],
-  );
-  const selectedTeamKey = selectedCard
-    ? normalizeTeamName(selectedCard.title)
-    : "";
-  const matchedTrackItems = selectedTeamKey
-    ? trackItemsByTeamKey[selectedTeamKey]
-    : undefined;
-  const trackItems = matchedTrackItems?.length
-    ? matchedTrackItems
-    : trackListByDay[selectedDay];
-  const handleSelectCard = useCallback((card: SetlistCard) => {
-    setSelectedCard(card);
-  }, []);
-  const handleCloseCard = useCallback(() => {
-    setSelectedCard(null);
-  }, []);
   return (
-    <div className="min-h-screen bg-black text-white">
-      <SiteHeader />
+    <main className="relative min-h-screen overflow-hidden pt-16 md:pt-[84px] lg:pt-[102px]">
+      <section className="relative z-10 mx-auto w-full max-w-[1440px] px-5 pb-20 pt-10 md:px-8 md:pb-24 md:pt-16 lg:px-[72px] lg:pt-24">
+        <FadeInUp delay={0.04}>
+          <h1 className="text-[28px] font-semibold leading-[33.4px] md:text-[32px] md:leading-[38px] lg:text-[36px] lg:leading-[42.96px]">
+            Setlist
+          </h1>
+        </FadeInUp>
 
-      <main className="relative min-h-screen overflow-hidden pt-16 md:pt-[84px] lg:pt-[102px]">
-        <div className="pointer-events-none absolute inset-0 z-0">
-          <Image
-            src="/concert-poster-latest.png"
-            alt="셋리스트 배경"
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover object-bottom opacity-95"
-          />
-          <div className="absolute inset-0 bg-[#090b1f]/42" />
-          <div className="absolute inset-x-0 bottom-0 h-[48vh] bg-gradient-to-b from-transparent via-black/45 to-black/70" />
-        </div>
-
-        <section className="relative z-10 mx-auto w-full max-w-[1440px] px-5 pb-20 pt-10 md:px-8 md:pb-24 md:pt-16 lg:px-[72px] lg:pt-24">
-          <FadeInUp delay={0.04}>
-            <h1 className="text-[28px] font-semibold leading-[33.4px] md:text-[32px] md:leading-[38px] lg:text-[36px] lg:leading-[42.96px]">
-              Setlist
-            </h1>
-          </FadeInUp>
-
-          <FadeInUp delay={0.1}>
-            <div className="mt-4 flex items-center gap-5 md:mt-6 md:gap-8">
-              <button
-                type="button"
-                onClick={() => setSelectedDay(1)}
-                className={`text-[20px] font-semibold leading-[23.87px] transition-colors md:text-[24px] md:leading-[28.64px] lg:text-[28px] lg:leading-[33.41px] ${
-                  selectedDay === 1 ? "text-white" : "text-[#ababab]"
-                }`}
-              >
-                1일차 공연
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedDay(2)}
-                className={`text-[20px] font-semibold leading-[23.87px] transition-colors md:text-[24px] md:leading-[28.64px] lg:text-[28px] lg:leading-[33.41px] ${
-                  selectedDay === 2 ? "text-white" : "text-[#ababab]"
-                }`}
-              >
-                2일차 공연
-              </button>
-            </div>
-          </FadeInUp>
-
-          <SetlistLineupSections
-            cards={cards}
-            selectedDay={selectedDay}
-            onSelectCard={handleSelectCard}
-          />
-        </section>
-      </main>
-
-      <SetlistDetailModal
-        selectedCard={selectedCard}
-        trackItems={trackItems}
-        onClose={handleCloseCard}
-        onTrackClick={handleTrackClick}
-        TrackCoverImage={TrackCoverImage}
-        DummyPosterArtwork={DummyPosterArtwork}
-        SquareGrayArtwork={SquareGrayArtwork}
-      />
-    </div>
+        <SetlistView cardsData={cardsData} trackItemsByTeamKey={trackItemsByTeamKey} />
+      </section>
+    </main>
   );
 }

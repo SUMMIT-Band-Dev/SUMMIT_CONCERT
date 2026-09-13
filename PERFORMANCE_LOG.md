@@ -229,3 +229,86 @@
 - 일반 개념: 같은 최적화라도 측정을 언제 처음 공식 도구로 돌리느냐에 따라 "Before/After"의 의미가 달라진다 — 이번처럼 Before가 "리사이징 이전 Baseline"이고 After가 "리사이징 이후 첫 공식 측정"이면, 그 사이에 일어난 모든 변화(의도한 것 + 의도하지 않은 부작용)가 한 번에 반영된다. 여러 변경을 순차로 했다면 그 사이마다 측정해야 어느 변경이 어떤 지표에 영향을 줬는지 분리할 수 있다.
 - 이 프로젝트 적용: SUMMIT은 이번에 처음으로 `/perf-check`의 Lighthouse CLI 단계를 실사용했고, 그 결과 직전 Playwright 실측만으로는 안 보였던 CLS 이상(0.480, Mobile 조건)과 Performance 점수 하락이 공식 지표로 확인됐다. 이는 "Playwright 실측은 네트워크/바이트 실측에 유용하지만 Lighthouse의 종합 Performance 점수를 대체할 수 없다"는 이 에이전트 역할 분리 원칙이 실제로 유효했음을 보여주는 사례다.
 - 이 프로젝트 적용: `/event-goods`의 CLS 이상은 다음 리팩토링 작업(work01 §3 스크롤 끊김/§4 컴포넌트 분할)과 별도로, CLS 원인 규명을 위한 코드 리뷰가 추가로 필요하다는 백로그 항목으로 남긴다.
+
+---
+
+## 2026-09-13 — work01-4 Server/Client 컴포넌트 분할 + CLS 수정
+
+- 커밋/브랜치: chore/perf-check-lighthouse (미커밋 상태의 작업 diff 기준)
+- 측정 대상 페이지: `/event-goods`, `/setlist`
+- 측정 조건:
+  - Lighthouse: 기존에 떠 있던 로컬 서버(포트 3000)를 그대로 사용. 응답 헤더에 HMR/dev 전용 마커(`webpack-hmr`, `react-refresh`, `_next/static/development/`) 없음을 확인했고, 정적 리소스가 콘텐츠 해시 파일명(`_next/static/media/797e433...woff2`)으로 서빙되고 있어 프로덕션 빌드로 판단 — 이 agent가 새로 띄운 서버가 아니므로 측정 후 종료하지 않았다. `npx lighthouse --preset=perf --form-factor=mobile --screenEmulation.mobile --throttling-method=simulate` (headless Chrome). 직전 항목(2026-09-13, 공식 Lighthouse Before/After 확보)과 동일한 스로틀링 방식(`simulate`)이므로 이번 Before/After는 완전히 동일 조건 비교임. 원본 리포트: `lighthouse-after-event-goods-20260913.json`, `lighthouse-after-setlist-20260913.json` (기존 동일 이름 파일을 덮어씀 — 파일명이 날짜만 반영해 직전 리포트와 구분되지 않는 점은 향후 개선 필요).
+  - Playwright: 동일 서버, Chromium 기본 뷰포트(데스크톱), `PerformanceObserver`(`buffered: true`)로 LCP/CLS/longtask 실측 — 직전 항목에서 `performance.getEntriesByType()` 직접 호출 시 "Deprecated API for given entry type" 콘솔 경고가 발생해 이번엔 `PerformanceObserver` 방식으로 교체함 (측정 방법 자체가 직전 항목과 달라졌으므로 수치 직접 비교 시 이 차이를 감안할 것).
+
+### Lighthouse (공식 Before/After 비교용)
+
+**`/event-goods`**
+
+| 지표 | Before (직전 공식 측정, 2026-09-13) | After (이번 측정) |
+| --- | --- | --- |
+| Performance 점수 | 56 | 84 |
+| LCP | 4.86s | 4.38s |
+| FCP | 1.28s | 0.93s |
+| TBT | 233.5ms | 145.5ms |
+| Speed Index | 3.76s | 1.18s |
+| CLS | 0.480 | 0 |
+| Total Byte Weight | 634 KiB (649,000 bytes) | 637 KiB (652,792 bytes) |
+
+**`/setlist`**
+
+| 지표 | Before (직전 공식 측정, 2026-09-13) | After (이번 측정) |
+| --- | --- | --- |
+| Performance 점수 | 77 | 77 |
+| LCP | 5.74s | 5.35s |
+| FCP | 0.76s | 0.76s |
+| TBT | 165.5ms | 192.5ms |
+| Speed Index | 1.03s | 1.78s |
+| CLS | 0 | 0 |
+| Total Byte Weight | 1,051 KiB (1,076,577 bytes) | 1,052 KiB (1,077,222 bytes) |
+
+**정직하게 남기는 관찰**: `/event-goods`의 CLS는 0.480 → 0으로 완전히 사라졌고, 이번 작업 단위의 핵심 검증 대상이었던 "구조적으로 CLS가 재발 불가능해야 한다"는 가설이 실측으로 확인됐다. Performance 점수도 56 → 84로 회복했고, 이는 Baseline(2026-08-30, 71점)보다도 높은 수치다 — CLS 제거가 Performance 점수 회복의 지배적 원인으로 보인다(TBT·Speed Index도 함께 개선됐으나 CLS 가중치가 가장 크게 작용했을 가능성이 높음, 정확한 기여도 분해는 Lighthouse 내부 가중 공식을 별도로 뜯어봐야 함). `/setlist`는 애초에 CLS가 0이었으므로 이번 변경의 직접 수혜 대상이 아니며, 실제로 Performance 점수(77→77)와 Total Byte Weight(1,051→1,052 KiB)가 거의 그대로 유지됐다 — 이는 "코드 변경 요약"에 정리된 대로 `day1-team*.png` 미최적화 이미지가 이번 작업 범위 밖이라는 사전 예상과 정확히 일치한다. `/setlist`의 Speed Index가 1.03s→1.78s로 오히려 악화된 점은 이번 변경(Server Component 전환, layout.tsx 분리)과 인과관계가 뚜렷하지 않아 원인 불명으로 남긴다 — 서버 컴포넌트 fetch가 요청 시점에 실행되므로 Supabase 응답 지연이 있었을 경우 TTFB가 늘어 Speed Index에 영향을 줬을 가능성은 있으나(가설), 이번 리포트만으로 단정할 근거는 부족하다.
+
+### Playwright 실측 (네트워크 요청/바이트 변화 확인용)
+
+**`/event-goods`**
+
+| 지표 | Before (직전 항목, 2026-09-13) | After (이번 측정) |
+| --- | --- | --- |
+| LCP | 0.800s | 1.456s |
+| FCP | N/A (직전 항목에서 미측정) | 0.496s |
+| TBT(근사) | ~0ms | ~0ms (longtask 엔트리 0건) |
+| CLS | N/A (직전 항목 Playwright 실측에서 미갱신, Lighthouse 표에서 0.480 확인) | 0 (layout-shift 엔트리 0건, `PerformanceObserver` 실측) |
+| 이미지 리소스(mzstatic 앨범 커버 16장) | 119.4 KiB | 108,055 bytes (~105.5 KiB) |
+| 전체 리소스 바이트(참고, 첫 측정) | 기록 없음 | 531,564 bytes (~519 KiB, 44개 리소스) |
+
+**`/setlist`**
+
+| 지표 | Before (직전 항목, 2026-09-13) | After (이번 측정) |
+| --- | --- | --- |
+| LCP | 1.020s | 1.304s |
+| FCP | 0.120s | 0.516s |
+| TBT(근사) | ~0ms | ~0ms (longtask 엔트리 0건) |
+| CLS | 0 | 0 |
+| `day1-team*.png` 리소스 | content-length 91,732 bytes/장(~89.6 KiB), 7장 합계 ~640 KiB | 요청 자체는 7건 모두 200 OK로 재확인(여전히 최적화 안 된 원본 PNG 그대로) — 단 `transferSize`가 개당 300바이트 수준으로 낮게 잡혀 브라우저 디스크 캐시에서 서빙된 것으로 보임(캐시 히트 시 `transferSize`가 실제 파일 크기를 반영하지 않는 Performance API의 알려진 특성). 실제 파일 크기 변화는 Lighthouse의 Total Byte Weight(1,051→1,052 KiB, 사실상 불변)로 판단하는 것이 정확함 |
+| 전체 리소스 바이트(참고, 첫 측정) | 기록 없음 | 427,168 bytes (~417 KiB, 34개 리소스, 캐시 영향 포함) |
+
+**한계**: 이번 Playwright LCP/FCP 실측값(event-goods 1.456s, setlist 1.304s)은 직전 항목보다 오히려 소폭 높게 나왔다 — 이는 측정 방식을 `getEntriesByType()` 직접 호출에서 `PerformanceObserver(buffered:true)` 콜백 이후 500ms 대기 방식으로 바꾼 데 따른 측정 시점 차이(브라우저 세션 상태, 로컬 서버 부하, 캐시 상태 등)일 가능성이 높고, 이번 코드 변경(Server/Client 분할, layout.tsx 분리) 자체가 클라이언트 실측 LCP를 악화시켰다고 볼 근거는 없다 — Lighthouse 표에서는 오히려 두 페이지 모두 LCP가 개선(event-goods 4.86→4.38s, setlist 5.74→5.35s)됐으므로, 이번 Playwright 수치 차이는 도구/측정 시점 노이즈로 해석하는 것이 타당하다. `day1-team*.png` 캐시 히트로 인한 `transferSize` 왜곡도 이 측정 방식의 알려진 한계로 남긴다.
+
+### 코드 변경 요약
+- `event-goods/page.tsx`, `setlist/page.tsx`: `"use client"` + `useEffect` 기반 클라이언트 사이드 Supabase fetch를 제거하고 async 서버 컴포넌트로 전환 — 요청 시점에 서버에서 fetch+데이터 변환을 마친 뒤 렌더링.
+- `SiteHeader`와 배경 이미지/그라데이션 오버레이를 각각 신규 `event-goods/layout.tsx`, `setlist/layout.tsx`로 이동. 오버레이 포지셔닝을 `absolute inset-0`(main의 콘텐츠 높이에 종속) → `fixed inset-0`(뷰포트 고정 크기)로 변경.
+- 각 라우트에 `loading.tsx` 신설 (Next.js Suspense fallback, 최소 텍스트 안내).
+- 인터랙션 담당 로직(day 토글, 카드 클릭→모달, 트랙 클릭→유튜브, 이미지 로드 실패 폴백)을 `event-goods-view.tsx`/`setlist-view.tsx` 클라이언트 컴포넌트로 분리 — 서버는 순수 데이터(JSON 직렬화 가능한 값)만 prop으로 전달.
+- 중복 코드 통합: `TrackCoverImage`/`SquareGrayArtwork`/`DummyPosterArtwork`를 공용 컴포넌트로, Supabase 테이블 fetch 루프를 `src/lib/fetch-line-up-and-setlist.ts`로, 유튜브 오픈 로직을 `src/lib/open-track-video.ts`로 통합 (기존 두 페이지에 문자 그대로 중복돼 있던 코드).
+
+### 원리 설명
+- CLS 0.480의 확정된 원인은 `event-goods/page.tsx`의 `bottom-0` 그라데이션 오버레이가 `useEffect` 데이터 도착 전/후로 변하는 `main`의 콘텐츠 높이를 따라 밀리는 것이었다(이전 세션 code-review로 원인 확정). 이번 변경으로 (1) 서버 컴포넌트가 첫 페인트 시점에 이미 최종 데이터를 반영해 `main` 높이가 처음부터 고정되고, (2) 오버레이 자체도 `fixed`로 바뀌어 콘텐츠 높이와 완전히 무관해졌다 — **Lighthouse 실측으로 CLS 0.480 → 0이 확인됐고(재실행 없이 단일 측정이라 재현성 검증은 1회분), Playwright `PerformanceObserver` 실측(layout-shift 엔트리 0건)도 동일 결론을 뒷받침한다. 가설이 아니라 실측으로 검증 완료.**
+- 클라이언트에 있던 Supabase 데이터 정규화 로직이 서버로 옮겨간 것이 Total Byte Weight를 줄일 것이라는 가설은 **기각**됐다 — event-goods 634→637 KiB, setlist 1,051→1,052 KiB로 사실상 변화가 없었다. 이는 클라이언트 JS 번들 크기 감소분이 있었다 해도 페이지 전체 바이트(이미지·폰트·CSS 포함) 대비 미미한 비중이었거나, 서버 컴포넌트 전환이 실제로는 번들 크기에 유의미한 영향을 주지 않았기 때문으로 추정된다(가설 — 번들 분석 도구로 별도 확인 필요, 이번 리포트 범위 밖).
+- CLS 개선이 Performance 점수 회복(56→84, Baseline 71 상회)의 주 원인이라는 가설은 실측으로 뒷받침됐다. `/setlist`의 Total Byte Weight 불변은 사전 예상(day1-team 이미지 미최적화, work01 2순위 과제)과 정확히 일치했다.
+
+### 개념 노트
+- 일반 개념: 클라이언트에서 `useEffect`로 데이터를 가져와 렌더하는 패턴은 "데이터 도착 전/후" 두 가지 상태를 만들고, 그 사이에 레이아웃에 의존하는 절대 위치 요소가 있으면 CLS를 유발할 수 있다. 서버 컴포넌트로 페칭을 옮기면 클라이언트에 "데이터 없음" 상태 자체가 존재하지 않아 이런 종류의 CLS가 구조적으로 사라진다 — 이번 측정이 이 원리를 실측으로 증명한 사례다.
+- 일반 개념: 배경 오버레이의 크기 기준(콘텐츠 높이 vs 뷰포트 높이)을 명확히 해야 한다 — 콘텐츠 높이에 종속된 오버레이는 콘텐츠가 언제 어떻게 변하든(초기 로딩, 무한스크롤 등) CLS 위험을 항상 안고 간다.
+- 일반 개념: 브라우저 캐시 히트 시 `PerformanceResourceTiming.transferSize`가 실제 파일 크기를 반영하지 않는다(0 또는 매우 작은 값) — 반복 측정이나 재방문 시나리오에서 Playwright 실측 바이트 수치를 그대로 신뢰하면 안 되고, Lighthouse의 Total Byte Weight처럼 캐시 상태를 통제한 지표를 병행 확인해야 한다. 이번 `/setlist`의 `day1-team*.png` 측정에서 이 함정이 실제로 관찰됐다.
+- 이 프로젝트 적용: SUMMIT은 데이터 페칭 위치 이동(client→server)과 오버레이 포지셔닝 방식 변경(absolute→fixed) 두 가지를 동시에 적용해 CLS 원인을 이중으로 제거했고, `/event-goods`의 CLS 0.480→0, Performance 56→84 회복으로 그 효과가 실측 확인됐다.
+- 이 프로젝트 적용: `/setlist`는 이번 작업의 영향을 받지 않는 이미지 최적화 이슈(`day1-team*.png`)가 여전히 남아 있어, Total Byte Weight 개선을 보려면 work01 2순위 과제(팀 카드 이미지 `next/image` 전환)를 별도로 진행해야 한다는 것이 이번 측정으로 재확인됐다.

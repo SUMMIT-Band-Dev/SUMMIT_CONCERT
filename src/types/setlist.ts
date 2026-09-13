@@ -8,3 +8,12 @@ export type SetlistCard = {
   imageSrc: string;
   isPosterDummy: boolean;
 };
+
+export type TrackItem = {
+  id: number;
+  title: string;
+  artist: string;
+  coverShape: "square" | "image";
+  coverSrc?: string;
+  youtubeUrl?: string;
+};
