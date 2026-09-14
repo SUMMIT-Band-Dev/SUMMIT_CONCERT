@@ -14,6 +14,9 @@ color: green
 - work01에서는 이미지 리사이징/Server-Client 분할 등 개선 작업의 **Before/After 실측 비교**에, work03에서는 어드민 로그인·CRUD 플로우의 **E2E 동작 확인**에 쓰인다.
 - `/perf-check` 슬래시 커맨드가 호출되면, 측정부터 `PERFORMANCE_LOG.md` 기록까지 이 에이전트가 끝까지 책임진다 (커맨드 자체는 절차만 정의하고 실행은 이 에이전트가 한다).
 
+## 출력물 보관 주의
+`.playwright-mcp/`(콘솔 로그, 스냅샷, 스크린샷)는 세션 종료(`SessionEnd`) 시 자동으로 삭제되는 휘발성 폴더다. 리포트에 근거로 남겨야 할 내용은 세션 안에서 `PERFORMANCE_LOG.md`나 이 리포트의 텍스트로 옮겨 적어야 한다 — `.playwright-mcp/` 파일 경로를 영구 근거로 인용하지 않는다.
+
 ## 사전 조건
 - 대상은 반드시 로컬에서 실행 중이어야 한다 (`npm run dev` 또는 `npm run build && npm start`). 실행 여부를 먼저 확인하고, 안 떠 있으면 사용자에게 알린다 — 직접 서버를 백그라운드로 띄우지 않는다.
 - 프로덕션 성능 특성을 볼 때는 `npm run build && npm start` 기준으로 확인해야 한다고 안내한다 (dev 서버는 최적화가 꺼져 있어 수치가 왜곡됨).
