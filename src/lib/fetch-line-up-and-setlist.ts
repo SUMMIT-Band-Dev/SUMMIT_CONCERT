@@ -10,10 +10,7 @@ export type LineUpRow = Record<string, unknown> & {
 
 export type SetlistRow = Record<string, unknown> & {
   id?: number;
-  day?: string | number;
-  team?: string;
-  team_name?: string;
-  image_src?: string;
+  teamId?: number;
   title?: string;
   singer?: string;
   album?: string;

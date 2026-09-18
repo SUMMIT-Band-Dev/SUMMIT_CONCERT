@@ -151,17 +151,6 @@ function getDayFromRow(row: LineUpRow): DayType | null {
   return null;
 }
 
-function normalizeTeamName(value: string) {
-  return (
-    value
-      .toLowerCase()
-      // 실무 입력에서 자주 섞이는 축약(젤)과 정식표기(제일)를 동일 키로 취급
-      .replace(/젤/g, "제일")
-      .replace(/[\s_-]+/g, "")
-      .trim()
-  );
-}
-
 function getTeamFallbackName(id: number) {
   const day1Names = [
     "8C8",
@@ -220,7 +209,7 @@ function shouldUseDummyPoster(teamName: string) {
 
 async function buildSetlistData(): Promise<{
   cardsData: SetlistCard[];
-  trackItemsByTeamKey: Record<string, TrackItem[]>;
+  trackItemsByTeamId: Record<number, TrackItem[]>;
 }> {
   const [lineUpRows, setlistRows] = await Promise.all([
     fetchLineUpRows(),
@@ -260,30 +249,23 @@ async function buildSetlistData(): Promise<{
     }
   }
 
-  // 2) 곡 목록은 Setlist(title/singer/team) 기준
-  const tracksByTeam: Record<string, TrackItem[]> = {};
+  // 2) 곡 목록은 Setlist(title/singer/teamId) 기준, Line Up.id 로 매칭
+  const tracksByTeamId: Record<number, TrackItem[]> = {};
 
   if (setlistRows.length > 0) {
-    const lineUpTeamKeys = new Set(
+    const lineUpIds = new Set(
       lineUpRows
-        .map((row) =>
-          getTeamFromSetlistRow(
-            row as SetlistRow,
-            typeof row.id === "number" ? row.id : 0,
-          ),
-        )
-        .map((team) => normalizeTeamName(team))
-        .filter(Boolean),
+        .map((row) => (typeof row.id === "number" ? row.id : null))
+        .filter((id): id is number => id !== null),
     );
 
     setlistRows.forEach((row, index) => {
       const id = typeof row.id === "number" ? row.id : index + 1;
-      const teamName = getTeamFromSetlistRow(row, id);
-      const teamKey = normalizeTeamName(teamName);
-      if (!teamKey) return;
+      const teamId = typeof row.teamId === "number" ? row.teamId : null;
+      if (teamId === null) return;
 
-      // 요청사항: Setlist.team 과 Line Up.team_name 이 일치하는 팀만 반영
-      if (lineUpTeamKeys.size > 0 && !lineUpTeamKeys.has(teamKey)) return;
+      // Setlist.teamId 와 Line Up.id 가 일치하는 팀만 반영
+      if (lineUpIds.size > 0 && !lineUpIds.has(teamId)) return;
 
       const title = typeof row.title === "string" ? row.title.trim() : "";
       if (!title) return;
@@ -312,22 +294,22 @@ async function buildSetlistData(): Promise<{
         youtubeUrl,
       };
 
-      const prev = tracksByTeam[teamKey] ?? [];
+      const prev = tracksByTeamId[teamId] ?? [];
       const hasSameTrack = prev.some(
         (item) =>
           item.title === nextTrack.title && item.artist === nextTrack.artist,
       );
       if (!hasSameTrack) {
-        tracksByTeam[teamKey] = [...prev, nextTrack];
+        tracksByTeamId[teamId] = [...prev, nextTrack];
       }
     });
   }
 
-  return { cardsData, trackItemsByTeamKey: tracksByTeam };
+  return { cardsData, trackItemsByTeamId: tracksByTeamId };
 }
 
 export default async function SetlistPage() {
-  const { cardsData, trackItemsByTeamKey } = await buildSetlistData();
+  const { cardsData, trackItemsByTeamId } = await buildSetlistData();
 
   return (
     <main className="relative min-h-screen overflow-hidden pt-16 md:pt-[84px] lg:pt-[102px]">
@@ -338,7 +320,7 @@ export default async function SetlistPage() {
           </h1>
         </FadeInUp>
 
-        <SetlistView cardsData={cardsData} trackItemsByTeamKey={trackItemsByTeamKey} />
+        <SetlistView cardsData={cardsData} trackItemsByTeamId={trackItemsByTeamId} />
       </section>
     </main>
   );

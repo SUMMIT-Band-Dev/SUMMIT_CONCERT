@@ -39,14 +39,6 @@ function getDayFromRow(row: LineUpRow): DayType | null {
   return null;
 }
 
-function normalizeTeamName(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/젤/g, "제일")
-    .replace(/[\s_-]+/g, "")
-    .trim();
-}
-
 function getTeamFallbackName(id: number) {
   const day1Names = [
     "8C8",
@@ -105,23 +97,19 @@ async function buildTeamsByDay(): Promise<Record<DayType, TeamPlaylist[]>> {
     fetchSetlistRows(),
   ]);
 
-  const lineUpTeamKeys = new Set(
+  const lineUpIds = new Set(
     lineUpRows
-      .map((row) =>
-        getTeamFromRow(row as SetlistRow, typeof row.id === "number" ? row.id : 0),
-      )
-      .map((team) => normalizeTeamName(team))
-      .filter(Boolean),
+      .map((row) => (typeof row.id === "number" ? row.id : null))
+      .filter((id): id is number => id !== null),
   );
 
-  const tracksByTeam: Record<string, TrackItem[]> = {};
+  const tracksByTeamId: Record<number, TrackItem[]> = {};
 
   setlistRows.forEach((row, index) => {
     const id = typeof row.id === "number" ? row.id : index + 1;
-    const teamName = getTeamFromRow(row, id);
-    const teamKey = normalizeTeamName(teamName);
-    if (!teamKey) return;
-    if (lineUpTeamKeys.size > 0 && !lineUpTeamKeys.has(teamKey)) return;
+    const teamId = typeof row.teamId === "number" ? row.teamId : null;
+    if (teamId === null) return;
+    if (lineUpIds.size > 0 && !lineUpIds.has(teamId)) return;
 
     const title = typeof row.title === "string" ? row.title.trim() : "";
     if (!title) return;
@@ -152,12 +140,12 @@ async function buildTeamsByDay(): Promise<Record<DayType, TeamPlaylist[]>> {
       youtubeUrl,
     };
 
-    const prev = tracksByTeam[teamKey] ?? [];
+    const prev = tracksByTeamId[teamId] ?? [];
     const hasSameTrack = prev.some(
       (item) => item.title === nextTrack.title && item.artist === nextTrack.artist,
     );
     if (!hasSameTrack) {
-      tracksByTeam[teamKey] = [...prev, nextTrack];
+      tracksByTeamId[teamId] = [...prev, nextTrack];
     }
   });
 
@@ -171,10 +159,9 @@ async function buildTeamsByDay(): Promise<Record<DayType, TeamPlaylist[]>> {
       if (!day) return;
 
       const teamName = getTeamFromRow(row as SetlistRow, id);
-      const teamKey = normalizeTeamName(teamName);
       const imageSrc =
         normalizeImageSource(row.image_src) || getImageFallbackPath(id);
-      const tracks = tracksByTeam[teamKey] ?? [];
+      const tracks = tracksByTeamId[id] ?? [];
 
       nextTeamsByDay[day].push({
         teamName,

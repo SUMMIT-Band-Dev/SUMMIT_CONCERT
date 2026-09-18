@@ -7,17 +7,6 @@ import SetlistLineupSections from "@/components/sections/setlist-lineup-sections
 import { openTrackVideo } from "@/lib/open-track-video";
 import type { DayType, SetlistCard, TrackItem } from "@/types/setlist";
 
-function normalizeTeamName(value: string) {
-  return (
-    value
-      .toLowerCase()
-      // 실무 입력에서 자주 섞이는 축약(젤)과 정식표기(제일)를 동일 키로 취급
-      .replace(/젤/g, "제일")
-      .replace(/[\s_-]+/g, "")
-      .trim()
-  );
-}
-
 const trackListByDay: Record<DayType, TrackItem[]> = {
   1: [
     { id: 101, title: "Twilight", artist: "SUMMIT Band", coverShape: "square" },
@@ -74,10 +63,10 @@ const trackListByDay: Record<DayType, TrackItem[]> = {
 
 export default function SetlistView({
   cardsData,
-  trackItemsByTeamKey,
+  trackItemsByTeamId,
 }: {
   cardsData: SetlistCard[];
-  trackItemsByTeamKey: Record<string, TrackItem[]>;
+  trackItemsByTeamId: Record<number, TrackItem[]>;
 }) {
   const [selectedDay, setSelectedDay] = useState<DayType>(1);
   const [selectedCard, setSelectedCard] = useState<SetlistCard | null>(null);
@@ -87,11 +76,8 @@ export default function SetlistView({
     [cardsData, selectedDay],
   );
 
-  const selectedTeamKey = selectedCard
-    ? normalizeTeamName(selectedCard.title)
-    : "";
-  const matchedTrackItems = selectedTeamKey
-    ? trackItemsByTeamKey[selectedTeamKey]
+  const matchedTrackItems = selectedCard
+    ? trackItemsByTeamId[selectedCard.id]
     : undefined;
   const trackItems = matchedTrackItems?.length
     ? matchedTrackItems
