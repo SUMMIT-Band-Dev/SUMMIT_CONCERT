@@ -33,9 +33,9 @@
       "command": "node",
       "args": ["C:\\Users\\PC\\tools\\mcp-shrimp-task-manager\\dist\\index.js"],
       "env": {
-        "DATA_DIR": "C:\\Users\\PC\\.shrimp-data\\summit_concert",
+        "DATA_DIR": "C:\\Users\\PC\\OneDrive\\Dokumen\\Summit-Web\\summit_concert\\.shrimp-data",
         "TEMPLATES_USE": "en",
-        "ENABLE_GUI": "false"
+        "ENABLE_GUI": "true"
       }
     }
   }
