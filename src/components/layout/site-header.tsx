@@ -58,7 +58,7 @@ export default function SiteHeader() {
   return (
     <>
       <header className="fixed inset-x-0 top-0 z-50 w-full">
-        <div className="flex h-[64px] w-full items-center justify-between border-b border-white/35 bg-black/20 px-5 backdrop-blur-[2px] md:h-[84px] md:px-8 lg:h-[102px] lg:px-[72px]">
+        <div className="flex h-16 w-full items-center justify-between border-b border-white/35 bg-black/20 px-5 backdrop-blur-[2px] md:h-21 md:px-8 lg:h-25.5 lg:px-18">
           <Link
             href="/"
             className="text-[18px] leading-[19.8px] transition-opacity hover:opacity-80 md:text-[32px] md:leading-[1.15] lg:text-[40px] lg:leading-[45.8px]"
@@ -67,7 +67,7 @@ export default function SiteHeader() {
             SUMMIT
           </Link>
 
-          <nav className="hidden items-center text-white md:flex md:gap-8 md:text-[22px] md:font-bold md:leading-[26px] lg:gap-12 lg:text-[28px] lg:leading-[33.41px]">
+          <nav className="hidden items-center text-white md:flex md:gap-8 md:text-[22px] md:font-bold md:leading-6.5 lg:gap-12 lg:text-[28px] lg:leading-[33.41px]">
             {headerNavItems.map((item) => (
               headerNavHrefByItem[item] ? (
                 <Link
@@ -100,17 +100,17 @@ export default function SiteHeader() {
           >
             <span className="relative flex h-6 w-6 items-center justify-center">
               <span
-                className={`absolute block h-[2px] w-[18px] rounded-full bg-white transition-transform duration-300 ${
+                className={`absolute block h-0.5 w-4.5 rounded-full bg-white transition-transform duration-300 ${
                   isMenuOpen ? "rotate-45" : "-translate-y-[5px]"
                 }`}
               />
               <span
-                className={`absolute block h-[2px] w-[18px] rounded-full bg-white transition-opacity duration-300 ${
+                className={`absolute block h-0.5 w-4.5 rounded-full bg-white transition-opacity duration-300 ${
                   isMenuOpen ? "opacity-0" : "opacity-100"
                 }`}
               />
               <span
-                className={`absolute block h-[2px] w-[18px] rounded-full bg-white transition-transform duration-300 ${
+                className={`absolute block h-0.5 w-4.5 rounded-full bg-white transition-transform duration-300 ${
                   isMenuOpen ? "-rotate-45" : "translate-y-[5px]"
                 }`}
               />
@@ -135,7 +135,7 @@ export default function SiteHeader() {
               exit={{ opacity: 0, y: -28 }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
               aria-label="전체 메뉴"
-              className="mx-auto h-full w-full max-w-[1380px] overflow-y-auto px-6 pb-14 pt-[104px] md:px-12 lg:px-20"
+              className="mx-auto h-full w-full max-w-345 overflow-y-auto px-6 pb-14 pt-26 md:px-12 lg:px-20"
             >
               <div className="space-y-12 md:space-y-16">
                 {menuSections.map((section) => (

@@ -56,10 +56,10 @@ function DayPlaylistSection({ day, teams }: { day: DayType; teams: TeamPlaylist[
                       onClick={() => openTrackVideo(track)}
                       className="flex w-full items-center gap-3 rounded-[10px] border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left transition-all hover:border-white/30 hover:bg-white/[0.1]"
                     >
-                      <div className="w-[24px] shrink-0 text-center text-[12px] font-semibold text-white/55">
+                      <div className="w-6 shrink-0 text-center text-[12px] font-semibold text-white/55">
                         {String(displayIndex).padStart(2, "0")}
                       </div>
-                      <div className="h-[56px] w-[56px] shrink-0 overflow-hidden rounded-[8px]">
+                      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-[8px]">
                         {track.coverShape === "square" ? (
                           <SquareGrayArtwork />
                         ) : (

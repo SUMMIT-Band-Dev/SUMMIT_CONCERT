@@ -18,7 +18,7 @@ export default function NoticePage() {
     <div className="min-h-screen bg-black text-white">
       <SiteHeader />
 
-      <main className="relative isolate min-h-screen overflow-hidden pt-16 md:pt-[84px] lg:pt-[102px]">
+      <main className="relative isolate min-h-screen overflow-hidden pt-16 md:pt-21 lg:pt-25.5">
         <div className="pointer-events-none absolute inset-0 z-0">
           <Image
             src="/concert-poster-latest.png"
@@ -31,7 +31,7 @@ export default function NoticePage() {
           <div className="absolute inset-0 bg-[#0e132d]/70" />
         </div>
 
-        <section className="relative z-10 mx-auto flex min-h-[calc(100svh-64px)] w-full max-w-[1180px] flex-col px-5 pb-16 pt-12 md:min-h-[calc(100svh-84px)] md:px-8 lg:min-h-[calc(100svh-102px)] lg:px-12">
+        <section className="relative z-10 mx-auto flex min-h-[calc(100svh-64px)] w-full max-w-295 flex-col px-5 pb-16 pt-12 md:min-h-[calc(100svh-84px)] md:px-8 lg:min-h-[calc(100svh-102px)] lg:px-12">
           <FadeInUp delay={0.04}>
             <h1 className="text-center text-[26px] font-semibold leading-[1.25] md:text-[36px] lg:text-[42px]">
               관람 유의사항
@@ -50,7 +50,7 @@ export default function NoticePage() {
                   <ul className="space-y-4 px-5 py-5 text-[14px] leading-[1.65] text-white/92 md:px-7 md:py-6 md:text-[17px]">
                     {safetyNoticeItems.map((item, index) => (
                       <li key={item} className="flex items-start gap-3">
-                        <span className="mt-[2px] inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/12 text-[12px] font-semibold md:h-7 md:w-7 md:text-[13px]">
+                        <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/12 text-[12px] font-semibold md:h-7 md:w-7 md:text-[13px]">
                           {index + 1}
                         </span>
                         <p>{item}</p>
@@ -70,7 +70,7 @@ export default function NoticePage() {
                   <ul className="space-y-4 px-5 py-5 text-[14px] leading-[1.65] text-white/92 md:px-7 md:py-6 md:text-[17px]">
                     {parkingNoticeItems.map((item, index) => (
                       <li key={item} className="flex items-start gap-3">
-                        <span className="mt-[2px] inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/12 text-[12px] font-semibold md:h-7 md:w-7 md:text-[13px]">
+                        <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/12 text-[12px] font-semibold md:h-7 md:w-7 md:text-[13px]">
                           {index + 1}
                         </span>
                         <p>{item}</p>

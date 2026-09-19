@@ -235,7 +235,7 @@ const serviceCardHrefById: Partial<Record<ServiceCard["id"], string>> = {
 };
 
 const serviceCardBaseClassName =
-  "group flex h-[149px] min-w-0 flex-col items-center rounded-[24px] border border-transparent bg-[#161920] px-4 py-7 transition-all duration-300 hover:-translate-y-1 hover:border-white hover:shadow-[0_20px_36px_rgba(0,0,0,0.36)] md:h-[204px] md:py-10";
+  "group flex h-37.25 min-w-0 flex-col items-center rounded-[24px] border border-transparent bg-[#161920] px-4 py-7 transition-all duration-300 hover:-translate-y-1 hover:border-white hover:shadow-[0_20px_36px_rgba(0,0,0,0.36)] md:h-51 md:py-10";
 
 type ServiceCardProps = {
   card: ServiceCard;
@@ -298,7 +298,7 @@ export default function FacilityServiceSection() {
       className="scroll-mt-[84px] px-5 pb-16 pt-10 md:scroll-mt-[104px] md:px-8 lg:scroll-mt-[124px] lg:px-12"
     >
       <FadeInUp delay={0.08} once={false}>
-        <h2 className="text-[32px] font-semibold leading-[38px] md:text-[44px] md:leading-[52px]">
+        <h2 className="text-[32px] font-semibold leading-9.5 md:text-[44px] md:leading-13">
           시설 및 서비스
         </h2>
       </FadeInUp>
