@@ -6,6 +6,7 @@ import { HealthModule } from './health/health.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { SongsModule } from './songs/songs.module.js';
 import { TeamsModule } from './teams/teams.module.js';
+import { YoutubeModule } from './youtube/youtube.module.js';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { TeamsModule } from './teams/teams.module.js';
     TeamsModule,
     SongsModule,
     AlbumCoverModule,
+    YoutubeModule,
   ],
 })
 export class AppModule {}

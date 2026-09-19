@@ -30,6 +30,9 @@ const songRow = (albumCoverUrl: string | null = null) => ({
   singer: '한로로',
   albumCoverUrl,
   youtubeUrl: null,
+  // DB 컬럼이 NOT NULL DEFAULT 'pending'이라 실제 행에는 항상 값이 있다.
+  // 빠뜨리면 toEqual이 undefined 키를 무시해 통과하므로 실데이터와 맞춰 둔다.
+  youtubeReviewStatus: 'pending' as const,
 });
 
 const track: ItunesTrack = {
