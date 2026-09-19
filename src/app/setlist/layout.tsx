@@ -19,7 +19,7 @@ export default function SetlistLayout({ children }: { children: ReactNode }) {
           className="object-cover object-bottom opacity-95"
         />
         <div className="absolute inset-0 bg-[#090b1f]/42" />
-        <div className="absolute inset-x-0 bottom-0 h-[48vh] bg-gradient-to-b from-transparent via-black/45 to-black/70" />
+        <div className="absolute inset-x-0 bottom-0 h-[48vh] bg-linear-to-b from-transparent via-black/45 to-black/70" />
       </div>
 
       {children}

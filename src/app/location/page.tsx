@@ -12,7 +12,7 @@ export default function LocationPage() {
     <div className="min-h-screen bg-black text-white">
       <SiteHeader />
 
-      <main className="relative isolate min-h-screen overflow-hidden pt-16 md:pt-[84px] lg:pt-[102px]">
+      <main className="relative isolate min-h-screen overflow-hidden pt-16 md:pt-21 lg:pt-25.5">
         <div className="pointer-events-none absolute inset-0 z-0">
           <Image
             src="/concert-poster-latest.png"
@@ -28,7 +28,7 @@ export default function LocationPage() {
 
         <section className="relative z-10 mx-auto flex min-h-[calc(100svh-64px)] w-full flex-col items-center justify-center px-2 pb-10 pt-8 md:min-h-0 md:justify-start md:px-3 md:pb-16 md:pt-14 lg:px-4 lg:pt-16">
           <FadeInUp delay={0.05}>
-            <h1 className="text-center text-[22px] font-semibold leading-[28px] md:text-[30px] md:leading-[38px] lg:text-[34px] lg:leading-[42px]">
+            <h1 className="text-center text-[22px] font-semibold leading-7 md:text-[30px] md:leading-9.5 lg:text-[34px] lg:leading-10.5">
               오시는 길
             </h1>
           </FadeInUp>
@@ -36,7 +36,7 @@ export default function LocationPage() {
           <div className="mt-6 flex w-full flex-col items-center justify-center gap-6 md:mt-10 lg:mt-12 lg:gap-12">
             <FadeInUp delay={0.12} className="w-full">
               <div className="relative left-1/2 flex w-[calc(100vw-72px)] -translate-x-1/2 flex-col items-center justify-center space-y-4 md:w-[calc(100vw-128px)] lg:w-[calc(100vw-220px)]">
-                <div className="relative h-[56svh] min-h-[360px] w-full overflow-hidden rounded-[4px] bg-[#d9d9d9] shadow-[0_18px_34px_rgba(0,0,0,0.28)] md:h-[47svh] md:min-h-[360px] lg:h-[53svh] lg:min-h-[460px]">
+                <div className="relative h-[56svh] min-h-90 w-full overflow-hidden rounded-[4px] bg-[#d9d9d9] shadow-[0_18px_34px_rgba(0,0,0,0.28)] md:h-[47svh] md:min-h-90 lg:h-[53svh] lg:min-h-115">
                   <NaverMap />
                 </div>
                 <div className="flex flex-col items-center justify-center gap-3 text-center md:flex-row md:flex-wrap md:gap-4">

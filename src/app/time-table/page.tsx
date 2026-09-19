@@ -28,7 +28,7 @@ export default function TimeTablePage() {
     <div className="min-h-screen bg-black text-white">
       <SiteHeader />
 
-      <main className="relative min-h-screen overflow-hidden pt-16 md:pt-[84px] lg:pt-[102px]">
+      <main className="relative min-h-screen overflow-hidden pt-16 md:pt-21 lg:pt-25.5">
         <div className="pointer-events-none absolute inset-0 z-0">
           <Image
             src="/concert-poster-latest.png"
@@ -41,8 +41,8 @@ export default function TimeTablePage() {
           <div className="absolute inset-0 bg-[#090b1f]/58" />
         </div>
 
-        <section className="relative z-10 mx-auto w-full max-w-[1440px] px-5 pb-20 pt-12 text-center md:px-8 md:pt-20 lg:px-12 lg:pt-24">
-          <h1 className="text-[22px] font-semibold leading-[28px] md:text-[30px] md:leading-[38px] lg:text-[34px] lg:leading-[42px]">
+        <section className="relative z-10 mx-auto w-full max-w-360 px-5 pb-20 pt-12 text-center md:px-8 md:pt-20 lg:px-12 lg:pt-24">
+          <h1 className="text-[22px] font-semibold leading-7 md:text-[30px] md:leading-9.5 lg:text-[34px] lg:leading-10.5">
             공연 타임 테이블
           </h1>
 
@@ -50,7 +50,7 @@ export default function TimeTablePage() {
             <button
               type="button"
               onClick={() => setSelectedDay(1)}
-              className={`text-[19px] font-medium leading-[23px] transition-colors md:text-[22px] md:leading-[27px] lg:text-[26px] lg:leading-[32px] ${
+              className={`text-[19px] font-medium leading-5.75 transition-colors md:text-[22px] md:leading-6.75 lg:text-[26px] lg:leading-8 ${
                 selectedDay === 1 ? "text-white" : "text-white/45"
               }`}
             >
@@ -59,7 +59,7 @@ export default function TimeTablePage() {
             <button
               type="button"
               onClick={() => setSelectedDay(2)}
-              className={`text-[19px] font-medium leading-[23px] transition-colors md:text-[22px] md:leading-[27px] lg:text-[26px] lg:leading-[32px] ${
+              className={`text-[19px] font-medium leading-5.75 transition-colors md:text-[22px] md:leading-6.75 lg:text-[26px] lg:leading-8 ${
                 selectedDay === 2 ? "text-white" : "text-white/45"
               }`}
             >

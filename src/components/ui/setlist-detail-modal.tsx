@@ -70,7 +70,7 @@ export default function SetlistDetailModal({
                     transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
                   />
                 </div>
-                <div className="relative mx-auto w-[323px] rounded-[16px] border border-white/20 bg-white/[0.04] p-[10px] shadow-[0_16px_36px_rgba(0,0,0,0.36)]">
+                <div className="relative mx-auto w-80.75 rounded-[16px] border border-white/20 bg-white/[0.04] p-2.5 shadow-[0_16px_36px_rgba(0,0,0,0.36)]">
                   <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[16px]">
                     <motion.div
                       className="absolute -left-24 top-0 h-[140%] w-20 rotate-12 bg-white/28 blur-2xl"
@@ -104,7 +104,7 @@ export default function SetlistDetailModal({
                   <div className="pointer-events-none absolute bottom-3 right-3 z-20 rounded-full border border-white/30 px-2.5 py-1 text-[9px] font-semibold text-white/75">
                     DAY {selectedCard.day}
                   </div>
-                  <div className="relative z-10 mx-auto h-[378px] w-[303px] overflow-hidden rounded-[8px]">
+                  <div className="relative z-10 mx-auto h-94.5 w-75.75 overflow-hidden rounded-[8px]">
                     {selectedCard.isPosterDummy ? (
                       <DummyPosterArtwork />
                     ) : (
@@ -145,10 +145,10 @@ export default function SetlistDetailModal({
                         onClick={() => onTrackClick(track)}
                         className="flex w-full items-center gap-3 rounded-[10px] border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left transition-all hover:border-white/30 hover:bg-white/[0.1]"
                       >
-                        <div className="w-[22px] shrink-0 text-center text-[11px] font-semibold text-white/55">
+                        <div className="w-5.5 shrink-0 text-center text-[11px] font-semibold text-white/55">
                           {String(index + 1).padStart(2, "0")}
                         </div>
-                        <div className="h-[56px] w-[56px] shrink-0 overflow-hidden rounded-[8px]">
+                        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-[8px]">
                           {track.coverShape === "square" ? (
                             <SquareGrayArtwork />
                           ) : (
@@ -176,7 +176,7 @@ export default function SetlistDetailModal({
                   <button
                     type="button"
                     onClick={onClose}
-                    className="mt-4 inline-flex h-[41px] w-full items-center justify-center rounded-[8px] bg-[#e2e2e2] text-[16px] font-medium text-black"
+                    className="mt-4 inline-flex h-10.25 w-full items-center justify-center rounded-[8px] bg-[#e2e2e2] text-[16px] font-medium text-black"
                   >
                     닫기
                   </button>
@@ -225,7 +225,7 @@ export default function SetlistDetailModal({
                     transition={{ duration: 5.3, repeat: Infinity, ease: "easeInOut" }}
                   />
                 </div>
-                <div className="relative w-[405px] rounded-[18px] border border-white/20 bg-white/[0.04] p-[13px] shadow-[0_24px_54px_rgba(0,0,0,0.48)]">
+                <div className="relative w-101.25 rounded-[18px] border border-white/20 bg-white/[0.04] p-3.25 shadow-[0_24px_54px_rgba(0,0,0,0.48)]">
                   <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[18px]">
                     <motion.div
                       className="absolute -left-28 top-0 h-[145%] w-24 rotate-12 bg-white/26 blur-2xl"
@@ -259,7 +259,7 @@ export default function SetlistDetailModal({
                   <div className="pointer-events-none absolute bottom-4 right-4 z-20 rounded-full border border-white/30 px-3 py-1 text-[10px] font-semibold text-white/75">
                     DAY {selectedCard.day}
                   </div>
-                  <div className="relative z-10 h-[473px] w-[379px] overflow-hidden rounded-[8px]">
+                  <div className="relative z-10 h-118.25 w-94.75 overflow-hidden rounded-[8px]">
                     {selectedCard.isPosterDummy ? (
                       <DummyPosterArtwork />
                     ) : (
@@ -276,7 +276,7 @@ export default function SetlistDetailModal({
                 </div>
               </div>
 
-              <div className="relative w-[395px] overflow-hidden border-l border-white/15 px-7 pb-6 pt-7 text-white">
+              <div className="relative w-98.75 overflow-hidden border-l border-white/15 px-7 pb-6 pt-7 text-white">
                 <div className="pointer-events-none absolute inset-0">
                   <Image
                     src="/concert-poster-latest.png"
@@ -296,7 +296,7 @@ export default function SetlistDetailModal({
                     PLAYLIST
                   </p>
 
-                  <div className="mt-4 max-h-[390px] space-y-2 overflow-y-auto pr-1">
+                  <div className="mt-4 max-h-97.5 space-y-2 overflow-y-auto pr-1">
                     {trackItems.map((track, index) => (
                       <button
                         key={track.id}
@@ -304,10 +304,10 @@ export default function SetlistDetailModal({
                         onClick={() => onTrackClick(track)}
                         className="flex w-full items-center gap-3 rounded-[10px] border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left transition-all hover:border-white/30 hover:bg-white/[0.1]"
                       >
-                        <div className="w-[24px] shrink-0 text-center text-[12px] font-semibold text-white/55">
+                        <div className="w-6 shrink-0 text-center text-[12px] font-semibold text-white/55">
                           {String(index + 1).padStart(2, "0")}
                         </div>
-                        <div className="h-[56px] w-[56px] shrink-0 overflow-hidden rounded-[8px]">
+                        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-[8px]">
                           {track.coverShape === "square" ? (
                             <SquareGrayArtwork />
                           ) : (
@@ -336,7 +336,7 @@ export default function SetlistDetailModal({
                   <button
                     type="button"
                     onClick={onClose}
-                    className="mt-5 inline-flex h-[48px] w-full items-center justify-center rounded-[8px] bg-[#e2e2e2] text-[16px] font-medium text-black"
+                    className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-[8px] bg-[#e2e2e2] text-[16px] font-medium text-black"
                   >
                     닫기
                   </button>

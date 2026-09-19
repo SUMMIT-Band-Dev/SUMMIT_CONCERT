@@ -7,7 +7,7 @@ export default function Desktop404Page() {
     <div className="min-h-screen bg-black text-white">
       <SiteHeader />
 
-      <main className="relative isolate min-h-screen overflow-hidden pt-16 md:pt-[84px] lg:pt-[102px]">
+      <main className="relative isolate min-h-screen overflow-hidden pt-16 md:pt-21 lg:pt-25.5">
         <div className="pointer-events-none absolute inset-0 z-0">
           <Image
             src="/concert-poster-latest.png"
@@ -20,21 +20,21 @@ export default function Desktop404Page() {
           <div className="absolute inset-0 bg-black/45" />
         </div>
 
-        <section className="relative z-10 mx-auto flex min-h-[calc(100svh-64px)] w-full items-center justify-center px-5 md:min-h-[calc(100svh-84px)] md:px-8 lg:min-h-[calc(100svh-102px)] lg:px-[72px]">
-          <div className="flex w-full max-w-[430px] flex-col items-center text-center">
-            <h1 className="text-[44px] font-semibold leading-[52px] md:text-[48px] md:leading-[57px]">
+        <section className="relative z-10 mx-auto flex min-h-[calc(100svh-64px)] w-full items-center justify-center px-5 md:min-h-[calc(100svh-84px)] md:px-8 lg:min-h-[calc(100svh-102px)] lg:px-18">
+          <div className="flex w-full max-w-107.5 flex-col items-center text-center">
+            <h1 className="text-[44px] font-semibold leading-13 md:text-[48px] md:leading-14.25">
               COMING SOON!
             </h1>
-            <p className="mt-3 text-[32px] font-medium leading-[38px] text-white/95 md:text-[34px] md:leading-[40px]">
+            <p className="mt-3 text-[32px] font-medium leading-9.5 text-white/95 md:text-[34px] md:leading-10">
               웹페이지 작업중입니다:)
             </p>
-            <p className="mt-2 text-[32px] font-medium leading-[38px] text-white/95 md:text-[34px] md:leading-[40px]">
+            <p className="mt-2 text-[32px] font-medium leading-9.5 text-white/95 md:text-[34px] md:leading-10">
               조금만 기다려주세요!
             </p>
 
             <Link
               href="/"
-              className="mt-8 inline-flex h-[74px] w-[255px] items-center justify-center rounded-[16px] bg-[#181436]/80 text-[40px] font-medium leading-none text-white transition-opacity hover:opacity-90"
+              className="mt-8 inline-flex h-18.5 w-63.75 items-center justify-center rounded-[16px] bg-[#181436]/80 text-[40px] font-medium leading-none text-white transition-opacity hover:opacity-90"
               style={{ fontFamily: "Pretendard, system-ui, sans-serif" }}
             >
               돌아가기

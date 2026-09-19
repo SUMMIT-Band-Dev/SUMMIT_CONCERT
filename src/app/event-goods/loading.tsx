@@ -1,7 +1,7 @@
 export default function EventGoodsLoading() {
   return (
-    <main className="relative min-h-screen pt-16 md:pt-[84px] lg:pt-[102px]">
-      <section className="relative z-10 mx-auto w-full max-w-[980px] px-5 pb-20 pt-10 md:px-8 md:pb-24 md:pt-14 lg:px-12">
+    <main className="relative min-h-screen pt-16 md:pt-21 lg:pt-25.5">
+      <section className="relative z-10 mx-auto w-full max-w-245 px-5 pb-20 pt-10 md:px-8 md:pb-24 md:pt-14 lg:px-12">
         <h1 className="text-center text-[24px] font-semibold leading-[1.24] md:text-[34px] lg:text-[40px]">
           셋리스트 전체 보기
         </h1>

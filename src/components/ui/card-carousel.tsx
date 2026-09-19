@@ -293,7 +293,7 @@ export default function CardCarousel() {
       <FadeInUp delay={0.06} once={false}>
         <Link
           href="/setlist"
-          className="inline-block text-[32px] font-semibold leading-[38px] transition-opacity hover:opacity-80 md:text-[44px] md:leading-[52px]"
+          className="inline-block text-[32px] font-semibold leading-9.5 transition-opacity hover:opacity-80 md:text-[44px] md:leading-13"
         >
           셋리스트
         </Link>
@@ -306,13 +306,13 @@ export default function CardCarousel() {
 
       {isLoading ? (
         <FadeInUp delay={0.2} once={false}>
-          <div className="mt-20 flex h-[340px] items-center justify-center text-white/50">
+          <div className="mt-20 flex h-85 items-center justify-center text-white/50">
             포스터를 불러오는 중입니다...
           </div>
         </FadeInUp>
       ) : totalCards === 0 ? (
         <FadeInUp delay={0.2} once={false}>
-          <div className="mt-20 flex h-[340px] items-center justify-center text-white/50">
+          <div className="mt-20 flex h-85 items-center justify-center text-white/50">
             아직 등록된 포스터가 없습니다.
           </div>
         </FadeInUp>
@@ -320,7 +320,7 @@ export default function CardCarousel() {
         <>
           <FadeInUp delay={0.2} once={false}>
             <div
-              className="relative mt-20 h-[308px] w-full overflow-visible md:mt-16 md:h-[356px] lg:mt-12 lg:h-[376px]"
+              className="relative mt-20 h-77 w-full overflow-visible md:mt-16 md:h-89 lg:mt-12 lg:h-94"
               style={{ perspective: "1000px" }}
             >
               <button
@@ -352,7 +352,7 @@ export default function CardCarousel() {
                   <motion.button
                     key={card.id}
                     type="button"
-                    className="absolute left-1/2 top-0 h-[286px] w-[196px] -translate-x-1/2 cursor-grab active:cursor-grabbing md:h-[326px] md:w-[228px] lg:h-[338px] lg:w-[240px]"
+                    className="absolute left-1/2 top-0 h-71.5 w-49 -translate-x-1/2 cursor-grab active:cursor-grabbing md:h-81.5 md:w-57 lg:h-84.5 lg:w-60"
                     style={{
                       zIndex: motionConfig.zIndex,
                       transformStyle: "preserve-3d",
@@ -395,14 +395,14 @@ export default function CardCarousel() {
           </FadeInUp>
 
           <FadeInUp delay={0.24} once={false}>
-            <div className="mt-5 min-h-[86px] text-center">
+            <div className="mt-5 min-h-21.5 text-center">
               {activeCard ? (
                 <motion.div
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.28, ease: "easeOut" }}
                 >
-                  <div className="mx-auto flex max-w-[360px] items-center justify-center gap-4 md:max-w-[440px] md:gap-5">
+                  <div className="mx-auto flex max-w-90 items-center justify-center gap-4 md:max-w-110 md:gap-5">
                     <button
                       type="button"
                       aria-label="이전 포스터"
