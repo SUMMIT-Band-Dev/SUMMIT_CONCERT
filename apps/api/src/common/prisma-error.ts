@@ -55,3 +55,30 @@ export async function mapUniqueViolation<T>(
     throw error;
   }
 }
+
+/**
+ * Prisma의 `P2003`(FK 제약 위반)을 404로 바꾼다.
+ *
+ * 곡 등록에서 `Setlist.teamId`가 가리키는 팀이 없을 때 나는 코드다.
+ * 4단계 현재 구조에서는 등록 트랜잭션이 대상 팀 행을 `FOR NO KEY UPDATE`로
+ * 먼저 잠그므로(팀이 이미 없으면 그 시점에 404), **동시 삭제로 이 경로에
+ * 도달할 수는 없다고 판단한다.**
+ *
+ * 그런데도 남겨 두는 이유는 §11에서 "`P2002`는 도달 불가"라고 단정했다가
+ * 런타임 검증에서 실제로 터진 선례가 있기 때문이다. "제약을 확인했다"와
+ * "위반될 경로가 없다"는 같은 말이 아니다 — 방어용으로 유지하고,
+ * 만약 실제로 발생한다면 500이 아니라 원인을 말해 주게 한다.
+ */
+export async function mapForeignKeyViolation<T>(
+  operation: Promise<T>,
+  message: string,
+): Promise<T> {
+  try {
+    return await operation;
+  } catch (error) {
+    if (isPrismaErrorCode(error, 'P2003')) {
+      throw new NotFoundException(message);
+    }
+    throw error;
+  }
+}
