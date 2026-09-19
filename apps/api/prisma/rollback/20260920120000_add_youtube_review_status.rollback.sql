@@ -12,15 +12,32 @@
 -- 지금(1/2 완료 시점) 기준으로 DROP이 잃는 정보는 "URL 유무로 다시 계산할 수 있는 값"뿐이다:
 --   approved = youtube_url 있음(5건) / pending = 없음(59건). 그래서 이 기간에는 되돌려도 손실이 없다.
 
--- 1) 스키마 되돌리기
-ALTER TABLE "Setlist" DROP COLUMN "youtube_review_status";
-DROP TYPE "youtube_review_status";
+-- 1) 스키마 되돌리기 SQL (아래 2)의 어느 경로를 택하든 실행할 문장은 이 두 줄이다)
+--    ALTER TABLE "Setlist" DROP COLUMN "youtube_review_status";
+--    DROP TYPE "youtube_review_status";
 
--- 2) Prisma 이력 정리 (SQL이 아니라 CLI로 실행)
---    적용이 "실패로 기록된" 경우:   npx prisma migrate resolve --rolled-back 20260920120000_add_youtube_review_status
---    적용이 "성공으로 기록된" 경우: 위 1)을 실행한 뒤 _prisma_migrations에서 해당 행을 직접 삭제한다.
---      DELETE FROM "_prisma_migrations" WHERE migration_name = '20260920120000_add_youtube_review_status';
---    (성공 기록에는 migrate resolve --rolled-back 이 동작하지 않는다)
+-- 2) Prisma 이력 처리 — 마이그레이션이 어떻게 기록됐는지에 따라 갈린다 (SQL이 아니라 CLI로 실행)
+--
+--    (가) 적용이 "실패로 기록된" 경우:
+--         위 1)은 필요 없다(원자적 트랜잭션이라 실패 시 스키마가 남지 않는다 — migration.sql [원자성] 참고).
+--         npx prisma migrate resolve --rolled-back 20260920120000_add_youtube_review_status
+--
+--    (나) 적용이 "성공으로 기록된" 경우 — ✅ 우선안: 정방향 새 마이그레이션으로 되돌린다.
+--         새 폴더(예: prisma/migrations/<더 늦은 타임스탬프>_drop_youtube_review_status/migration.sql)를
+--         수동으로 만들어 위 1)의 두 문장을 넣고 `npx prisma migrate deploy`로 적용한다.
+--         (프로덕션 DB에는 migrate dev를 쓰지 않는다 — 드리프트 감지 시 DB 리셋을 제안하는 경로가 있다.)
+--         _prisma_migrations는 append-only로 남아 "추가됐다가 제거됐다"는 이력이 그대로 보존되고,
+--         이미 이 마이그레이션 폴더를 가진 다른 클론/CI/환경과도 체크섬·이력이 어긋나지 않는다.
+--         ※ DROP COLUMN은 위 [안전 기간]을 벗어났다면 검토 이력을 잃는다 — 그 경우 이 경로 자체를 재검토한다.
+--
+--    (다) 예외 — `DELETE FROM "_prisma_migrations" ...`는 **머지 전에 브랜치 자체를 폐기할 때만** 가능하다.
+--         이 마이그레이션이 develop/main에 들어가지 않았고, 다른 어떤 환경에도 적용·복제되지 않았으며,
+--         마이그레이션 폴더도 브랜치와 함께 버려지는 경우에 한한다. 1)을 실행한 뒤:
+--           DELETE FROM "_prisma_migrations" WHERE migration_name = '20260920120000_add_youtube_review_status';
+--         머지된 뒤에는 이력 행을 지우지 않는다. 다른 곳에 남은 폴더/이력과 어긋나 드리프트를 만들고,
+--         이력이 조용히 거짓이 된다. (성공 기록에는 migrate resolve --rolled-back 이 동작하지 않는다)
 --
 -- 3) 코드 되돌리기: prisma/schema.prisma의 youtubeReviewStatus 필드와 YoutubeReviewStatus enum 제거 후
---    npx prisma generate. 마이그레이션 디렉터리도 함께 지운다(체크섬 불일치 방지).
+--    npx prisma generate.
+--    - (다) 브랜치 폐기 경로: 마이그레이션 디렉터리도 함께 지운다(체크섬 불일치 방지).
+--    - (나) 정방향 경로: 기존 마이그레이션 디렉터리는 **지우지 않는다** — 이력의 일부이므로 그대로 둔다.
