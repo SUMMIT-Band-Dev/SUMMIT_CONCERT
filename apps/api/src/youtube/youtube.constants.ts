@@ -24,6 +24,30 @@ export const YOUTUBE_ALLOWED_HOSTS: readonly string[] = [
 export const YOUTUBE_VIDEO_ID_PATTERN = /^[A-Za-z0-9_-]{11}$/;
 
 /**
+ * 영상 ID 자리에 들어올 수 있지만 **영상이 아닌 예약어**와, 그때의 거부 사유.
+ *
+ * `videoseries`와 `live_stream`은 정확히 11자라 `YOUTUBE_VIDEO_ID_PATTERN`을 통과한다.
+ * 유튜브의 임베드 주소가 이 토큰을 ID 자리에 쓰기 때문이다:
+ * - `/embed/videoseries?list=PL…` — 재생목록 임베드 → `PLAYLIST`
+ * - `/embed/live_stream?channel=UC…` — 채널의 현재 라이브 임베드 → `NOT_A_VIDEO`
+ *
+ * 막지 않으면 `watch?v=videoseries`가 **사람이 확정한 링크(approved)** 로 저장되지만
+ * 그런 영상은 없다. 형식이 맞는다고 영상이 존재하는 것은 아니라는 점이 이 목록이 필요한 이유다.
+ *
+ * 정확히 일치(대소문자 구분)만 본다. 영상 ID는 대소문자를 구분하고, 유튜브가 쓰는 예약어는
+ * 이 소문자 표기뿐이다. 조회에 `Map`을 쓰는 이유는 객체 리터럴이면 `constructor`(이것도 11자)
+ * 같은 프로토타입 키가 예약어로 오인되기 때문이다.
+ *
+ * 추측: 이 둘 외에 ID 자리를 차지하는 11자 토큰이 더 있는지는 확인하지 못했다.
+ * 발견되면 여기에 추가한다.
+ */
+export const YOUTUBE_RESERVED_VIDEO_IDS: ReadonlyMap<string, YoutubeUrlRejection> =
+  new Map<string, YoutubeUrlRejection>([
+    ['videoseries', 'PLAYLIST'],
+    ['live_stream', 'NOT_A_VIDEO'],
+  ]);
+
+/**
  * 경로 하나로 영상 ID를 지목하는 형태들. `/shorts/<id>`처럼 두 조각이어야 한다.
  *
  * `/live/`를 포함한 이유는 공연 영상이 라이브 아카이브로 올라오는 일이 잦아서다.

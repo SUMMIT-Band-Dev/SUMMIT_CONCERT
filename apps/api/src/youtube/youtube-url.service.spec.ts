@@ -125,7 +125,7 @@ describe('YoutubeUrlService — 상태 전이표', () => {
     ['pending', '미검토 곡에 수동 입력'],
     ['approved', '이미 승인된 곡의 URL 교체'],
     ['rejected', '반려된 곡에 수동 교정'],
-  ] as const)('%s → approved (%s)', async (before) => {
+  ] as const)('%s → approved (%s)', async (before, _description) => {
     // 사람이 직접 주소를 넣었다는 사실이 자동 추천에 대한 판단보다 우선한다.
     // 특히 rejected는 "추천이 틀렸다"는 뜻이지 "영상이 없다"는 뜻이 아니다.
     const h = createHarness({ youtubeReviewStatus: before });

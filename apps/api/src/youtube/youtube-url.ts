@@ -1,6 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import {
   YOUTUBE_ALLOWED_HOSTS,
+  YOUTUBE_RESERVED_VIDEO_IDS,
   YOUTUBE_URL_MAX_LENGTH,
   YOUTUBE_URL_REJECTION_MESSAGES,
   YOUTUBE_VIDEO_ID_PATTERN,
@@ -76,6 +77,13 @@ export function checkYoutubeUrl(value: string): YoutubeUrlCheck {
     return fail('INVALID_VIDEO_ID');
   }
 
+  // 형식은 맞지만 영상이 아닌 예약어(`embed/videoseries` 등). 어느 경로 형태로 오든
+  // ID 자리의 값이 같으므로 형식 검사 뒤 한 곳에서 걸러낸다.
+  const reserved = YOUTUBE_RESERVED_VIDEO_IDS.get(extracted.videoId);
+  if (reserved) {
+    return fail(reserved);
+  }
+
   return {
     ok: true,
     videoId: extracted.videoId,
@@ -83,7 +91,13 @@ export function checkYoutubeUrl(value: string): YoutubeUrlCheck {
   };
 }
 
-/** 검증 실패 시 400. 사유에 맞는 안내 문구를 그대로 내보낸다. */
+/**
+ * 검증 실패 시 400. 사유에 맞는 안내 문구를 그대로 내보낸다.
+ *
+ * **프로덕션 코드에서는 쓰지 않는다** — `YoutubeUrlService`는 거부 사유를 로그에 남기려고
+ * `checkYoutubeUrl`을 직접 호출한다. 이 함수는 "사유 → 안내 문구" 매핑을 단위 테스트로
+ * 고정하기 위한 테스트 전용 진입점이다.
+ */
 export function normalizeYoutubeUrl(value: string): string {
   const checked = checkYoutubeUrl(value);
   if (!checked.ok) {

@@ -37,7 +37,7 @@ const initialRows = (): SongRow[] => [
     title: 'Congratulations',
     singer: 'Day6',
     albumCoverUrl: 'https://cdn.example/b.jpg',
-    youtubeUrl: 'https://www.youtube.com/watch?v=approved',
+    youtubeUrl: 'https://www.youtube.com/watch?v=BTo-I-gCAxk',
     youtubeReviewStatus: 'approved',
   },
   {
@@ -373,7 +373,7 @@ describe('SongsService.update (F009)', () => {
     const updated = await service.update(2n, { title: 'Congratulations (Live)' });
 
     expect(updated.albumCoverUrl).toBe('https://cdn.example/b.jpg');
-    expect(updated.youtubeUrl).toBe('https://www.youtube.com/watch?v=approved');
+    expect(updated.youtubeUrl).toBe('https://www.youtube.com/watch?v=BTo-I-gCAxk');
     expect(setlist.update).toHaveBeenCalledWith({
       where: { id: 2n },
       data: { title: 'Congratulations (Live)' },
@@ -429,6 +429,7 @@ describe('SongsService.update (F009)', () => {
         singer: '다른가수',
         albumCoverUrl: null,
         youtubeUrl: null,
+        youtubeReviewStatus: 'pending',
       },
     ]);
 
@@ -465,6 +466,7 @@ describe('SongsService.update (F009)', () => {
         singer: '아무개',
         albumCoverUrl: null,
         youtubeUrl: null,
+        youtubeReviewStatus: 'pending',
       },
     ]);
 

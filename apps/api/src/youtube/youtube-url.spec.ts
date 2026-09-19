@@ -63,9 +63,25 @@ describe('checkYoutubeUrl — 정규화', () => {
     ['embed', `https://www.youtube.com/embed/${VIDEO_ID}`],
     ['live', `https://www.youtube.com/live/${VIDEO_ID}`],
     ['대문자 호스트', `https://WWW.YOUTUBE.COM/watch?v=${VIDEO_ID}`],
-    ['경로 대문자는 유지', `https://www.youtube.com/watch?v=${VIDEO_ID}`],
   ])('%s → 저장 형식으로 바꾼다', (_name, input) => {
     expect(normalized(input)).toBe(CANONICAL);
+  });
+
+  it('호스트만 소문자로 맞추고 영상 ID의 대소문자는 그대로 둔다', () => {
+    // 영상 ID는 대소문자를 구분한다. VIDEO_ID(`BTo-I-gCAxk`)는 대소문자가 섞여 있어
+    // 호스트와 함께 통째로 소문자 처리되면 다른 ID가 된다. (이전에는 이 자리에
+    // 56행과 같은 입력이 중복으로 들어 있어 아무것도 검증하지 못했다.)
+    const mixedCaseId = 'aBcDeFgHiJk';
+
+    expect(normalized(`https://WWW.YOUTUBE.COM/watch?v=${mixedCaseId}`)).toBe(
+      `https://www.youtube.com/watch?v=${mixedCaseId}`,
+    );
+  });
+
+  it('경로의 대소문자는 구분한다 — /WATCH는 영상 경로로 보지 않는다 (현재 동작 고정)', () => {
+    // 추측: 유튜브가 `/WATCH`를 실제로 받아 주는지는 확인하지 못했다. 서버는 정확히
+    // 일치하는 경로만 영상으로 인정한다(놓치면 거부 쪽이라 안전한 방향).
+    expect(rejection(`https://www.youtube.com/WATCH?v=${VIDEO_ID}`)).toBe('NOT_A_VIDEO');
   });
 
   it.each([
@@ -135,6 +151,27 @@ describe('checkYoutubeUrl — 거부', () => {
     ['v가 빈 값', 'https://www.youtube.com/watch?v=', 'INVALID_VIDEO_ID'],
     ['shorts ID 10자', 'https://www.youtube.com/shorts/BTo-I-gCAx', 'INVALID_VIDEO_ID'],
     ['youtu.be ID 12자', 'https://youtu.be/BTo-I-gCAxkX', 'INVALID_VIDEO_ID'],
+
+    // --- 형식은 맞지만 영상이 아닌 예약어 (11자라 ID 정규식을 통과한다) ---
+    [
+      'embed/videoseries + list (재생목록 임베드)',
+      'https://www.youtube.com/embed/videoseries?list=PLabcdefghijk',
+      'PLAYLIST',
+    ],
+    ['embed/videoseries', 'https://www.youtube.com/embed/videoseries', 'PLAYLIST'],
+    [
+      'embed/live_stream + channel (채널 라이브 임베드)',
+      'https://www.youtube.com/embed/live_stream?channel=UCabcdefghijk',
+      'NOT_A_VIDEO',
+    ],
+    ['embed/live_stream', 'https://www.youtube.com/embed/live_stream', 'NOT_A_VIDEO'],
+    ['watch?v=videoseries', 'https://www.youtube.com/watch?v=videoseries', 'PLAYLIST'],
+    ['watch?v=live_stream', 'https://www.youtube.com/watch?v=live_stream', 'NOT_A_VIDEO'],
+    ['youtu.be/videoseries', 'https://youtu.be/videoseries', 'PLAYLIST'],
+    ['youtu.be/live_stream', 'https://youtu.be/live_stream', 'NOT_A_VIDEO'],
+    ['shorts/videoseries', 'https://www.youtube.com/shorts/videoseries', 'PLAYLIST'],
+    ['live/live_stream', 'https://www.youtube.com/live/live_stream', 'NOT_A_VIDEO'],
+    ['m. 호스트의 videoseries', 'https://m.youtube.com/embed/videoseries', 'PLAYLIST'],
   ])('%s는 %s로 거부한다', (_name, url, reason) => {
     expect(rejection(url)).toBe(reason);
   });
@@ -152,6 +189,110 @@ describe('checkYoutubeUrl — 거부', () => {
 
     expect(long.length).toBeLessThanOrEqual(YOUTUBE_URL_MAX_LENGTH);
     expect(normalized(long)).toBe(CANONICAL);
+  });
+});
+
+describe('checkYoutubeUrl — 예약어 ID 거부의 범위', () => {
+  it('예약어와 길이만 같은 평범한 ID는 통과한다 (프로토타입 키로 오인하지 않는다)', () => {
+    // `constructor`도 11자다. 예약어 조회가 일반 객체 리터럴이면 이 값이 조회에 걸린다.
+    expect(normalized('https://www.youtube.com/watch?v=constructor')).toBe(
+      'https://www.youtube.com/watch?v=constructor',
+    );
+  });
+
+  it('대소문자가 다른 값은 예약어가 아니다 (정확히 일치만 거부)', () => {
+    // 영상 ID는 대소문자를 구분하고 유튜브가 쓰는 예약어는 소문자 표기다.
+    expect(normalized('https://www.youtube.com/watch?v=VideoSeries')).toBe(
+      'https://www.youtube.com/watch?v=VideoSeries',
+    );
+  });
+
+  it('예약어 거부 문구는 "ID 형식 오류"와 다르다', () => {
+    // 11자인데 "영상 ID는 11자여야 합니다"라고 안내하면 관리자가 무엇이 틀렸는지 알 수 없다.
+    const messageOf = (url: string): string => {
+      try {
+        normalizeYoutubeUrl(url);
+      } catch (error) {
+        return (error as BadRequestException).message;
+      }
+      return '';
+    };
+
+    const reservedMessage = messageOf('https://www.youtube.com/embed/videoseries');
+
+    expect(reservedMessage).toBe(YOUTUBE_URL_REJECTION_MESSAGES.PLAYLIST);
+    expect(reservedMessage).not.toBe(YOUTUBE_URL_REJECTION_MESSAGES.INVALID_VIDEO_ID);
+  });
+});
+
+/**
+ * WHATWG `URL` 파서가 조용히 받아 주는 변형들의 현재 동작을 고정한다.
+ *
+ * 전부 **통과해도 무해하다** — 저장값은 입력이 아니라 상수 호스트 + 검증된 영상 ID로 새로
+ * 만들기 때문이다. 그래도 고정해 두는 이유는 이 동작이 Node/ICU의 `URL` 구현에 기대고 있어서,
+ * 런타임을 올렸을 때 결과가 달라지면 여기서 먼저 알아채기 위해서다. (관찰: Node v24.12.0)
+ */
+describe('checkYoutubeUrl — URL 파서 의존 동작 (현재 동작 고정)', () => {
+  const toFullWidth = (value: string): string =>
+    [...value]
+      .map((char) =>
+        char === '.'
+          ? '．'
+          : String.fromCharCode(char.charCodeAt(0) + 0xfee0),
+      )
+      .join('');
+
+  it.each([
+    ['백슬래시 구분자', `https://www.youtube.com\\watch?v=${VIDEO_ID}`],
+    ['이중 백슬래시', `https:\\\\www.youtube.com\\watch?v=${VIDEO_ID}`],
+    ['경로 안의 백슬래시', `https://www.youtube.com/watch\\?v=${VIDEO_ID}`],
+    ['단일 슬래시 (https:/host)', `https:/www.youtube.com/watch?v=${VIDEO_ID}`],
+    ['슬래시 없음 (https:host)', `https:www.youtube.com/watch?v=${VIDEO_ID}`],
+    [
+      '전각 호스트 (IDNA가 ASCII로 매핑)',
+      `https://${toFullWidth('www')}．${toFullWidth('youtube')}．${toFullWidth('com')}/watch?v=${VIDEO_ID}`,
+    ],
+    ['호스트 퍼센트 인코딩 (%6F = o)', `https://www.y%6Futube.com/watch?v=${VIDEO_ID}`],
+    ['기본 포트 :443 (URL이 제거)', `https://www.youtube.com:443/watch?v=${VIDEO_ID}`],
+  ])('%s는 저장 형식으로 정규화된다', (_name, input) => {
+    expect(normalized(input)).toBe(CANONICAL);
+  });
+
+  it.each([
+    [
+      '백슬래시 뒤 호스트 위장 (evil이 호스트)',
+      `https://evil.example\\@www.youtube.com/watch?v=${VIDEO_ID}`,
+      'NOT_YOUTUBE',
+    ],
+    [
+      '백슬래시 뒤 @ (유튜브가 호스트, 경로가 @evil)',
+      `https://www.youtube.com\\@evil.example/watch?v=${VIDEO_ID}`,
+      'NOT_A_VIDEO',
+    ],
+    [
+      '퍼센트 인코딩된 점으로 호스트 위장',
+      `https://www.youtube.com%2eevil.example/watch?v=${VIDEO_ID}`,
+      'NOT_YOUTUBE',
+    ],
+    [
+      '키릴 문자 о (punycode로 바뀌어 불일치)',
+      `https://yоutube.com/watch?v=${VIDEO_ID}`,
+      'NOT_YOUTUBE',
+    ],
+    [
+      '전각 마침표(。)로 붙인 위장 호스트',
+      `https://youtube.com。evil.example/watch?v=${VIDEO_ID}`,
+      'NOT_YOUTUBE',
+    ],
+    ['호스트 끝의 점', `https://www.youtube.com./watch?v=${VIDEO_ID}`, 'NOT_YOUTUBE'],
+    [
+      '퍼센트 인코딩된 경로(%77atch)',
+      `https://www.youtube.com/%77atch?v=${VIDEO_ID}`,
+      'NOT_A_VIDEO',
+    ],
+    ['ID 끝의 개행(%0A)', `https://www.youtube.com/watch?v=${VIDEO_ID}%0A`, 'INVALID_VIDEO_ID'],
+  ])('%s는 거부된다', (_name, input, reason) => {
+    expect(rejection(input)).toBe(reason);
   });
 });
 
