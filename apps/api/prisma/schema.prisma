@@ -39,11 +39,24 @@ model LineUp {
 
 /// 곡. teamId는 "Line Up".id를 참조하는 FK (2026-09-19 정규화).
 model Setlist {
-  id            BigInt  @id @default(autoincrement())
-  teamId        BigInt?
-  title         String
-  singer        String?
-  albumCoverUrl String? @map("album")
-  youtubeUrl    String? @map("youtube_url")
-  team          LineUp? @relation(fields: [teamId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_setlist_team")
+  id                  BigInt              @id @default(autoincrement())
+  teamId              BigInt?
+  title               String
+  singer              String?
+  albumCoverUrl       String?             @map("album")
+  youtubeUrl          String?             @map("youtube_url")
+  /// 유튜브 추천 검토 상태 (PRD F011~F013). F013(수동 입력)은 항상 approved로 확정한다.
+  youtubeReviewStatus YoutubeReviewStatus @default(pending) @map("youtube_review_status")
+  team                LineUp?             @relation(fields: [teamId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_setlist_team")
+}
+
+/// 유튜브 추천 검토 상태. text 대신 enum을 쓴 이유는 Prisma가 TS 유니온 타입을 생성해
+/// 상태 전이 코드가 컴파일 타임에 검증되고, 값 오타가 DB에 닿기 전에 걸리기 때문이다.
+/// 값 추가는 ALTER TYPE ADD VALUE로 가능하지만 제거/개명은 어렵다 — PRD가 정한 닫힌 집합이라 감수한다.
+enum YoutubeReviewStatus {
+  pending
+  approved
+  rejected
+
+  @@map("youtube_review_status")
 }
