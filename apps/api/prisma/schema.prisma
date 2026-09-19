@@ -1,0 +1,49 @@
+// 접속 URL은 prisma.config.ts에서 주입한다 (Prisma 7 규약).
+//
+// 실제 DB는 테이블명에 공백("Line Up")이 있고 컬럼 케이스가 뒤섞여 있다
+// (team_name/image_src는 snake_case, teamId/performanceOrder는 camelCase).
+// Prisma 쪽 이름은 PRD 데이터 모델 기준 camelCase로 통일하고,
+// 실제 컬럼명과의 차이는 @map/@@map으로만 흡수한다 — DB는 건드리지 않는다.
+
+generator client {
+  provider               = "prisma-client"
+  output                 = "../src/generated/prisma"
+  generatedFileExtension = "ts"
+  importFileExtension    = "js"
+  moduleFormat           = "esm"
+  runtime                = "nodejs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// 관리자 계정. 방문자용 서비스 로그인과 무관한 관리자 전용 인증 (PRD F001).
+model AdminUser {
+  id           BigInt @id @default(autoincrement())
+  username     String @unique
+  passwordHash String
+}
+
+/// 공연 팀. RLS 활성화 상태이며 anon key에는 SELECT 정책만 열려 있다.
+model LineUp {
+  id               BigInt    @id(map: "setlist_pkey") @default(autoincrement())
+  teamName         String    @map("team_name")
+  day              String?
+  cardImageUrl     String?   @map("image_src")
+  performanceOrder Int?      @db.SmallInt
+  songs            Setlist[]
+
+  @@map("Line Up")
+}
+
+/// 곡. teamId는 "Line Up".id를 참조하는 FK (2026-09-19 정규화).
+model Setlist {
+  id            BigInt  @id @default(autoincrement())
+  teamId        BigInt?
+  title         String
+  singer        String?
+  albumCoverUrl String? @map("album")
+  youtubeUrl    String? @map("youtube_url")
+  team          LineUp? @relation(fields: [teamId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_setlist_team")
+}
