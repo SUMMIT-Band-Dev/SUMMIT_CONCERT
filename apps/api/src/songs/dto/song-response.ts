@@ -15,7 +15,7 @@ export interface SongResponse {
   teamId: string | null;
   title: string;
   singer: string | null;
-  /** `album`. 자동 매칭(PRD F010)은 이후 단계라 이번 단계에서는 읽기 전용이다 */
+  /** `album`. 5단계(PRD F010)부터 `PUT /songs/:id/album-cover`로 갱신된다 */
   albumCoverUrl: string | null;
   /** `youtube_url`. 배치 검색/리뷰(PRD F011~F013)는 6단계라 읽기 전용이다 */
   youtubeUrl: string | null;

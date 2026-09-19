@@ -19,7 +19,7 @@ export interface TeamResponse {
   teamName: string;
   day: string | null;
   performanceOrder: number | null;
-  /** `image_src`. 업로드(PRD F007)는 5단계라 이번 단계에서는 읽기 전용이다 */
+  /** `image_src`. 5단계(PRD F007)부터 `PUT /teams/:id/card-image`로 갱신된다 */
   cardImageUrl: string | null;
 }
 
