@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { AlbumCoverModule } from './album-cover/album-cover.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { HealthModule } from './health/health.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
@@ -16,6 +17,7 @@ import { TeamsModule } from './teams/teams.module.js';
     HealthModule,
     TeamsModule,
     SongsModule,
+    AlbumCoverModule,
   ],
 })
 export class AppModule {}
