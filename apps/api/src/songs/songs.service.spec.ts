@@ -6,6 +6,7 @@ import {
 import { describe, expect, it, vi } from 'vitest';
 import { SongsService } from './songs.service.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
+import type { YoutubeReviewStatus } from '../generated/prisma/enums.js';
 
 // 3단계와 같은 방식으로 PrismaService만 대역으로 두되, 작은 인메모리 저장소로
 // 동작까지 흉내 내서 중복 판정·잠금 순서 같은 로직을 실제로 검증한다.
@@ -16,6 +17,7 @@ interface SongRow {
   singer: string | null;
   albumCoverUrl: string | null;
   youtubeUrl: string | null;
+  youtubeReviewStatus: YoutubeReviewStatus;
 }
 
 /** 실데이터와 같은 모양: 팀별로 곡이 묶이고, 앨범 커버는 대부분 채워져 있다 */
@@ -27,6 +29,7 @@ const initialRows = (): SongRow[] => [
     singer: '한로로',
     albumCoverUrl: 'https://cdn.example/a.jpg',
     youtubeUrl: null,
+    youtubeReviewStatus: 'pending',
   },
   {
     id: 2n,
@@ -34,7 +37,8 @@ const initialRows = (): SongRow[] => [
     title: 'Congratulations',
     singer: 'Day6',
     albumCoverUrl: 'https://cdn.example/b.jpg',
-    youtubeUrl: 'https://www.youtube.com/watch?v=approved',
+    youtubeUrl: 'https://www.youtube.com/watch?v=BTo-I-gCAxk',
+    youtubeReviewStatus: 'approved',
   },
   {
     id: 3n,
@@ -43,6 +47,7 @@ const initialRows = (): SongRow[] => [
     singer: '러브홀릭스',
     albumCoverUrl: null,
     youtubeUrl: null,
+    youtubeReviewStatus: 'pending',
   },
   // 같은 제목이지만 팀도 가수도 다르다 — 실데이터의 "Butterfly" 2건과 같은 상황
   {
@@ -52,6 +57,7 @@ const initialRows = (): SongRow[] => [
     singer: '전영호',
     albumCoverUrl: null,
     youtubeUrl: null,
+    youtubeReviewStatus: 'pending',
   },
 ];
 
@@ -98,6 +104,7 @@ function createService(rows: SongRow[] = initialRows(), teamIds = [1n, 2n, 3n]) 
         singer: null,
         albumCoverUrl: null,
         youtubeUrl: null,
+        youtubeReviewStatus: 'pending',
         ...args.data,
       };
       nextId += 1n;
@@ -174,6 +181,7 @@ describe('SongsService.findAllByTeam (F008)', () => {
       singer: '한로로',
       albumCoverUrl: 'https://cdn.example/a.jpg',
       youtubeUrl: null,
+      youtubeReviewStatus: 'pending',
     });
     expect(typeof songs[0].id).toBe('string');
     expect(typeof songs[0].teamId).toBe('string');
@@ -218,6 +226,7 @@ describe('SongsService.create (F009)', () => {
       singer: '한로로',
       albumCoverUrl: null,
       youtubeUrl: null,
+      youtubeReviewStatus: 'pending',
     });
     expect(store).toHaveLength(5);
   });
@@ -364,7 +373,7 @@ describe('SongsService.update (F009)', () => {
     const updated = await service.update(2n, { title: 'Congratulations (Live)' });
 
     expect(updated.albumCoverUrl).toBe('https://cdn.example/b.jpg');
-    expect(updated.youtubeUrl).toBe('https://www.youtube.com/watch?v=approved');
+    expect(updated.youtubeUrl).toBe('https://www.youtube.com/watch?v=BTo-I-gCAxk');
     expect(setlist.update).toHaveBeenCalledWith({
       where: { id: 2n },
       data: { title: 'Congratulations (Live)' },
@@ -420,6 +429,7 @@ describe('SongsService.update (F009)', () => {
         singer: '다른가수',
         albumCoverUrl: null,
         youtubeUrl: null,
+        youtubeReviewStatus: 'pending',
       },
     ]);
 
@@ -456,6 +466,7 @@ describe('SongsService.update (F009)', () => {
         singer: '아무개',
         albumCoverUrl: null,
         youtubeUrl: null,
+        youtubeReviewStatus: 'pending',
       },
     ]);
 

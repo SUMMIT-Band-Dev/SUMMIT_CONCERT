@@ -1,0 +1,131 @@
+-- 롤백 SQL — 20260920120000_add_youtube_review_status
+--
+-- ⚠️ 이 파일은 적용하지 않는다. 문제가 생겼을 때 참고할 절차만 기록해 둔 문서다.
+-- Prisma는 이 디렉터리를 마이그레이션으로 인식하지 않는다 (prisma/migrations 밖).
+-- ⚠️ 이미 적용된 prisma/migrations/20260920120000_add_youtube_review_status/migration.sql은
+--    절대 수정하지 않는다 — 체크섬이 어긋나 이후 모든 migrate deploy가 막힌다.
+--
+-- ⛔ 안전 기간: **6단계 2/2(F011/F012)가 이 컬럼에 쓰기 시작하기 전까지만 안전하다.**
+--    그 시점 이후의 DROP COLUMN은 관리자가 승인/반려한 검토 이력을 통째로 지우며,
+--    youtube_url이 NULL인 곡의 "반려됨(재검색 제외)" 정보는 다른 어디에도 없어 복구할 수 없다.
+--    2/2 착수 이후에 되돌려야 한다면, DROP 대신 컬럼을 남겨둔 채 애플리케이션 코드만
+--    되돌리는 쪽을 먼저 검토한다.
+--
+-- 지금(1/2 완료 시점) 기준으로 DROP이 잃는 정보는 "URL 유무로 다시 계산할 수 있는 값"뿐이다:
+--   approved = youtube_url 있음(5건) / pending = 없음(59건). 그래서 이 기간에는 되돌려도 손실이 없다.
+--   (F013이 이미 쓰고 있지만 항상 URL과 approved를 함께 쓰므로 위 대응이 깨지지 않는다.)
+
+-- ============================================================================
+-- 0) 실행 순서 — 반드시 "코드 먼저, DB 나중"
+-- ============================================================================
+--
+--   ① API 코드를 이 컬럼이 없던 버전으로 되돌려 배포하거나, 되돌리기 전이라면 API 배포를 중지한다.
+--   ② 그 뒤에 DB에서 컬럼·타입을 DROP 한다 (아래 2).
+--
+--   왜 이 순서인가: 새 코드가 떠 있는 채로 컬럼을 먼저 지우면, Prisma가 Setlist를 읽을 때
+--   컬럼 목록을 명시적으로 SELECT 하므로 곡을 다루는 모든 엔드포인트가 실패한다(추측 — 이
+--   상황을 실제로 재현해 확인하지는 않았다). 반대로 코드를 먼저 되돌리면 컬럼이 남아 있어도
+--   옛 코드는 그 컬럼을 참조하지 않아 무해하다. 공개 프론트는 PostgREST `select("*")`라
+--   컬럼이 있든 없든 영향이 없다(추측 — 프론트가 이 컬럼을 참조하지 않음은 코드로 확인했다).
+--
+--   코드 되돌리기 자체: prisma/schema.prisma의 youtubeReviewStatus 필드와 YoutubeReviewStatus enum
+--   제거 후 `npx prisma generate`. 아래 3)의 (다) 브랜치 폐기 경로에서만 마이그레이션 디렉터리도
+--   함께 지운다. 정방향으로 되돌리는 경우 기존 마이그레이션 디렉터리는 지우지 않는다(이력의 일부).
+
+-- ============================================================================
+-- 1) 먼저 실제 스키마 상태부터 확인한다 — _prisma_migrations의 기록만 믿지 않는다
+-- ============================================================================
+--
+--   Prisma는 스크립트를 실행하기 전에 이력 행(started_at)을 만들고, 스크립트가 끝난 뒤에
+--   finished_at을 채운다. 스크립트는 하나의 트랜잭션으로 실행되지만(migration.sql [원자성] 참고),
+--   **스크립트 커밋과 finished_at 기록은 별개의 단계**다. 그 사이에 연결이 끊기면
+--   "스키마는 이미 바뀌었는데 이력은 실패로 남는" 어긋남이 생길 수 있다(추측 — 실제로 재현한 적
+--   없다). 그래서 --rolled-back 이든 DROP 이든 하기 전에 아래 세 가지를 먼저 본다.
+--   (logs 컬럼은 오류 본문이 들어 있을 수 있으므로 조회하지 않는다.)
+--
+--   -- 이력
+--   SELECT migration_name, started_at, finished_at, rolled_back_at, applied_steps_count
+--     FROM "_prisma_migrations"
+--    WHERE migration_name = '20260920120000_add_youtube_review_status';
+--
+--   -- 컬럼이 실제로 있는가
+--   SELECT column_name FROM information_schema.columns
+--    WHERE table_schema = 'public' AND table_name = 'Setlist' AND column_name = 'youtube_review_status';
+--
+--   -- 타입이 실제로 있는가
+--   SELECT typname FROM pg_type WHERE typname = 'youtube_review_status';
+--
+--   결과 조합에 따라 3)에서 갈래를 고른다:
+--     이력 finished_at 있음(성공) .......................... → 3)의 (나)
+--     이력 finished_at 없음(실패) + 컬럼·타입 둘 다 없음 ..... → 3)의 (가)
+--     이력 finished_at 없음(실패) + 컬럼 또는 타입이 있음 ..... → 3)의 (라)  ← 어긋남
+--     이력 행 자체가 없음 + 컬럼 또는 타입이 있음 .............. → 3)의 (라)와 같이 다룬다
+
+-- ============================================================================
+-- 2) 스키마 되돌리기 SQL (아래 3)에서 "DROP이 필요하다"고 한 갈래에서만 실행한다)
+-- ============================================================================
+--
+--   ▶ 수동 실행(콘솔/세션)용. SET LOCAL은 트랜잭션 안에서만 효력이 있으므로 BEGIN/COMMIT으로 감싼다.
+--     락을 5초 안에 못 잡으면 실패하고, 공개 프론트 조회를 락 뒤에 세워 두지 않는다.
+--     (마이그레이션 적용 때와 같은 이유. 다만 콘솔이 자체적으로 트랜잭션을 씌우는지는 확인하지
+--      못했다 — 실행 전에 `SHOW lock_timeout;`을 같은 트랜잭션 안에서 찍어 5s가 보이는지 본다.)
+--
+--     BEGIN;
+--     SET LOCAL lock_timeout = '5s';
+--     ALTER TABLE "Setlist" DROP COLUMN "youtube_review_status";
+--     DROP TYPE "youtube_review_status";
+--     COMMIT;
+--
+--   ▶ 정방향 마이그레이션 파일용(3의 (나)). Prisma가 파일 전문을 하나의 트랜잭션으로 실행하므로
+--     BEGIN/COMMIT은 넣지 않는다(넣으면 그 위에 중첩된다). 본문은 같다:
+--
+--     SET LOCAL lock_timeout = '5s';
+--     ALTER TABLE "Setlist" DROP COLUMN "youtube_review_status";
+--     DROP TYPE "youtube_review_status";
+--
+--   컬럼을 먼저, 타입을 나중에 지운다 — 컬럼이 타입을 쓰고 있는 동안은 DROP TYPE이 실패한다.
+--   ※ 위 "안전 기간"을 벗어났다면 이 DROP은 검토 이력을 잃는다. 그 경우 이 절차 자체를 재검토한다.
+
+-- ============================================================================
+-- 3) Prisma 이력 처리 — 1)의 확인 결과에 따라 갈린다 (SQL이 아니라 CLI로 실행)
+-- ============================================================================
+--
+--    (가) 이력은 "실패", 스키마에는 컬럼·타입이 **둘 다 없음** (정상적인 실패):
+--         2)의 DROP은 필요 없다. 트랜잭션이 롤백돼 스키마가 남지 않은 상태다.
+--         npx prisma migrate resolve --rolled-back 20260920120000_add_youtube_review_status
+--
+--    (나) 이력이 "성공" — ✅ 우선안: 정방향 새 마이그레이션으로 되돌린다.
+--         새 폴더(예: prisma/migrations/<더 늦은 타임스탬프>_drop_youtube_review_status/migration.sql)를
+--         수동으로 만들어 2)의 정방향 파일용 세 문장을 넣고 `npx prisma migrate deploy`로 적용한다.
+--         (프로덕션 DB에는 migrate dev를 쓰지 않는다 — 드리프트 감지 시 DB 리셋을 제안하는 경로가 있다.)
+--         _prisma_migrations는 append-only로 남아 "추가됐다가 제거됐다"는 이력이 그대로 보존되고,
+--         이미 이 마이그레이션 폴더를 가진 다른 클론/CI/환경과도 체크섬·이력이 어긋나지 않는다.
+--         ※ 성공 기록에는 migrate resolve --rolled-back 이 동작하지 않는다.
+--
+--    (다) 예외 — `DELETE FROM "_prisma_migrations" ...`는 **머지 전에 브랜치 자체를 폐기할 때만** 가능하다.
+--         이 마이그레이션이 develop/main에 들어가지 않았고, 다른 어떤 환경에도 적용·복제되지 않았으며,
+--         마이그레이션 폴더도 브랜치와 함께 버려지는 경우에 한한다. 2)의 수동 실행 DROP을 마친 뒤:
+--           DELETE FROM "_prisma_migrations" WHERE migration_name = '20260920120000_add_youtube_review_status';
+--         이때는 마이그레이션 디렉터리도 함께 지운다(체크섬 불일치 방지).
+--         머지된 뒤에는 이력 행을 지우지 않는다. 다른 곳에 남은 폴더/이력과 어긋나 드리프트를 만들고,
+--         이력이 조용히 거짓이 된다.
+--
+--    (라) 이력은 "실패"(또는 행 없음)인데 스키마에는 컬럼 또는 타입이 **있음** (어긋남 — 스크립트는
+--         커밋됐고 성공 기록만 없다). 이 상태에서 --rolled-back 만 하면 이력은 "롤백됨"인데 스키마는
+--         남아 있어 다음 migrate deploy가 같은 마이그레이션을 다시 적용하려다 "type already exists"로
+--         실패한다. **먼저 무엇을 원하는지 정한다:**
+--
+--         (라-1) 마이그레이션을 **유지**하려는 경우: 스키마가 migration.sql이 만든 결과와 실제로 같은지
+--                먼저 사람이 확인한다 — 컬럼 정의(NOT NULL DEFAULT 'pending', 타입 youtube_review_status),
+--                enum 값 3개(pending/approved/rejected), 백필 분포(youtube_url이 있는 행은 approved).
+--                그리고 `npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code`
+--                가 차이 없음(exit 0)인지 본다. **전부 일치할 때만**:
+--                  npx prisma migrate resolve --applied 20260920120000_add_youtube_review_status
+--                ⚠️ `--applied`는 SQL이 실제로 실행됐는지 검증하지 않고 이력만 기록한다. 확인 없이 쓰면
+--                이력이 조용히 거짓이 된다 — 그래서 위 확인이 선행 조건이다. 일부만 적용된 것처럼 보이면
+--                (컬럼만 있고 백필이 빠졌다 등) 원자성 가정이 깨진 것이므로 여기서 멈추고 원인을 먼저 조사한다.
+--         (라-2) 마이그레이션을 **되돌리려는** 경우: 2)의 수동 실행 DROP으로 스키마를 먼저 지우고
+--                (1)의 확인 쿼리로 컬럼·타입이 사라졌는지 다시 확인한 뒤 (가)로 처리한다
+--                (npx prisma migrate resolve --rolled-back ...). 이미 머지된 마이그레이션이면
+--                이력을 "롤백됨"으로 남기는 것이 (나)의 정방향 원칙과 충돌하므로, 이 경우에도
+--                (나)처럼 정방향 DROP 마이그레이션을 새로 만드는 쪽을 먼저 검토한다.
