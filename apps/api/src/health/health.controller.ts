@@ -1,7 +1,10 @@
 import { Controller, Get } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { Public } from '../auth/public.decorator.js';
 
+// 플랫폼 헬스체크는 짧은 주기로 반복 호출된다. 제한에 걸리면 살아 있는 인스턴스가 죽은 것으로 오인된다.
+@SkipThrottle()
 @Controller('health')
 export class HealthController {
   constructor(private readonly prisma: PrismaService) {}

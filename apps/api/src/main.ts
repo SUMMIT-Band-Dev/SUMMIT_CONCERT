@@ -1,9 +1,19 @@
 import { ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module.js';
+import { TRUST_PROXY_HOPS_ENV, parseTrustProxyHops } from './common/trust-proxy.js';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // 프록시 뒤에서 클라이언트 IP(req.ip)를 어떻게 식별할지. 요청 제한(throttler)이 이 값으로 IP를 센다.
+  // 기본 0(믿지 않음) — 프록시 없이 열려 있는데 켜 두면 X-Forwarded-For 위조로 제한을 피할 수 있다.
+  const trustProxyHops = parseTrustProxyHops(
+    app.get(ConfigService).get<string>(TRUST_PROXY_HOPS_ENV),
+  );
+  app.set('trust proxy', trustProxyHops > 0 ? trustProxyHops : false);
 
   // DTO 검증을 전역으로 건다.
   // whitelist/forbidNonWhitelisted: DTO에 선언하지 않은 필드가 섞여 들어오면 400으로 막는다
