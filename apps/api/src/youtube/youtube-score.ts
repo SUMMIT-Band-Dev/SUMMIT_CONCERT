@@ -20,7 +20,18 @@ import type { YoutubeSearchItem } from './youtube-search.client.js';
  * ## 가중치를 손대지 않았다
  *
  * 숫자·순서·키워드를 하나도 바꾸지 않았다. 바꾸면 "이식"이 아니라 "새 로직"이 되고,
- * 특성 테스트가 고정할 기준이 사라진다. 개선은 캘리브레이션으로 실제 순위를 본 뒤에 한다.
+ * 특성 테스트가 고정할 기준이 사라진다.
+ *
+ * ## ⚠️ 저장 후보를 고르는 순서에는 쓰지 않는다 (게이트 2 캘리브레이션 결정)
+ *
+ * 승인된 5곡으로 실측한 결과, 정답 영상이 **YouTube 원본 순서로는 5곡 모두 상위 4위 안**(상위 3위 안
+ * 4/5)인데 이 점수로 다시 정렬하면 상위 3에 드는 곡이 1/5, 1위가 정답인 곡은 0/5였다.
+ * 그래서 후보는 **원본 순서 그대로** 고르고(`selectCandidates`), 점수는 **참고값으로만 저장**한다.
+ * 표본이 5곡이라 일반화하지는 않는다.
+ *
+ * 이 함수와 특성 테스트를 지우지 않고 남기는 이유는 **프론트 실시간 폴백이 같은 점수로 1위를
+ * 고르기 때문**이다. 이 5곡 기준으로 폴백이 여는 영상은 사람이 승인한 영상과 5/5 달랐다.
+ * 7단계에서 폴백을 검토할 때 이 로직의 동작을 값으로 고정해 둔 근거가 필요하다.
  */
 export function calculateVideoScore(
   item: Pick<YoutubeSearchItem, 'title' | 'description' | 'channelTitle'>,
@@ -61,44 +72,35 @@ function includesAnyKeyword(target: string, keywords: string[]): boolean {
   return keywords.some((keyword) => target.includes(keyword));
 }
 
-/** 점수가 매겨진 후보. `rank`는 1부터 시작한다(DB의 CHECK `rank >= 1`과 맞춘다). */
-export interface RankedCandidate extends YoutubeSearchItem {
+/**
+ * 저장할 후보. `rank`는 **YouTube가 준 순서**(1부터, DB의 CHECK `rank >= 1`과 맞춘다)이고
+ * `score`는 **참고값**이다 — 정렬에 쓰이지 않는다.
+ */
+export interface SelectedCandidate extends YoutubeSearchItem {
   rank: number;
   score: number;
 }
 
 /**
- * 후보에 점수를 매겨 상위 N개를 고른다.
+ * 후보를 **YouTube가 준 원본 순서 그대로** 상위 N개 고른다.
  *
- * **프론트의 최상위 선택과 1위가 일치해야 한다.** 프론트는
- * `items.map(score).sort((a,b) => b.score - a.score)[0]`으로 하나만 고르는데,
- * V8의 `Array.prototype.sort`가 안정 정렬이라 동점이면 원래 순서(= 유튜브 관련도 순)가
- * 유지된다. 여기서도 같은 비교자를 쓰고 원본 순서를 보존해 그 동작을 그대로 따른다.
+ * 점수는 계산해서 붙이지만 순서에 영향을 주지 않는다(위 "저장 후보를 고르는 순서에는 쓰지 않는다").
+ * 원본 순서에는 동점이 없으므로 점수가 타이브레이커로 개입할 일도 없다 — 참고값이다.
  *
- * `title || query`, `artist || query` 폴백도 프론트와 같다. 가수가 비어 있으면 프론트는
- * 검색어 전체를 아티스트 자리에 넣는데, 그 특이 동작까지 포함해야 "이식"이다.
+ * `title || query`, `artist || query` 폴백은 프론트와 같다(참고 점수도 폴백과 같은 입력으로
+ * 계산해야 나중에 두 로직을 비교할 수 있다).
  */
-export function rankCandidates(
+export function selectCandidates(
   items: YoutubeSearchItem[],
   options: { query: string; title: string; artist: string; limit: number },
-): RankedCandidate[] {
+): SelectedCandidate[] {
   const { query, title, artist, limit } = options;
   const scoreTitle = title || query;
   const scoreArtist = artist || query;
 
-  return items
-    .map((item, index) => ({
-      item,
-      index,
-      score: calculateVideoScore(item, scoreTitle, scoreArtist),
-    }))
-    // 동점일 때 원래 순서를 유지한다. sort의 안정성에 기대지 않고 index로 명시하는 이유는,
-    // 정렬 안정성이 보장되지 않는 런타임에서도 프론트와 같은 결과가 나오게 하기 위해서다.
-    .sort((a, b) => b.score - a.score || a.index - b.index)
-    .slice(0, limit)
-    .map((scored, position) => ({
-      ...scored.item,
-      rank: position + 1,
-      score: scored.score,
-    }));
+  return items.slice(0, limit).map((item, position) => ({
+    ...item,
+    rank: position + 1,
+    score: calculateVideoScore(item, scoreTitle, scoreArtist),
+  }));
 }

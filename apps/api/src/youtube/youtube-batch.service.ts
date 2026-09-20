@@ -13,7 +13,7 @@ import { SONG_NOT_FOUND_MESSAGE } from '../songs/songs.constants.js';
 import { YoutubeMaintenanceService } from './youtube-maintenance.service.js';
 import { YoutubeQuotaExhaustedException } from './youtube-quota-exhausted.exception.js';
 import { YoutubeQuotaService, type QuotaStatus } from './youtube-quota.service.js';
-import { rankCandidates, type RankedCandidate } from './youtube-score.js';
+import { selectCandidates, type SelectedCandidate } from './youtube-score.js';
 import { isStorableVideoId } from './youtube-video-id.js';
 import {
   YOUTUBE_API_KEY_MESSAGE,
@@ -158,17 +158,17 @@ export class YoutubeBatchService {
   }
 
   /**
-   * **DB에 쓰지 않고** 검색·스코어링만 해서 돌려준다 (캘리브레이션용).
+   * **DB에 쓰지 않고** 검색·후보 선정만 해서 돌려준다 (캘리브레이션용).
    *
    * ⚠️ 호출은 실제로 나가므로 **쿼터는 소모되는데 시도 행이 남지 않아 집계에 잡히지 않는다.**
    * 일일 상한을 100이 아니라 80으로 둔 20회의 여유가 이 용도를 덮는다. 상시 경로가 아니라
    * 게이트 승인 아래 소수 호출로만 쓴다.
    */
-  async previewSearch(title: string, singer: string | null): Promise<RankedCandidate[]> {
+  async previewSearch(title: string, singer: string | null): Promise<SelectedCandidate[]> {
     const query = buildSearchQuery(title, singer);
     const items = await this.client.search(query);
 
-    return rankCandidates(items.filter((item) => this.isStorable(item)), {
+    return selectCandidates(items.filter((item) => this.isStorable(item)), {
       query,
       title,
       artist: singer ?? '',
@@ -257,7 +257,9 @@ export class YoutubeBatchService {
       return this.recordFailure(attempt.id, song.id, error);
     }
 
-    const candidates = rankCandidates(items.filter((item) => this.isStorable(item)), {
+    // 후보는 저장 가능한 항목 중 **YouTube 원본 순서 상위 N개**다. 점수는 참고값으로만 저장한다
+    // (게이트 2 캘리브레이션: 점수 정렬이 원본 순서보다 나빴다 — youtube-score.ts 주석 참조).
+    const candidates = selectCandidates(items.filter((item) => this.isStorable(item)), {
       query,
       title: song.title,
       artist: song.singer ?? '',

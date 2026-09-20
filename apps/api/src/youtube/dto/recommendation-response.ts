@@ -14,7 +14,9 @@ import type {
  * 실제 유튜브 제목과 다른 문자열을 보고 판단하게 된다.
  */
 export interface RecommendationCandidateResponse {
+  /** YouTube가 준 원본 순서(1부터). 점수 순위가 아니다 */
   rank: number;
+  /** 참고값. 정렬에 쓰이지 않는다(REFACTOR_NOTES §15 — 점수 정렬이 원본 순서보다 나빴다) */
   score: number;
   videoId: string;
   title: string;

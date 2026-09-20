@@ -239,6 +239,26 @@ describe('YoutubeBatchService — 결과 기록', () => {
     expect(data).toHaveLength(3);
     expect(data.map((row) => row.rank)).toEqual([1, 2, 3]);
   });
+
+  it('후보는 점수가 아니라 YouTube 원본 순서 상위 3개로 저장한다 (점수는 참고값)', async () => {
+    // 게이트 2 캘리브레이션: 점수 정렬이 원본 순서보다 나빴다. 4번째가 점수 1위여도 밀려나야 한다.
+    const { service, recommendationCreateMany } = createHarness({
+      search: async () => [
+        item({ videoId: 'first000000', title: '무관한 영상' }),
+        item({ videoId: 'second00000', title: '무관한 영상 (live)' }),
+        item({ videoId: 'third000000', title: '무관한 영상' }),
+        item({ videoId: 'official000', title: '사랑의 미학 Official MV', description: 'official mv' }),
+      ],
+    });
+
+    await service.searchForSong(SONG.id);
+
+    const [{ data }] = recommendationCreateMany.mock.calls[0];
+    expect(data.map((row) => row.videoId)).toEqual(['first000000', 'second00000', 'third000000']);
+    expect(data.map((row) => row.rank)).toEqual([1, 2, 3]);
+    // 점수는 저장되지만 정렬 근거가 아니다: 2번째(감점)가 1번째보다 낮아도 순서는 그대로다.
+    expect(data.every((row) => typeof (row as { score?: unknown }).score === 'number')).toBe(true);
+  });
 });
 
 describe('YoutubeBatchService — 저장 가능한 후보만 남긴다', () => {

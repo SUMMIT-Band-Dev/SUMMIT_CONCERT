@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateVideoScore, rankCandidates } from './youtube-score.js';
+import { calculateVideoScore, selectCandidates } from './youtube-score.js';
 import type { YoutubeSearchItem } from './youtube-search.client.js';
 
 /**
@@ -187,8 +187,8 @@ describe('calculateVideoScore — 프론트 폴백과의 특성 테스트', () =
   });
 });
 
-describe('rankCandidates — 프론트의 최상위 선택과 1위가 같다', () => {
-  /** 프론트의 선택 로직을 그대로 옮긴 비교군 */
+describe('selectCandidates — 원본 순서 상위 N개 (점수는 참고값)', () => {
+  /** 프론트 폴백의 선택 로직을 그대로 옮긴 비교군 — 점수 1위를 고른다 */
   function frontendBest(items: YoutubeSearchItem[], query: string, title: string, artist: string) {
     return items
       .map((candidate) => ({
@@ -203,61 +203,73 @@ describe('rankCandidates — 프론트의 최상위 선택과 1위가 같다', (
     item({ videoId: 'bbbbbbbbbbb', title: '쏜애플 빨간 피터 Official MV', description: 'official mv' }),
     item({ videoId: 'ccccccccccc', title: '빨간 피터' }),
   ];
+  const opts = { query: '빨간 피터 쏜애플', title: '빨간 피터', artist: '쏜애플', limit: 3 };
 
-  it('1위가 프론트의 선택과 같다', () => {
-    const ranked = rankCandidates(items, {
-      query: '빨간 피터 쏜애플',
-      title: '빨간 피터',
-      artist: '쏜애플',
-      limit: 3,
-    });
+  it('점수가 아니라 YouTube가 준 원본 순서 그대로 고른다', () => {
+    const selected = selectCandidates(items, opts);
 
-    expect(ranked[0].videoId).toBe(
-      frontendBest(items, '빨간 피터 쏜애플', '빨간 피터', '쏜애플')?.videoId,
-    );
-    expect(ranked[0].videoId).toBe('bbbbbbbbbbb');
-  });
-
-  it('동점이면 유튜브가 준 순서를 유지한다', () => {
-    const tied: YoutubeSearchItem[] = [
-      item({ videoId: 'first000000', title: '무관한 제목 1' }),
-      item({ videoId: 'second00000', title: '무관한 제목 2' }),
-    ];
-
-    const ranked = rankCandidates(tied, { query: 'q', title: 'zzz', artist: 'zzz', limit: 3 });
-
-    expect(ranked.map((candidate) => candidate.videoId)).toEqual([
-      'first000000',
-      'second00000',
+    // 점수로는 2번째(Official MV)가 압도적인 1위지만 순서는 원본 그대로다.
+    expect(selected.map((candidate) => candidate.videoId)).toEqual([
+      'aaaaaaaaaaa',
+      'bbbbbbbbbbb',
+      'ccccccccccc',
     ]);
   });
 
-  it('rank는 1부터 연속이고 limit에서 잘린다 (DB의 CHECK rank >= 1과 맞다)', () => {
-    const ranked = rankCandidates(items, {
-      query: 'q',
-      title: '빨간 피터',
-      artist: '쏜애플',
-      limit: 2,
-    });
+  it('프론트 폴백의 점수 1위와 우리 1위가 다를 수 있다 — 7단계 검토 근거로 고정한다', () => {
+    // 게이트 2 캘리브레이션에서 실제로 관측된 상황이다(승인된 5곡에서 폴백의 1위가 정답과 5/5 달랐다).
+    // 이 테스트가 깨지면 두 로직의 관계가 바뀐 것이니 REFACTOR_NOTES §15 "남겨둔 결정"을 다시 본다.
+    const ours = selectCandidates(items, opts)[0];
+    const fallbackPick = frontendBest(items, opts.query, opts.title, opts.artist);
 
-    expect(ranked.map((candidate) => candidate.rank)).toEqual([1, 2]);
+    expect(ours.videoId).toBe('aaaaaaaaaaa');
+    expect(fallbackPick?.videoId).toBe('bbbbbbbbbbb');
+    expect(ours.videoId).not.toBe(fallbackPick?.videoId);
   });
 
-  it('가수가 비면 프론트처럼 검색어 전체를 아티스트 자리에 넣는다', () => {
-    // 프론트의 `artist || query` 동작. 특이해 보여도 이식 대상이라 그대로 따른다.
+  it('점수는 계산해서 붙이되 순서에는 영향이 없다 (참고값)', () => {
+    const selected = selectCandidates(items, opts);
+
+    expect(selected.map((candidate) => candidate.score)).toEqual(
+      items.map((candidate) => frontendScore(candidate, opts.title, opts.artist)),
+    );
+    // 점수가 내림차순이 아니어도 그대로다.
+    expect(selected[1].score).toBeGreaterThan(selected[0].score);
+  });
+
+  it('rank는 1부터 연속이고 limit에서 잘린다 (DB의 CHECK rank >= 1과 맞다)', () => {
+    const selected = selectCandidates(items, { ...opts, limit: 2 });
+
+    expect(selected.map((candidate) => candidate.rank)).toEqual([1, 2]);
+  });
+
+  it('limit보다 후보가 적으면 있는 만큼만 돌려준다', () => {
+    expect(selectCandidates(items.slice(0, 1), opts)).toHaveLength(1);
+  });
+
+  it('원본 배열을 바꾸지 않는다', () => {
+    const copy = items.map((candidate) => ({ ...candidate }));
+
+    selectCandidates(items, opts);
+
+    expect(items).toEqual(copy);
+  });
+
+  it('가수가 비면 참고 점수를 프론트처럼 검색어 전체를 아티스트 자리에 넣어 계산한다', () => {
+    // 프론트의 `artist || query` 동작. 나중에 두 로직을 비교할 수 있게 같은 입력으로 계산한다.
     const withQueryAsArtist = item({ title: '혜성 윤하' });
 
-    const ranked = rankCandidates([withQueryAsArtist], {
+    const selected = selectCandidates([withQueryAsArtist], {
       query: '혜성 윤하',
       title: '혜성',
       artist: '',
       limit: 1,
     });
 
-    expect(ranked[0].score).toBe(frontendScore(withQueryAsArtist, '혜성', '혜성 윤하'));
+    expect(selected[0].score).toBe(frontendScore(withQueryAsArtist, '혜성', '혜성 윤하'));
   });
 
   it('빈 후보 목록은 빈 배열이다 (예외가 아니다)', () => {
-    expect(rankCandidates([], { query: 'q', title: 't', artist: 'a', limit: 3 })).toEqual([]);
+    expect(selectCandidates([], { query: 'q', title: 't', artist: 'a', limit: 3 })).toEqual([]);
   });
 });
