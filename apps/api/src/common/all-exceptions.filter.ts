@@ -29,6 +29,13 @@ const MAX_LOGGED_PATH_LENGTH = 200;
 
 const errorPhrase = (status: number): string => STATUS_PHRASE[status] ?? 'Error';
 
+/** 응답 작성이 실패했을 때 쓰는 본문. 요청 시점에 직렬화하지 않도록 미리 만들어 둔다 */
+const FALLBACK_BODY = JSON.stringify({
+  message: INTERNAL_ERROR_MESSAGE,
+  error: STATUS_PHRASE[500],
+  statusCode: 500,
+});
+
 /** 본문 파서 등이 만드는 http-errors 형태(`expose`, 숫자 `status`)의 4xx 오류인지 */
 function isClientHttpError(exception: unknown): exception is Error & { status: number } {
   if (!(exception instanceof Error)) {
@@ -91,14 +98,54 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const request = http.getRequest<Request | undefined>();
     const response = http.getResponse<Response>();
 
-    const { status, body } = this.toResponse(exception, request);
-    this.log(exception, status, request);
+    // 이 필터는 "오류가 났을 때 마지막으로 도는 코드"다. 여기서 던지면 응답 없이 요청이 매달리거나
+    // 처리되지 않은 rejection이 되므로, 응답을 결정·작성하는 과정 전체를 감싸고 실패하면 최소 응답으로 끝낸다.
+    try {
+      const { status, body } = this.toResponse(exception, request);
+      this.log(exception, status, request);
+      this.write(response, status, body);
+    } catch (failure) {
+      this.fallback(response, request, exception, failure);
+    }
+  }
 
+  private write(response: Response, status: number, body: ErrorBody): void {
     if (response.headersSent) {
       response.end();
       return;
     }
+    // 비정상 상태코드(범위 밖)나 직렬화할 수 없는 값(BigInt 등)이면 여기서 던진다 → fallback
     response.status(status).json(body);
+  }
+
+  /**
+   * 응답 결정·작성이 실패했을 때의 최소 응답. **직렬화가 필요 없는 미리 만든 문자열**로 500을 내보낸다.
+   * 이 안의 모든 단계도 실패할 수 있다고 보고, 마지막에는 연결을 끊는다(응답 없이 매달리는 것보다 낫다).
+   */
+  private fallback(response: Response, request: Request | undefined, original: unknown, failure: unknown): void {
+    try {
+      this.logger.error(
+        `응답 작성 실패: ${describeError(failure)} (원본: ${describeError(original)}) ${requestMethod(request)} ${requestPath(request)}${describeErrorDetails(failure)}`,
+      );
+    } catch {
+      // 로깅이 실패해도 응답은 내보낸다
+    }
+
+    try {
+      if (response.headersSent) {
+        response.end();
+        return;
+      }
+      response.statusCode = 500;
+      response.setHeader('Content-Type', 'application/json; charset=utf-8');
+      response.end(FALLBACK_BODY);
+    } catch {
+      try {
+        response.destroy();
+      } catch {
+        // 더 할 수 있는 것이 없다
+      }
+    }
   }
 
   private toResponse(
@@ -155,16 +202,21 @@ export class AllExceptionsFilter implements ExceptionFilter {
   }
 
   private log(exception: unknown, status: number, request: Request | undefined): void {
-    if (exception instanceof HttpException) {
-      return;
-    }
+    // 로깅 실패가 응답을 바꾸면 안 된다: 여기서 던지면 정상적으로 결정한 응답 대신 fallback이 나간다
+    try {
+      if (exception instanceof HttpException) {
+        return;
+      }
 
-    // 클래스명·code·method·path·상태가 기본이다. 허용 목록의 내장 오류(TypeError 등)만 메시지와 첫 프로젝트 프레임이 붙는다
-    const line = `예외 처리: ${describeError(exception)} ${requestMethod(request)} ${requestPath(request)} → ${status}${describeErrorDetails(exception)}`;
-    if (status >= 500) {
-      this.logger.error(line);
-    } else {
-      this.logger.warn(line);
+      // 클래스명·code·method·path·상태가 기본이다. 허용 목록의 내장 오류(TypeError 등)만 메시지와 첫 프로젝트 프레임이 붙는다
+      const line = `예외 처리: ${describeError(exception)} ${requestMethod(request)} ${requestPath(request)} → ${status}${describeErrorDetails(exception)}`;
+      if (status >= 500) {
+        this.logger.error(line);
+      } else {
+        this.logger.warn(line);
+      }
+    } catch {
+      // 삼킨다 — 응답이 우선이다
     }
   }
 }

@@ -4,6 +4,7 @@ import {
   ConflictException,
   Controller,
   Get,
+  HttpException,
   Logger,
   Param,
   Post,
@@ -78,6 +79,18 @@ class ProbeController {
     return song!.title.length;
   }
 
+  @Get('badstatus')
+  badstatus() {
+    // Express의 res.status()가 범위 밖 상태코드에서 던진다 → 필터 안전망
+    throw new HttpException('x', 1000);
+  }
+
+  @Get('bigint')
+  bigint() {
+    // JSON으로 직렬화할 수 없는 값(이 코드베이스는 int8을 BigInt로 다룬다) → 필터 안전망
+    throw new HttpException({ message: 'm', id: 10n }, 400);
+  }
+
   @Get('prisma')
   prisma() {
     throw new PrismaClientKnownRequestError();
@@ -99,6 +112,10 @@ beforeAll(async () => {
   const moduleRef = await Test.createTestingModule({ controllers: [ProbeController] }).compile();
   app = moduleRef.createNestApplication<NestExpressApplication>(createHttpAdapter());
   configureHttp(app, { trustProxyHops: 0, corsAllowedOrigins: [] });
+  // 본문 파서가 아닌 서버 쪽 원인의 SyntaxError를 Express 오류 계층으로 보내는 미들웨어(init 전에 등록해야 파서보다 앞선다)
+  app.use('/syntax-mw', (_req: unknown, _res: unknown, next: (error?: unknown) => void) => {
+    next(new SyntaxError('SYNTAX_SECRET_VALUE'));
+  });
   await app.init();
 });
 
@@ -287,6 +304,43 @@ describe('알 수 없는 오류 — 500 고정 문구, 로그에는 식별자만
     expect(line).toContain('src/common/http-error-contract.spec.ts');
     expect(line).not.toContain('QUERY_SECRET_VALUE');
     expect(line).not.toMatch(/[A-Za-z]:[\\/]/);
+  });
+
+  it('서버 원인의 SyntaxError(본문 파서 유래 아님)는 400이 아니라 500이고, 위치만 로그에 남는다 (L1)', async () => {
+    const res = await request(server()).get('/syntax-mw').expect(500);
+
+    expect(res.body).toEqual({
+      message: INTERNAL_ERROR_MESSAGE,
+      error: 'Internal Server Error',
+      statusCode: 500,
+    });
+    expect(res.text).not.toContain('SYNTAX_SECRET_VALUE');
+
+    expect(errorLog).toHaveBeenCalledTimes(1);
+    const line = errorLog.mock.calls[0][0] as string;
+    expect(line).toContain('예외 처리: SyntaxError GET /syntax-mw → 500 | 위치: ');
+    expect(line).not.toContain('SYNTAX_SECRET_VALUE');
+  });
+
+  it('응답 작성이 실패하면(범위 밖 상태코드) 필터가 던지지 않고 미리 만든 500 본문으로 응답한다 (L3)', async () => {
+    const res = await request(server()).get('/badstatus').expect(500);
+
+    expect(res.body).toEqual({
+      message: INTERNAL_ERROR_MESSAGE,
+      error: 'Internal Server Error',
+      statusCode: 500,
+    });
+    expect(res.headers['content-type']).toContain('application/json');
+    expect(errorLog).toHaveBeenCalledTimes(1);
+    expect(errorLog.mock.calls[0][0] as string).toContain('응답 작성 실패: RangeError (원본: HttpException) GET /badstatus');
+  });
+
+  it('직렬화할 수 없는 값(BigInt)이 든 예외도 500 최소 응답으로 끝난다 (L3)', async () => {
+    const res = await request(server()).get('/bigint').expect(500);
+
+    expect(res.body.statusCode).toBe(500);
+    expect(res.body.message).toBe(INTERNAL_ERROR_MESSAGE);
+    expect(errorLog.mock.calls[0][0] as string).toContain('응답 작성 실패: TypeError (원본: HttpException) GET /bigint');
   });
 
   it('Prisma 오류: 응답·로그 모두에 메시지가 없고 code만 남는다', async () => {
