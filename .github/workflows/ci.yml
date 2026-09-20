@@ -8,6 +8,13 @@
 # - 액션은 태그가 아니라 **커밋 SHA로 고정**한다(태그는 옮겨질 수 있다). 버전은 주석에 남긴다.
 #   갱신할 때는 릴리스 태그의 SHA를 GitHub에서 확인하고, action.yml의 입력 이름이 그대로인지 본다
 #
+# 러너: `ubuntu-latest`가 아니라 **버전을 고정한 `ubuntu-24.04`**를 쓴다. `-latest`는 1~2개월에 걸쳐 조용히 다음 OS로 옮겨 가서
+# 어느 날 CI가 이유 없이 깨질 수 있다(GitHub runner-images 문서). 2026-09-21 기준 `ubuntu-latest`가 가리키는 안정판이 24.04이고,
+# 그보다 새 `ubuntu-26.04`는 공식 공지상 **public preview**(GA 아님)라 채택하지 않았다. 22.04는 2026-09-17부터 deprecation이 시작됐다.
+# GA가 되면 그때 올린다 — 올릴 때는 이 파일에서 두 잡의 runs-on 을 함께 바꾼다.
+#
+# 트리거: pull_request 와 develop·main 으로의 push. main 은 배포 브랜치라 직접 푸시(규칙상 금지지만 막는 장치는 없다)도 검증한다.
+#
 # 범위: apps/api 는 lint·build·test·타입 검사(스펙 포함)를, 루트 Next.js 앱은 lint만 검사한다.
 # 루트 `next build`는 `NEXT_PUBLIC_SUPABASE_*` 없이는 실패한다(`supabaseUrl is required`, 2026-09-21 실측).
 # 그 값들은 브라우저에 노출되는 공개 값이지만, 어떤 값을 CI에 둘지는 별도로 정한다.
@@ -16,7 +23,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [develop]
+    branches: [develop, main]
 
 permissions:
   contents: read
@@ -29,7 +36,7 @@ concurrency:
 jobs:
   api:
     name: apps/api (lint · build · test · typecheck)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     defaults:
       run:
@@ -74,7 +81,7 @@ jobs:
 
   web:
     name: web (lint)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: 체크아웃
