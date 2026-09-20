@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_TRUST_PROXY_HOPS, parseTrustProxyHops } from './trust-proxy.js';
+import { MAX_TRUST_PROXY_HOPS, buildTrustProxyWarning, parseTrustProxyHops } from './trust-proxy.js';
 
 describe('parseTrustProxyHops — 기동 시 검증', () => {
   it.each([
@@ -33,5 +33,40 @@ describe('parseTrustProxyHops — 기동 시 검증', () => {
 
   it('상한을 넘으면 기동을 막는다 (오타로 신뢰 범위가 넓어지는 것 방지)', () => {
     expect(() => parseTrustProxyHops(String(MAX_TRUST_PROXY_HOPS + 1))).toThrow('너무 큽니다');
+  });
+});
+
+describe('parseTrustProxyHops — 오류 메시지에 입력 값을 출력하지 않는다 (교차 리뷰 L10)', () => {
+  it.each([
+    ['문자', 'ECHOMARK'],
+    ['음수', '-777'],
+    ['소수', '1.5ECHOMARK'],
+    ['IP 주소', '10.0.0.1'],
+    ['상한 초과', '98765'],
+  ])('%s: 메시지에 입력이 없다', (_label, raw) => {
+    let message = '';
+    try {
+      parseTrustProxyHops(raw);
+    } catch (error) {
+      message = (error as Error).message;
+    }
+
+    expect(message).not.toBe('');
+    expect(message).not.toMatch(/ECHOMARK|777|98765|10\.0\.0\.1/);
+  });
+});
+
+describe('buildTrustProxyWarning — 0이 아닐 때 기동 경고 (M1)', () => {
+  it('0(기본)이면 경고가 없다', () => {
+    expect(buildTrustProxyWarning(0)).toBeUndefined();
+  });
+
+  it.each([1, 2, MAX_TRUST_PROXY_HOPS])('%i이면 값과 함께 배포 전제를 알린다', (hops) => {
+    const warning = buildTrustProxyWarning(hops) as string;
+
+    expect(warning).toContain(`TRUST_PROXY_HOPS=${hops}`);
+    expect(warning).toContain('프록시에서만 접근');
+    expect(warning).toContain('실제 프록시 수');
+    expect(warning).not.toContain('\n');
   });
 });

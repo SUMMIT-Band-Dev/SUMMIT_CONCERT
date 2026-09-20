@@ -1,8 +1,9 @@
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AllExceptionsFilter } from './common/all-exceptions.filter.js';
 import { buildCorsOptions } from './common/cors.js';
 import { HardenedExpressAdapter } from './common/hardened-express.adapter.js';
+import { buildTrustProxyWarning } from './common/trust-proxy.js';
 
 export interface HttpSetupOptions {
   /** 프록시 뒤에서 X-Forwarded-For를 몇 단계까지 믿을지. 0이면 믿지 않는다 */
@@ -49,6 +50,11 @@ export function configureHttp(app: NestExpressApplication, options: HttpSetupOpt
   // 요청 제한(throttler)이 req.ip로 IP를 센다. 기본 0(믿지 않음) — 프록시 없이 열려 있는데 켜 두면
   // X-Forwarded-For 위조로 제한을 피할 수 있다.
   app.set('trust proxy', options.trustProxyHops > 0 ? options.trustProxyHops : false);
+  // 0이 아니면 배포 구성(앱 포트는 프록시에서만 접근, 홉 수 = 실제 프록시 수)에 기대는 설정이라 기동 때마다 알린다
+  const trustProxyWarning = buildTrustProxyWarning(options.trustProxyHops);
+  if (trustProxyWarning) {
+    new Logger('Bootstrap').warn(trustProxyWarning);
+  }
 
   // CORS 미들웨어는 Guard보다 앞(Express 계층)에서 실행되므로 preflight가 인증·요청 제한을 타지 않는다
   app.enableCors(buildCorsOptions(options.corsAllowedOrigins));
