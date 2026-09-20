@@ -130,13 +130,25 @@ function createService(rows: SongRow[] = initialRows(), teamIds = [1n, 2n, 3n]) 
     teamIds.some((id) => id === teamId) ? [{ id: teamId }] : [],
   );
 
+  // work02-6b: 제목·가수가 실제로 바뀌면 그 곡의 추천 이력을 무효화하므로 델리게이트가 필요하다.
+  const openAttempts: bigint[] = [];
+  const youtubeSearchAttempt = {
+    findMany: vi.fn(async () => openAttempts.map((id) => ({ id }))),
+    updateMany: vi.fn(async () => ({ count: 0 })),
+  };
+  const youtubeRecommendation = {
+    deleteMany: vi.fn(async () => ({ count: 0 })),
+  };
+
   const $transaction = vi.fn(
     async (
       callback: (tx: {
         setlist: typeof setlist;
         $queryRaw: typeof $queryRaw;
+        youtubeSearchAttempt: typeof youtubeSearchAttempt;
+        youtubeRecommendation: typeof youtubeRecommendation;
       }) => Promise<unknown>,
-    ) => callback({ setlist, $queryRaw }),
+    ) => callback({ setlist, $queryRaw, youtubeSearchAttempt, youtubeRecommendation }),
   );
 
   const prisma = {
@@ -144,6 +156,8 @@ function createService(rows: SongRow[] = initialRows(), teamIds = [1n, 2n, 3n]) 
     setlist,
     $queryRaw,
     $transaction,
+    youtubeSearchAttempt,
+    youtubeRecommendation,
   } as unknown as PrismaService;
 
   return {
@@ -152,6 +166,8 @@ function createService(rows: SongRow[] = initialRows(), teamIds = [1n, 2n, 3n]) 
     setlist,
     $queryRaw,
     $transaction,
+    youtubeSearchAttempt,
+    youtubeRecommendation,
     store,
   };
 }
@@ -374,10 +390,13 @@ describe('SongsService.update (F009)', () => {
 
     expect(updated.albumCoverUrl).toBe('https://cdn.example/b.jpg');
     expect(updated.youtubeUrl).toBe('https://www.youtube.com/watch?v=BTo-I-gCAxk');
+    // work02-6b: 제목이 실제로 바뀌었으므로 검토 상태만 pending으로 되돌아간다.
+    // URL은 그대로다 — 배치 대상 조건이 `url IS NULL AND pending`이라 재검색도 일어나지 않는다.
     expect(setlist.update).toHaveBeenCalledWith({
       where: { id: 2n },
-      data: { title: 'Congratulations (Live)' },
+      data: { title: 'Congratulations (Live)', youtubeReviewStatus: 'pending' },
     });
+    expect(updated.youtubeReviewStatus).toBe('pending');
   });
 
   it('teamId를 건드리지 않는다 (곡의 팀 이동 불가)', async () => {
@@ -510,5 +529,86 @@ describe('SongsService.update (F009)', () => {
     const updated = await service.update(1n, { title: '자처' });
 
     expect(() => JSON.stringify(updated)).not.toThrow();
+  });
+});
+
+/**
+ * work02-6b, 조건 D(2).
+ *
+ * §14가 남긴 결함: 곡을 "다른 곡으로 교체"해도 `approved`가 남고, approved는 배치 재검색
+ * 대상이 아니라 **이전 곡의 영상이 승인 상태로 영원히 남았다.** 실제 변경일 때만 상태를
+ * 되돌리고 추천 이력을 무효화해 해소한다. URL은 §12 판단대로 유지한다.
+ */
+describe('SongsService.update — 검토 상태 재설정 (work02-6b)', () => {
+  it('제목이 실제로 바뀌면 상태를 pending으로 되돌리고 추천 이력을 무효화한다', async () => {
+    const { service, youtubeSearchAttempt } = createService();
+
+    const updated = await service.update(2n, { title: '다른 곡' });
+
+    expect(updated.youtubeReviewStatus).toBe('pending');
+    // URL은 잃지 않는다 — 사람 검토와 쿼터가 든 자산이다.
+    expect(updated.youtubeUrl).toBe('https://www.youtube.com/watch?v=BTo-I-gCAxk');
+    expect(youtubeSearchAttempt.updateMany).toHaveBeenCalledWith({
+      where: { songId: 2n, invalidatedAt: null },
+      data: expect.objectContaining({ invalidatedAt: expect.any(Date) }),
+    });
+  });
+
+  it('가수가 실제로 바뀌어도 마찬가지다', async () => {
+    const { service, youtubeSearchAttempt } = createService();
+
+    const updated = await service.update(2n, { singer: '다른 가수' });
+
+    expect(updated.youtubeReviewStatus).toBe('pending');
+    expect(youtubeSearchAttempt.updateMany).toHaveBeenCalled();
+  });
+
+  it('같은 값으로 다시 보내면 상태를 건드리지 않는다', async () => {
+    // 저장값도 그대로이므로 "다른 곡이 됐다"고 볼 근거가 없다.
+    const { service, setlist, youtubeSearchAttempt } = createService();
+
+    const updated = await service.update(2n, {
+      title: 'Congratulations',
+      singer: 'Day6',
+    });
+
+    expect(updated.youtubeReviewStatus).toBe('approved');
+    expect(setlist.update).toHaveBeenCalledWith({
+      where: { id: 2n },
+      data: { title: 'Congratulations', singer: 'Day6' },
+    });
+    expect(youtubeSearchAttempt.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('대소문자·공백·자모 분리만 다른 수정은 표기 교정이라 상태를 건드리지 않는다', async () => {
+    // 중복 판정(§12)과 **같은 정규화 규칙**을 쓴다. 저장값은 바뀌지만 곡이 바뀐 것은 아니다.
+    const { service, youtubeSearchAttempt } = createService();
+
+    const updated = await service.update(2n, { title: '  congratulations  ' });
+
+    expect(updated.title).toBe('  congratulations  ');
+    expect(updated.youtubeReviewStatus).toBe('approved');
+    expect(youtubeSearchAttempt.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('이미 pending인 곡도 실제 변경이면 이력을 무효화한다 (no_results·연속 실패 해제)', async () => {
+    // 상태는 그대로 pending이지만, 검색어가 달라졌으니 이전 "결과 0건"·실패 기록은 의미가 없다.
+    const { service, youtubeSearchAttempt } = createService();
+
+    const updated = await service.update(1n, { title: '완전히 다른 제목' });
+
+    expect(updated.youtubeReviewStatus).toBe('pending');
+    expect(youtubeSearchAttempt.updateMany).toHaveBeenCalled();
+  });
+
+  it('잠금 순서를 지킨다 — 팀 행 잠금이 추천 무효화보다 먼저다', async () => {
+    // common/lock-order.ts: Line Up → Setlist → YoutubeSearchAttempt
+    const { service, $queryRaw, youtubeSearchAttempt } = createService();
+
+    await service.update(2n, { title: '다른 곡' });
+
+    expect($queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      youtubeSearchAttempt.findMany.mock.invocationCallOrder[0],
+    );
   });
 });
