@@ -1,11 +1,39 @@
+import { ValidationPipe } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
+import { AllExceptionsFilter } from './common/all-exceptions.filter.js';
 import { buildCorsOptions } from './common/cors.js';
+import { HardenedExpressAdapter } from './common/hardened-express.adapter.js';
 
 export interface HttpSetupOptions {
   /** 프록시 뒤에서 X-Forwarded-For를 몇 단계까지 믿을지. 0이면 믿지 않는다 */
   trustProxyHops: number;
   /** 크로스 오리진 요청을 허용할 오리진. 비어 있으면 전부 거부한다 */
   corsAllowedOrigins: string[];
+}
+
+/**
+ * HTTP 어댑터. `NestFactory.create()`에 넘겨야 한다 — 어댑터는 앱을 만든 뒤에는 바꿀 수 없다.
+ * 본문 파서 오류의 원본 메시지(요청 값 에코)가 응답으로 나가지 않게 한다.
+ */
+export function createHttpAdapter(): HardenedExpressAdapter {
+  return new HardenedExpressAdapter();
+}
+
+/**
+ * DTO 검증 파이프.
+ * - whitelist/forbidNonWhitelisted: DTO에 선언하지 않은 필드가 섞여 들어오면 400으로 막는다
+ *   — 팀/곡 수정 API에서 의도치 않은 컬럼이 덮어써지는 것을 방지
+ * - transform: 요청 본문을 DTO 클래스 인스턴스로 변환
+ * - stopAtFirstError: 한 필드에 대해 메시지를 하나만 내보낸다. 없으면 값이 비었을 때
+ *   "비어 있음"과 "너무 김"이 함께 나와 로그인 화면에 모순된 안내가 뜬다
+ */
+export function createValidationPipe(): ValidationPipe {
+  return new ValidationPipe({
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+    stopAtFirstError: true,
+  });
 }
 
 /**
@@ -24,4 +52,9 @@ export function configureHttp(app: NestExpressApplication, options: HttpSetupOpt
 
   // CORS 미들웨어는 Guard보다 앞(Express 계층)에서 실행되므로 preflight가 인증·요청 제한을 타지 않는다
   app.enableCors(buildCorsOptions(options.corsAllowedOrigins));
+
+  app.useGlobalPipes(createValidationPipe());
+
+  // 오류 응답 형태를 {message, error, statusCode}로 통일하고, 요청 값·접속 호스트가 응답과 로그에 남지 않게 한다
+  app.useGlobalFilters(new AllExceptionsFilter());
 }

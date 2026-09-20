@@ -3,8 +3,10 @@ import { APP_GUARD, Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
 import type { INestApplication } from '@nestjs/common';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { configureHttp, createHttpAdapter } from '../app.setup.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import { STORAGE_CLIENT, type StorageClient } from '../storage/storage.client.js';
 import { CARD_IMAGE_MAX_BYTES } from '../storage/storage.constants.js';
@@ -71,7 +73,10 @@ beforeAll(async () => {
     ],
   }).compile();
 
-  app = moduleRef.createNestApplication();
+  // main.ts와 같은 어댑터·전역 필터를 거친다 — multer 한국어 치환(413/400)과 401이 필터 위에서도 유지되는지 본다
+  const created = moduleRef.createNestApplication<NestExpressApplication>(createHttpAdapter());
+  configureHttp(created, { trustProxyHops: 0, corsAllowedOrigins: [] });
+  app = created;
   await app.init();
 });
 

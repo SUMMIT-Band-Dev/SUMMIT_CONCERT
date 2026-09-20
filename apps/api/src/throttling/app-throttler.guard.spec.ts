@@ -7,6 +7,7 @@ import { Test } from '@nestjs/testing';
 import { ThrottlerModule } from '@nestjs/throttler';
 import request from 'supertest';
 import { afterEach, describe, expect, it } from 'vitest';
+import { configureHttp, createHttpAdapter } from '../app.setup.js';
 import { AuthController } from '../auth/auth.controller.js';
 import { IS_PUBLIC_KEY } from '../auth/public.decorator.js';
 import { HealthController } from '../health/health.controller.js';
@@ -59,8 +60,12 @@ async function createApp(options: {
     ],
   }).compile();
 
-  const created = moduleRef.createNestApplication<NestExpressApplication>();
-  created.set('trust proxy', options.trustProxy ?? false);
+  // main.ts와 같은 설정(전역 필터 포함)을 거치므로 429 계약이 필터 위에서도 유지되는지 함께 본다
+  const created = moduleRef.createNestApplication<NestExpressApplication>(createHttpAdapter());
+  configureHttp(created, {
+    trustProxyHops: typeof options.trustProxy === 'number' ? options.trustProxy : 0,
+    corsAllowedOrigins: [],
+  });
   await created.init();
   app = created;
   return created;
