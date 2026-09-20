@@ -1,19 +1,27 @@
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module.js';
+import { configureHttp } from './app.setup.js';
+import { CORS_ALLOWED_ORIGINS_ENV, parseCorsAllowedOrigins } from './common/cors.js';
 import { TRUST_PROXY_HOPS_ENV, parseTrustProxyHops } from './common/trust-proxy.js';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  // 프록시 뒤에서 클라이언트 IP(req.ip)를 어떻게 식별할지. 요청 제한(throttler)이 이 값으로 IP를 센다.
-  // 기본 0(믿지 않음) — 프록시 없이 열려 있는데 켜 두면 X-Forwarded-For 위조로 제한을 피할 수 있다.
-  const trustProxyHops = parseTrustProxyHops(
-    app.get(ConfigService).get<string>(TRUST_PROXY_HOPS_ENV),
+  // 잘못된 값은 첫 요청이 아니라 기동 시점에 실패한다(JWT_SECRET 선례). 값 해석은 각 parse 함수가 맡는다.
+  const config = app.get(ConfigService);
+  const corsAllowedOrigins = parseCorsAllowedOrigins(config.get<string>(CORS_ALLOWED_ORIGINS_ENV));
+  configureHttp(app, {
+    trustProxyHops: parseTrustProxyHops(config.get<string>(TRUST_PROXY_HOPS_ENV)),
+    corsAllowedOrigins,
+  });
+  new Logger('Bootstrap').log(
+    corsAllowedOrigins.length > 0
+      ? `CORS 허용 오리진 ${corsAllowedOrigins.length}개`
+      : 'CORS 허용 오리진 없음 — 크로스 오리진 요청은 모두 거부됩니다',
   );
-  app.set('trust proxy', trustProxyHops > 0 ? trustProxyHops : false);
 
   // DTO 검증을 전역으로 건다.
   // whitelist/forbidNonWhitelisted: DTO에 선언하지 않은 필드가 섞여 들어오면 400으로 막는다
