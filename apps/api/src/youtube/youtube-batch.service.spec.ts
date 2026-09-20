@@ -20,6 +20,7 @@ import {
   YOUTUBE_API_KEY_MESSAGE,
   YOUTUBE_DAILY_SEARCH_LIMIT,
   YOUTUBE_QUOTA_EXHAUSTED_MESSAGE,
+  YOUTUBE_THUMBNAIL_ALLOWED_HOSTS,
 } from './youtube-search.constants.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
 import type { YoutubeMaintenanceService } from './youtube-maintenance.service.js';
@@ -262,11 +263,19 @@ describe('YoutubeBatchService — 결과 기록', () => {
 });
 
 describe('YoutubeBatchService — 저장 가능한 후보만 남긴다', () => {
+  it('허용 호스트는 실측한 i.ytimg.com 하나뿐이다', () => {
+    // 게이트 2 캘리브레이션(응답 150건)에서 관측된 호스트만 허용한다. 추측으로 넓히지 않는다.
+    expect([...YOUTUBE_THUMBNAIL_ALLOWED_HOSTS]).toEqual(['i.ytimg.com']);
+  });
+
   it.each([
     ['예약어 videoId', item({ videoId: 'videoseries' })],
     ['형식이 틀린 videoId', item({ videoId: 'short' })],
     ['http 썸네일', item({ thumbnailUrl: 'http://i.ytimg.com/x.jpg' })],
     ['허용되지 않은 썸네일 호스트', item({ thumbnailUrl: 'https://evil.example/x.jpg' })],
+    ['관측된 적 없는 img.youtube.com (allowlist에서 제거됨)', item({ thumbnailUrl: 'https://img.youtube.com/vi/BTo-I-gCAxk/mqdefault.jpg' })],
+    ['접미사로 흉내 낸 호스트', item({ thumbnailUrl: 'https://i.ytimg.com.evil.example/vi/x/mqdefault.jpg' })],
+    ['userinfo로 위장한 호스트', item({ thumbnailUrl: 'https://i.ytimg.com@evil.example/vi/x/mqdefault.jpg' })],
     ['썸네일이 URL이 아님', item({ thumbnailUrl: 'not-a-url' })],
     ['제목이 상한 초과', item({ title: 'x'.repeat(301) })],
     ['채널명이 상한 초과', item({ channelTitle: 'x'.repeat(201) })],

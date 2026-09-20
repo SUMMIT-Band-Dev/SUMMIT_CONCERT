@@ -84,19 +84,16 @@ export const YOUTUBE_BATCH_ABORT_AFTER_CONSECUTIVE_ERRORS = 3;
  * 응답 150건)에서 실측했다. **관측된 호스트는 `i.ytimg.com` 하나뿐이다**
  * (`/vi/<id>/default.jpg`·`mqdefault.jpg`·`hqdefault.jpg`, 전부 https).
  *
- * ⚠️ **`img.youtube.com`은 한 번도 관측되지 않았다.** 처음에 널리 쓰이는 호스트라며 추측으로
- * 넣은 값이 남아 있는 것이다. 관측한 것만 허용하는 쪽이 안전하므로 제거를 권장한다
- * (REFACTOR_NOTES §15 "남겨둔 결정").
+ * **관측한 호스트만 허용한다.** 처음에는 널리 쓰이는 호스트라며 `img.youtube.com`도 추측으로
+ * 넣었지만 한 번도 관측되지 않아 제거했다. 다른 호스트가 실제로 나타나면 그 호스트를 관측한 뒤에
+ * 추가한다(추측으로 넓히지 않는다).
  *
  * 값을 바꿀 때는 이 상수와 `next.config.ts`의 `images.remotePatterns`를 **함께** 고친다
  * (§13에서 앨범 커버 allowlist를 remotePatterns와 같은 값으로 묶은 것과 같은 이유).
  * 지금 `remotePatterns`에는 `i.ytimg.com`이 없어 관리자 UI에서 `next/image`로 썸네일을 띄우려면
  * 추가가 필요하다(7단계).
  */
-export const YOUTUBE_THUMBNAIL_ALLOWED_HOSTS: readonly string[] = [
-  'i.ytimg.com',
-  'img.youtube.com',
-];
+export const YOUTUBE_THUMBNAIL_ALLOWED_HOSTS: readonly string[] = ['i.ytimg.com'];
 
 /**
  * 외부에서 온 문자열의 길이 상한.
