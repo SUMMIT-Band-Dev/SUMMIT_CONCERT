@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { JwtModule, type JwtSignOptions } from '@nestjs/jwt';
 import { AuthController } from './auth.controller.js';
@@ -40,13 +39,10 @@ const MIN_SECRET_LENGTH = 32;
     }),
   ],
   controllers: [AuthController],
-  providers: [
-    AuthService,
-    PasswordService,
-    // 전역 Guard. 기본값을 "인증 필요"로 두고 @Public()으로만 여는 fail-closed 구조.
-    { provide: APP_GUARD, useClass: JwtAuthGuard },
-  ],
-  exports: [PasswordService],
+  // JwtAuthGuard는 여기서 APP_GUARD로 등록하지 않는다. 전역 Guard는 GlobalGuardsModule의 GlobalGuard 하나뿐이고
+  // 요청 제한 → 인증 순서를 그쪽에서 코드로 정한다. 기본값이 "인증 필요"(@Public()으로만 연다)인 구조는 그대로다.
+  providers: [AuthService, PasswordService, JwtAuthGuard],
+  exports: [PasswordService, JwtAuthGuard],
 })
 export class AuthModule {}
 

@@ -1,15 +1,15 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AppThrottlerGuard, createThrottlerOptions } from './app-throttler.guard.js';
 
 /**
- * 전역 요청 제한. **`AuthModule`보다 먼저 import해야 한다** — 전역 Guard는 등록 순서대로
- * 실행되므로, 인증 실패(401) 요청도 카운트해야 토큰 없는 요청 폭주를 막을 수 있다.
- * 실제 순서는 런타임에서 확인한다(문서화된 보장이 아니라 관측).
+ * 요청 제한 Guard와 그 저장소(인메모리). **`APP_GUARD`로 직접 등록하지 않는다** — 전역 Guard의 실행 순서를
+ * 모듈 스캔 순서에 맡기지 않으려고, `GlobalGuardsModule`의 `GlobalGuard`가 이 Guard를 주입받아
+ * 인증보다 먼저 호출한다(인증 실패 401 요청도 세어야 토큰 없는 요청 폭주를 막을 수 있다).
  */
 @Module({
   imports: [ThrottlerModule.forRoot(createThrottlerOptions())],
-  providers: [{ provide: APP_GUARD, useClass: AppThrottlerGuard }],
+  providers: [AppThrottlerGuard],
+  exports: [AppThrottlerGuard],
 })
 export class ThrottlingModule {}

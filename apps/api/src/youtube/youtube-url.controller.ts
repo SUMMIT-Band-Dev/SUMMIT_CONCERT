@@ -15,7 +15,7 @@ import type { SongResponse } from '../songs/dto/song-response.js';
  * 이 컨트롤러가 아니라 별도 경로로 붙는다. 그래서 컨트롤러 이름도 모듈 이름(`Youtube`)이
  * 아니라 다루는 리소스(`YoutubeUrl`) 기준이다.
  *
- * `@Public()`을 붙이지 않는다 — `AuthModule`이 등록한 전역 Guard가 기본으로 인증을 요구한다.
+ * `@Public()`을 붙이지 않는다 — 전역 `GlobalGuard`(요청 제한 → 인증)가 기본으로 인증을 요구한다.
  */
 @Controller('songs/:id/youtube-url')
 export class YoutubeUrlController {
