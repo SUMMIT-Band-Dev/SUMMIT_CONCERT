@@ -1147,7 +1147,7 @@ work02 빌드 순서 6단계를 둘로 나눈 것 중 1/2. `Setlist.youtubeRevie
 
 | 조사 항목 | 확인된 사실 | 설계에 미친 영향 |
 | --- | --- | --- |
-| PRD "키 분리로 방문자 폴백 쿼터를 보호" | 쿼터는 **API 키가 아니라 Cloud 프로젝트**에 귀속된다(구글 문서: "the project associated with the API key is used as the quota project"). 같은 프로젝트에서 키만 두 개 만들면 `search.list`의 일일 100회 버킷을 그대로 공유한다 | PRD 전제가 성립하지 않아 **배치 전용 Cloud 프로젝트를 따로 만들고** 앱 일일 상한 80을 더한다(쿼터 전략 C). 실제 할당량 화면에서 `Search Queries per day = 100`, `per minute = 100` 확인. 키 변수명은 프론트와 구분해 `YOUTUBE_BATCH_API_KEY`. **PRD `prd-admin.md:202`의 서술은 아직 고치지 않았다**(아래 이월) |
+| PRD "키 분리로 방문자 폴백 쿼터를 보호" | 쿼터는 **API 키가 아니라 Cloud 프로젝트**에 귀속된다(구글 문서: "the project associated with the API key is used as the quota project"). 같은 프로젝트에서 키만 두 개 만들면 `search.list`의 일일 100회 버킷을 그대로 공유한다 | PRD 전제가 성립하지 않아 **배치 전용 Cloud 프로젝트를 따로 만들고** 앱 일일 상한 80을 더한다(쿼터 전략 C). 실제 할당량 화면에서 `Search Queries per day = 100`, `per minute = 100` 확인. 키 변수명은 프론트와 구분해 `YOUTUBE_BATCH_API_KEY`. **PRD `prd-admin.md`의 해당 서술은 `75b9bc5`에서 사실에 맞게 정정했다**("서로 다른 Cloud 프로젝트의 키를 쓴다"로 고치고 근거 문서 링크를 달았다) |
 | `search.list` 비용 | 별도 쿼터 버킷, 기본 하루 100회. `videos.list`는 1 unit(공용 10,000 풀) | 곡당 `search.list` 1회만 쓰고 `videos.list`는 붙이지 않는다 |
 | 쿼터 리셋 시각 | **태평양 시간 자정**. Quota Calculator 페이지("Daily quotas reset at midnight Pacific Time (PT).")와 Cloud Quotas overview("For per-day quotas, the time period resets at midnight Pacific Time.") 두 곳의 문장 | 일일 사용량을 태평양 시간 날짜로 센다. **인용은 fetch 도구가 돌려준 문장이며 원문과 글자 단위로 대조하지는 않았다.** 처음 조사에서는 이 문장을 찾지 못했다고 보고했는데 질의가 비용표에만 맞춰져 있었기 때문이다 |
 | 키 전달 방식 | `X-goog-api-key` 헤더 지원. 쿼리 방식은 구글이 "exposing your key to theft through URL scans"라고 경고 | 헤더로만 보낸다. 부수 효과로 요청 URL이 에러·로그에 섞여도 키가 새지 않는다 |
@@ -1293,7 +1293,7 @@ enum 값 단언이 `name[]`을 문자열로 받아 실패했고(`::text` 캐스�
 ### 이 단계에서 의도적으로 하지 않은 것
 
 - **프론트 코드 수정** — `next.config.ts`의 `remotePatterns`에 썸네일 호스트를 넣지 않았다(호스트 미확정). 프론트 폴백이 키를 URL 쿼리로 보내는 것도 그대로다
-- **`prd-admin.md:202` 수정** — "키 분리로 방문자 폴백 쿼터를 보호"라는 서술은 사실과 다르지만 문서 수정은 이번 스코프 밖으로 뒀다(위 조사 참조)
+- ~~**`prd-admin.md:202` 수정**~~ — **정정 완료 (`75b9bc5`, 2026-09-20).** "키 분리로 방문자 폴백 쿼터를 보호"라는 서술은 사실과 달라(쿼터는 Cloud 프로젝트 단위, 위 조사 참조) 처음에는 문서 수정을 이번 스코프 밖으로 뒀으나, 이후 별도 커밋으로 "서로 다른 Cloud 프로젝트의 키를 쓴다"로 고치고 근거 문서 링크를 달았다
 - **관리자 UI, 인바운드 throttler·CORS** (7단계), **곡 삭제·일괄 등록·oEmbed 존재 검증**
 - **분당 아웃바운드 상한, 부분 유니크 인덱스** — 위 기술 판단 참조
 - **`service_role`의 권한 회수** — Supabase 내부 동작에 영향을 줄 수 있어 §10의 7단계 점검 항목과 함께 본다
