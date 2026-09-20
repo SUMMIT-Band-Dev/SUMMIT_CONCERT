@@ -1684,7 +1684,7 @@ GRANT USAGE, SELECT, UPDATE ON SEQUENCE public."Setlist_id_seq", public."AdminUs
 - **`TRUST_PROXY_HOPS` 배포 값** — 기본 0. 배포 구성(EC2+nginx면 1)이 정해지면 정한다. **틀리면 위험하다**: 실제보다 크게 잡으면 `X-Forwarded-For` 위조로 요청 제한을 피할 수 있고, 프록시가 있는데 0이면 모든 요청이 프록시 IP 하나로 세어져 **정상 사용자가 한꺼번에 429를 맞는다**(특히 로그인 5회/5분). 배포 직후 `req.ip`가 실제 클라이언트 IP인지 확인한다
 - **`CORS_ALLOWED_ORIGINS` 배포 값** — 미설정이면 관리자 프론트가 API를 호출하지 못한다. 배포 시 `admin.` 오리진을 넣는다(로컬 개발은 `http://localhost:3010` 등을 `.env`에)
 - **스케일아웃 시 mutex·아웃바운드 상한·throttler를 함께 공유 저장소로 이전** — 셋 다 인메모리라 단일 인스턴스를 전제한다(§15의 mutex·`OutboundRateLimiter`와 같은 문제). 인스턴스가 둘이 되면 로그인 한도가 인스턴스 수만큼 늘어난다
-- **CI를 GitHub에서 실제로 실행** — 로컬 시뮬레이션은 Windows·Node 24.12에서 했고 Linux 러너 특유의 문제(대소문자 구분·경로 구분자·`prisma generate`의 엔진 취득)는 확인하지 못했다. 첫 PR에서 실제로 통과하는지 본다. 또한 웹 잡에 `NEXT_PUBLIC_*`를 넣어 `next build`까지 볼지, 액션 SHA 갱신을 어떻게 할지(Dependabot 등)는 별도 결정
+- **CI를 GitHub에서 실제로 실행** — 로컬 시뮬레이션은 Windows·Node 24.12에서 했고 Linux 러너 특유의 문제(대소문자 구분·경로 구분자·`prisma generate`의 엔진 취득)는 확인하지 못했다. 첫 PR에서 실제로 통과하는지 본다. 또한 웹 잡에 `NEXT_PUBLIC_*`를 넣어 `next build`까지 볼지, 액션 SHA 갱신을 어떻게 할지(Dependabot 등)는 별도 결정 **→ 2026-09-21 첫 실행에서 web 잡이 `npm ci`로 실패해 잠금 파일을 고쳤다(위 "교차 리뷰 반영"의 트러블슈팅 5). 수정 후 재실행 결과는 미확인.**
 - **로그인 카운트의 범위** — 본문 파서에서 실패하는 요청(깨진 JSON·413·415)은 Guard보다 **앞**에서 끝나 throttler에 세어지지 않는다. 로그인 시도가 될 수 없는 요청이라 위험은 낮지만(요청당 본문 100KB 상한), 반대로 ValidationPipe 400(빈 본문 등)은 **세어진다** — 관리자 UI가 빈 폼을 반복 제출하면 정상 사용자도 5회 제한에 닿을 수 있으므로 UI에서 제출 전 검증을 해야 한다
 - **`/health/db`를 배포 플랫폼이 쓸지** — 쓰지 않는 것을 권장한다(위 기술 판단). 플랫폼 헬스체크는 `GET /health`로 잡는다
 - **배포 후 확인 사항**: `req.ip` 정상 여부, 429·`Retry-After`가 브라우저에서 읽히는지(`Access-Control-Expose-Headers`), preflight 캐시, 배포 플랫폼의 요청 타임아웃이 배치(최악 25~50초)보다 짧지 않은지, 업로드 본문 상한이 앱 레벨(multer 2MB)보다 작지 않은지
@@ -1780,6 +1780,14 @@ GRANT USAGE, SELECT, UPDATE ON SEQUENCE public."Setlist_id_seq", public."AdminUs
 **3) 첫 시도에서 L3 테스트를 M3 커밋에 넣었다.** Proxy 예외 객체가 던지는 지점은 로그가 아니라 **응답 결정 단계**(`instanceof`의 `getPrototypeOf` 트랩)라 L3 범위였다. 커밋 단위가 각자 통과하도록 L3 커밋으로 옮겼다.
 
 **4) 간헐 실패 1건 관측(미조치).** 전체 테스트 5회 중 1회 `common/cors.spec.ts`의 첫 테스트가 **5,053ms로 기본 타임아웃(5초)을 넘겨** 실패했다. 단독 실행과 전체 3회 재실행은 모두 통과했다. 로직 실패가 아니라 **CPU 경합 시 Nest 앱 최초 생성이 느려진 것**으로 보이며(전체 실행의 누적 import 시간이 300초 이상), 이번에 추가한 300요청 통합 테스트가 부하를 늘렸을 가능성이 있다. 지시 범위 밖이라 `vitest` 설정은 건드리지 않았다 — 반복되면 `testTimeout` 상향을 검토한다(**미확인**: 원인을 부하로 단정할 근거는 재현하지 못한 상태의 추정이다).
+
+**5) CI를 GitHub에서 처음 돌리자 web 잡의 `npm ci`가 실패했다 (로컬 시뮬레이션이 놓친 것).**
+`apps/api` 잡은 통과했고 루트 `web` 잡만 8초 만에 `EUSAGE`로 실패했다(사용법 출력이 붙는 형태라 로그 화면에는 원인 줄이 보이지 않았다). 러너의 `24.x`는 Node 24.21.0과 **npm 11.19.0**을 번들하는데, 로컬 시뮬레이션은 npm 11.6.2였다. 같은 npm 버전으로 재현하니 정확히 이 오류가 났다: `Missing: @emnapi/runtime@1.11.3 from lock file`, `Missing: @emnapi/core@1.11.3 from lock file`.
+- **원인**: 잠금 파일에 `@emnapi/core`·`runtime`이 `@unrs/resolver-binding-wasm32-wasi` 안쪽의 중첩본(1.10.0)으로만 있고 최상위에는 없었다. 최상위의 `@napi-rs/wasm-runtime@1.1.4`(옵셔널)가 둘을 **peer**로 요구하는데 예전 npm이 그 항목을 잠금에 적지 않았다. 신형 npm은 이를 불일치로 보고, 구형은 통과시킨다
+- **조치**: npm 11.19.0으로 `npm install --package-lock-only`를 실행해 잠금 파일을 재생성했다(`5e85c09`). **패키지 8개 추가 + 기존 17개 항목의 peer 표시**뿐이고 버전 변경 0·삭제 0이다
+- **검증**: 수정 전 잠금은 npm 11.19.0에서 실패, 수정 후는 11.19.0·11.6.2 모두 `npm ci --dry-run` 통과. `.env`·환경변수 없는 깨끗한 복제본에서 npm 11.19.0으로 **실제 `npm ci`와 `npm run lint` 통과**. `apps/api` 잠금도 11.19.0 dry-run 통과. **수정 후 GitHub에서의 재실행 결과는 아직 확인하지 못했다**
+- 앞서 "로컬 시뮬레이션은 Windows·Node 24.12에서 했다"고 한계로 적어 둔 바로 그 유형이다. CI 사전 실측을 러너와 같은 npm 버전으로 했다면 잡혔다 — 이후 CI 관련 검증은 `npx npm@<러너 번들 버전>`로 한다
+- **남은 경고(실패 아님)**: 같은 설치 로그에 npm 11.19.0의 `install-scripts` 경고가 있다 — `sharp@0.34.5`·`unrs-resolver@1.12.2`의 install 스크립트가 `allowScripts`로 아직 허용되지 않았다는 내용이다. 지금은 경고일 뿐이지만 이후 npm이 기본 차단으로 바꾸는지는 **확인하지 않았다(미확인)**. §16 L12(`npm ci --ignore-scripts` 검토)와 함께 볼 것
 
 #### 기록만 하는 것
 
