@@ -79,14 +79,19 @@ export const YOUTUBE_BATCH_ABORT_AFTER_CONSECUTIVE_ERRORS = 3;
 /**
  * 저장을 허용하는 썸네일 호스트.
  *
- * ⚠️ **추측이다. 게이트 2(실제 호출) 캘리브레이션에서 실측해 확정한다.**
  * 공식 문서의 `search` 리소스 스키마에는 `snippet.thumbnails.{default,medium,high}.url`이
- * 있을 뿐 **예시 URL의 호스트가 나오지 않는다.** 아래 두 값은 널리 쓰이는 호스트를 적어
- * 둔 것이고 확인한 값이 아니다.
+ * 있을 뿐 예시 URL의 호스트가 나오지 않아, 게이트 2 캘리브레이션(2026-09-20, 실제 호출 5회 ·
+ * 응답 150건)에서 실측했다. **관측된 호스트는 `i.ytimg.com` 하나뿐이다**
+ * (`/vi/<id>/default.jpg`·`mqdefault.jpg`·`hqdefault.jpg`, 전부 https).
  *
- * 캘리브레이션은 DB에 쓰지 않고 관측만 하므로 이 목록이 틀려도 데이터가 오염되지 않는다.
- * 실측 결과가 다르면 이 상수와 `next.config.ts`의 `images.remotePatterns`를 **함께** 고친다
+ * ⚠️ **`img.youtube.com`은 한 번도 관측되지 않았다.** 처음에 널리 쓰이는 호스트라며 추측으로
+ * 넣은 값이 남아 있는 것이다. 관측한 것만 허용하는 쪽이 안전하므로 제거를 권장한다
+ * (REFACTOR_NOTES §15 "남겨둔 결정").
+ *
+ * 값을 바꿀 때는 이 상수와 `next.config.ts`의 `images.remotePatterns`를 **함께** 고친다
  * (§13에서 앨범 커버 allowlist를 remotePatterns와 같은 값으로 묶은 것과 같은 이유).
+ * 지금 `remotePatterns`에는 `i.ytimg.com`이 없어 관리자 UI에서 `next/image`로 썸네일을 띄우려면
+ * 추가가 필요하다(7단계).
  */
 export const YOUTUBE_THUMBNAIL_ALLOWED_HOSTS: readonly string[] = [
   'i.ytimg.com',
