@@ -7,10 +7,12 @@ import {
   Param,
   Post,
   Query,
+  UseFilters,
 } from '@nestjs/common';
 import { ParseBigIntPipe } from '../common/parse-bigint.pipe.js';
 import { YoutubeBatchService, type BatchSummary } from './youtube-batch.service.js';
 import { YoutubeQuotaService, type QuotaStatus } from './youtube-quota.service.js';
+import { YoutubeQuotaExhaustedFilter } from './youtube-quota-exhausted.exception.js';
 import { YoutubeReviewService } from './youtube-review.service.js';
 import { RunBatchDto } from './dto/run-batch.dto.js';
 import {
@@ -35,6 +37,7 @@ import type { SongResponse } from '../songs/dto/song-response.js';
  * `@Public()`을 붙이지 않는다 — `AuthModule`이 등록한 전역 Guard가 기본으로 인증을 요구한다.
  */
 @Controller('youtube')
+@UseFilters(YoutubeQuotaExhaustedFilter)
 export class YoutubeRecommendationsController {
   constructor(
     private readonly batchService: YoutubeBatchService,

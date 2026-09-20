@@ -116,10 +116,6 @@ export const YOUTUBE_BATCH_ALREADY_RUNNING_MESSAGE =
   '배치 추천 검색이 이미 실행 중입니다. 끝난 뒤에 다시 시도해 주세요.';
 export const YOUTUBE_QUOTA_EXHAUSTED_MESSAGE =
   '오늘 사용할 수 있는 유튜브 검색 횟수를 모두 썼습니다. 태평양 시간 자정에 초기화됩니다.';
-export const YOUTUBE_UPSTREAM_MESSAGE =
-  '유튜브 검색 서비스에서 결과를 가져오지 못했습니다.';
-export const YOUTUBE_TIMEOUT_MESSAGE =
-  '유튜브 검색이 지연돼 결과를 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.';
 export const YOUTUBE_API_KEY_MESSAGE =
   '유튜브 API 키 설정에 문제가 있어 검색할 수 없습니다. 서버 설정을 확인해 주세요.';
 export const YOUTUBE_ATTEMPT_NOT_FOUND_MESSAGE = '해당 추천 기록을 찾을 수 없습니다.';

@@ -1,13 +1,22 @@
-import { ConflictException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { Prisma } from '../generated/prisma/client.js';
 import { ProcessMutex } from '../common/process-mutex.js';
 import { SONG_NOT_FOUND_MESSAGE } from '../songs/songs.constants.js';
 import { YoutubeMaintenanceService } from './youtube-maintenance.service.js';
+import { YoutubeQuotaExhaustedException } from './youtube-quota-exhausted.exception.js';
 import { YoutubeQuotaService, type QuotaStatus } from './youtube-quota.service.js';
 import { rankCandidates, type RankedCandidate } from './youtube-score.js';
 import { isStorableVideoId } from './youtube-video-id.js';
 import {
+  YOUTUBE_API_KEY_MESSAGE,
   YOUTUBE_BATCH_ABORT_AFTER_CONSECUTIVE_ERRORS,
   YOUTUBE_BATCH_ALREADY_RUNNING_MESSAGE,
   YOUTUBE_CANDIDATE_LIMIT,
@@ -95,14 +104,33 @@ export class YoutubeBatchService {
     private readonly mutex: ProcessMutex,
   ) {}
 
-  /** 대상을 자동 선정해 최대 `limit`곡을 처리한다. */
+  /**
+   * 대상을 자동 선정해 최대 `limit`곡을 처리한다.
+   *
+   * ## 중단했을 때의 응답 — 혼합안
+   *
+   * | 상황 | 응답 |
+   * | --- | --- |
+   * | 쿼터 초과로 멈췄고 **결과를 하나도 못 냈다**(`searched`·`noResults`가 모두 0) | **429 + `Retry-After`** |
+   * | 키 오류로 멈췄다 | **500** (서버 설정 문제다) |
+   * | 중간에 멈춘 부분 성공 / 연속 실패 중단 | **200 + `abortedBy`** |
+   *
+   * 부분 성공을 200으로 두는 이유는 이미 저장한 후보를 응답에 그대로 담아야 하기 때문이다 —
+   * 429/500으로 돌려주면 클라이언트는 "아무것도 안 됐다"고 읽는다. 반대로 아무것도 처리하지
+   * 못한 쿼터 소진은 상태 코드만으로 판단할 수 있어야 하고 다음 시도 시각(`Retry-After`)이 필요하다.
+   *
+   * 키 오류는 부분 성공이 있어도 500이다. 곡 문제가 아니라 서버 설정 문제이고, 이미 저장한 결과는
+   * DB에 남아 있어 잃지 않는다. **응답과 로그에 키·헤더를 싣지 않는다**(고정 문구만 내보낸다).
+   *
+   * 검증용 `searchForSong`에는 이 매핑을 적용하지 않는다 — 요약을 그대로 받아야 한다.
+   */
   async runBatch(limit: number): Promise<BatchSummary> {
     const outcome = await this.mutex.tryRun(() => this.runExclusive(limit));
     if (!outcome.ran) {
       throw new ConflictException(YOUTUBE_BATCH_ALREADY_RUNNING_MESSAGE);
     }
 
-    return outcome.value;
+    return assertBatchResponse(outcome.value);
   }
 
   /**
@@ -417,6 +445,25 @@ const TARGET_PREDICATE = Prisma.sql`
          SELECT 1 FROM valid v WHERE v."songId" = s.id AND v."outcome" = 'no_results')
    AND COALESCE(cf.n, 0) < ${YOUTUBE_MAX_CONSECUTIVE_FAILURES}::int
 `;
+
+/**
+ * 중단 사유를 응답 형태로 바꾼다 (`runBatch` 주석의 표).
+ *
+ * 던지는 예외에는 **고정 문구만** 실린다. 요약·에러 객체·요청 헤더는 응답에 섞이지 않는다.
+ */
+function assertBatchResponse(summary: BatchSummary): BatchSummary {
+  if (summary.abortedBy === 'api_key') {
+    throw new InternalServerErrorException(YOUTUBE_API_KEY_MESSAGE);
+  }
+
+  if (summary.abortedBy === 'quota' && summary.searched === 0 && summary.noResults === 0) {
+    const waitMs = Date.parse(summary.quota.resetsAt) - Date.now();
+    // 0초를 돌려주면 즉시 재시도해도 된다는 뜻이 된다. 최소 1초.
+    throw new YoutubeQuotaExhaustedException(Math.max(1, Math.ceil(waitMs / 1000)));
+  }
+
+  return summary;
+}
 
 /**
  * 검색어를 만든다.
