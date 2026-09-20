@@ -413,9 +413,9 @@ npm run seed:admin
 
 ### 이 단계에서 의도적으로 하지 않은 것
 
-- **로그인 시도 횟수 제한(rate limiting)** — 현재 `POST /auth/login`은 무제한 시도가 가능하다. Argon2id 검증 비용(약 20ms)이 약간의 완충은 되지만 방어책이 아니다. **API를 외부에 배포하기 전에 반드시 선행되어야 하는 항목**(`@nestjs/throttler`). 지금은 로컬 전용이라 미적용
+- ~~**로그인 시도 횟수 제한(rate limiting)**~~ **[완료 2026-09-21, §16]** — 현재 `POST /auth/login`은 무제한 시도가 가능하다. Argon2id 검증 비용(약 20ms)이 약간의 완충은 되지만 방어책이 아니다. **API를 외부에 배포하기 전에 반드시 선행되어야 하는 항목**(`@nestjs/throttler`). 지금은 로컬 전용이라 미적용
 - **refresh 토큰 / 서버측 토큰 무효화** — 위 만료 시간 판단 참조. 필요해지는 시점은 7단계(관리자 프론트)에서 실제 사용 패턴이 나온 뒤
-- **CORS 설정** — 프론트(3000)에서 API(3001)를 호출하는 7단계에서 필요. 지금 열어둘 이유가 없다
+- ~~**CORS 설정**~~ **[완료 2026-09-21, §16]** — 프론트(3000)에서 API(3001)를 호출하는 7단계에서 필요. 지금 열어둘 이유가 없다
 - **관리자 프론트 로그인 페이지** — 빌드 순서 7단계
 - **팀/곡/유튜브 CRUD 라우트** — 3~6단계. 이번 Guard를 그대로 재사용하면 된다 (3단계 팀 CRUD는 §11, 4단계 곡 CRUD는 §12, **5단계 카드뉴스 업로드 `F007`·앨범 커버 자동 매칭 `F010`은 §13에서 완료**. 세 단계 모두 Guard 재사용 확인됨 — 특히 F007은 실제 Nest 앱을 띄워 **Guard가 multipart 파서보다 먼저 실행되어 미인증 요청의 파일이 파싱조차 되지 않는 것**을 확인했다. 남은 것은 6단계 유튜브 F011~F013 — **F013(수동 수정)은 §14에서 완료**, 남은 것은 6단계 2/2의 F011/F012 → **§15에서 API 구현 완료(2026-09-20). 실제 YouTube API 호출(게이트 2)·쓰기 검증은 대기**)
 - ~~**`Setlist.youtubeReviewStatus` 컬럼**~~ — §9에 이어 4단계까지 보류했다가 **6단계 1/2에서 추가 완료(2026-09-20, §14)**. 컬럼만 먼저 만들면 아무도 읽지 않는 상태 값이 남는다는 이유로 미뤄 왔는데, F013이 이 컬럼에 쓰기 시작하는 시점에 함께 넣었다. Postgres enum(`pending`/`approved`/`rejected`)이며 기존 5건은 `approved`, 나머지 59건은 `pending`
@@ -423,6 +423,10 @@ npm run seed:admin
 #### 7단계(배포/관리자 프론트) 전 확인 항목
 
 위 rate limiting·CORS와 함께 배포 전에 반드시 확인해야 하는 항목을 여기에 모아 둔다.
+
+> **2026-09-21 갱신 (work02-7a, §16)**: 이 목록 중 로그인 시도 제한·CORS·전역 예외 필터·스펙 포함 타입 검사·`directUrl`·`pg_policies` 재확인은 **처리했다**(항목별로 취소선과 결과를 붙였다). **남은 항목**: 권한 회수 **실행 여부**(초안은 §16), JWT 방식 결정(현행 유지가 이번 결정), `TRUST_PROXY_HOPS`·`CORS_ALLOWED_ORIGINS`의 배포 값, 배포 후 확인 사항, 업로드 본문 상한과 배포 플랫폼 타임아웃 확인, 비밀값 보관 위치, 프론트 항목(id 범위 폴백·`open-track-video` 예외 처리·홈 캐러셀 노출·썸네일 도메인), **관리자 UI 요건 전부(그대로 유지)**.
+>
+> **2026-09-21 교차 리뷰 반영 (§16 "교차 리뷰 반영")**: 전역 Guard 순서(`GlobalGuard`로 코드 고정), 예외 로그 허용 목록, `SyntaxError` 위장 제거, 필터 안전망, CORS `http:` 루프백 한정, 기동 오류의 입력 값 미출력, CI 러너 고정을 **처리했다.** **새로 생긴 남은 항목**: `TRUST_PROXY_HOPS` **배포 체크리스트**(앱 포트는 프록시에서만 접근, `X-Forwarded-For` 위조·홉 수 실측 필수), 관리자 UI의 **로그인 제출 전 검증**(L5), 앱 포트 바인딩 호스트, `teamIds` 길이 상한(L9), `/health/db` 제한 재검토(L7), CI의 첫 GitHub 실행 확인.
 
 - **공개 프론트의 팀 id 범위 하드코딩** (2026-09-19, §11 조사 중 발견) — `src/app/setlist/page.tsx`와 `src/app/event-goods/page.tsx`가 `day`/`image_src`가 비었을 때 **팀 id 범위로 일자·팀명·이미지를 추정하는 폴백**을 갖고 있다. 두 파일의 구현이 서로 다른 것이 특히 문제다.
   - `setlist/page.tsx`: `id 1~7 → day1`, `id 8~14 → day2`, 그 외 `null`(= 렌더링 제외)
@@ -440,23 +444,25 @@ npm run seed:admin
 - **`next.config.ts`의 `images.remotePatterns`** (2026-09-20, §13에서 추가) — Storage 공개 URL은 `**.supabase.co`에 이미 매칭되므로 **지금은 수정이 필요 없다.** 단 현재 카드 이미지 렌더링 3곳이 모두 `unoptimized`라 최적화 경로를 타지 않는 상태이므로, `unoptimized`를 떼는 작업을 할 때 remotePatterns와 앨범 커버 호스트 allowlist(`is1-ssl.mzstatic.com`)를 함께 점검한다
 - **업로드 이미지의 비율·해상도** (2026-09-20, §13에서 추가) — 서버는 **비율도 해상도도 검증하지 않는다.** 매직바이트로 형식만 보고 크기 상한만 건다. 기존 15개가 전부 819×1024(4:5)인데 다른 비율이 올라오면 카드가 `object-cover`로 잘려 보인다. 해결은 서버 검증이 아니라 **7단계 관리자 UI에서 권장 비율(4:5) 안내 또는 업로드 전 크롭**으로 처리한다 — 서버에서 막으면 관리자가 이유를 모른 채 거부당하고, 서버 리사이즈는 이번 스코프 밖이다
 - **홈 캐러셀 노출 확인** (2026-09-20, §13에서 추가) — `card-carousel.tsx`는 `day` 필터 없이 `Line Up` 전체를 읽고 `image_src`가 채워진 행을 **전부** 포스터로 띄운다(`:190`). 즉 관리자 페이지로 팀을 만들고 이미지를 올리는 순간 홈 첫 화면에 바로 나온다. 실제 팀 등록 전에 이 동작이 의도한 것인지 확인한다
-- **인바운드 throttler / CORS / 업로드 본문 크기 제한** — 위 rate limiting·CORS 항목과 같은 묶음. 업로드 본문 상한은 앱 레벨(multer `limits`)에 명시해 뒀으므로(§13), 배포 플랫폼이 그보다 **작은** 본문 상한을 걸고 있지 않은지만 확인하면 된다
+- ~~**인바운드 throttler / CORS**~~ **[완료 2026-09-21, §16]** **/ 업로드 본문 크기 제한 [남음: 배포 플랫폼 확인]** — 위 rate limiting·CORS 항목과 같은 묶음. 업로드 본문 상한은 앱 레벨(multer `limits`)에 명시해 뒀으므로(§13), 배포 플랫폼이 그보다 **작은** 본문 상한을 걸고 있지 않은지만 확인하면 된다
 
 - **앨범 커버 관리자 UI의 필수 요건** (2026-09-20, §13에서 추가) — F010은 API만 만들었고, 실제로 쓸 수 있으려면 7단계 UI가 아래 둘을 **반드시** 제공해야 한다. 하나라도 빠지면 API가 있어도 쓸 수 없다.
   - **후보 썸네일 선택** — `GET /songs/:id/album-cover/candidates`가 최대 5개를 돌려주는데, 자동 반영을 하지 않기로 했으므로 **사람이 눈으로 고르는 화면이 곧 기능의 전부**다. 응답의 `artworkUrl`은 600px이므로 목록에서는 기존 `shrinkAlbumCoverUrl`로 줄여 쓰고, 고른 값을 **그대로** `PUT /songs/:id/album-cover`에 되돌려 보내면 된다
   - **iTunes URL 직접 입력 경로** — 벤치마크에서 **후보에 없음 10건 + 후보 0건 1건**이 나왔다. 즉 64곡 중 11곡은 후보 목록만으로는 해결되지 않는다. 관리자가 Apple Music에서 직접 찾은 주소를 붙여 넣을 수 있어야 한다. 서버는 이미 이 경로를 받는다(같은 `PUT` 엔드포인트, allowlist + `600x600bb.jpg` 경로 패턴 검증). **UI는 "왜 거부됐는지"를 안내해야 한다** — 100x100 주소나 다른 `isN-ssl` 호스트를 붙여 넣으면 400이 나는데, 이유를 모르면 관리자가 막힌다
   - **US 스토어프런트 영어 표기 주의 문구** — 후보 목록의 곡명·아티스트명이 **영문으로 나온다**(`빨간 피터`→`Red Peter`, `한로로`→`HANRORO`, 일본곡은 로마자). 한국어로 검색했는데 영어 결과가 뜨는 것이 정상 동작임을 화면에 알려주지 않으면 "검색이 틀렸다"고 오해한다. `country=KR`은 영어 쿼리까지 0건이라 쓸 수 없다는 것이 §13에서 실측으로 확인됐다 — 나중에 누가 "한국어로 나오게 바꾸자"고 할 때 되돌아볼 근거다
 
-- **anon/authenticated 롤의 테이블 권한 회수 검토** (2026-09-20, §14 작업 중 확인) — `Setlist`·`Line Up` 두 테이블에 `anon`/`authenticated` 롤이 TRUNCATE를 포함한 **전 권한**을 갖고 있다(위 §9 7)에서 확인한 `public` 스키마 기본 ACL `arwdDxtm`과 같은 뿌리). PostgREST는 TRUNCATE를 노출하지 않아 **REST 경로로는 악용이 어렵고**, RLS가 행 단위 쓰기는 막고 있어 지금 당장의 위험은 아니다. 다만 RLS는 TRUNCATE에 적용되지 않으므로 권한 자체가 남아 있는 것은 방어 계층 하나가 비어 있다는 뜻이다. **7단계 배포 전 보안 점검에서 두 테이블의 쓰기성 권한(INSERT/UPDATE/DELETE/TRUNCATE 등) 회수 여부를 검토**한다. `src` 전체에 supabase `insert`/`update`/`upsert`/`delete` 호출이 0건이라 프론트는 SELECT만 쓴다(2026-09-20 grep). 회수해도 프론트 영향은 없을 것이나, 회수 시점에 다시 확인한다
-- **anon 쓰기 차단 재확인 (`pg_policies`)** (2026-09-20 추가) — §8에서 "anon key로 쓰기가 거부되는 것을 확인"했으나, 이번 6단계 1/2 작업에서는 **anon 쓰기 차단을 직접 다시 확인하지 않았다**(anon 조회만 확인). 7단계 보안 점검에서 `pg_policies`로 `Setlist`·`Line Up`에 **SELECT 외 정책이 없는지**를 직접 조회해 확인한다. 위 권한 회수 항목과 한 번에 점검한다
+- **로그인 제한과 관리자 UI의 제출 전 검증** (2026-09-21, §16 교차 리뷰 L5) — 로그인 한도(5분 5회)는 **성공한 로그인과 DTO 400(빈 값 등)도 센다.** 오타를 5번 내면 6번째에는 올바른 비밀번호여도 15분 잠긴다. 관리자 UI는 빈 값·길이를 **서버로 보내기 전에** 막고, 429의 `Retry-After`(CORS로 노출돼 있다)를 "N분 뒤 다시 시도"로 보여 주며, 남은 시도 횟수는 일부러 알려 주지 않는다(`X-RateLimit-*` 숨김)는 점을 감안해 문구를 정해야 한다
+- **`TRUST_PROXY_HOPS` 배포 체크리스트** (2026-09-21, §16 교차 리뷰 M1) — 앱 포트는 프록시에서만 접근 가능해야 하고(바인딩 호스트 제한 검토 포함), 프록시가 `X-Forwarded-For`에 실제 IP를 덧붙이며(`$proxy_add_x_forwarded_for`), 홉 수는 실제 프록시 수와 같아야 한다. **배포 서버에서 위조 XFF가 무효인지, 다른 네트워크 클라이언트가 429를 맞지 않는지 실측한다.** 틀리면 요청 제한이 우회되거나 전 사용자가 한 IP로 집계돼 관리자 로그인이 잠긴다. 상세는 §16
+- **anon/authenticated 롤의 테이블 권한 회수 검토** **[부분 완료 2026-09-21, §16: 현황 조사·SQL 초안·영향 평가(공개 프론트 영향 없음, 코드 근거)·롤백 SQL 완료. 실행 여부는 미결정(별도 게이트)]** (2026-09-20, §14 작업 중 확인) — `Setlist`·`Line Up` 두 테이블에 `anon`/`authenticated` 롤이 TRUNCATE를 포함한 **전 권한**을 갖고 있다(위 §9 7)에서 확인한 `public` 스키마 기본 ACL `arwdDxtm`과 같은 뿌리). PostgREST는 TRUNCATE를 노출하지 않아 **REST 경로로는 악용이 어렵고**, RLS가 행 단위 쓰기는 막고 있어 지금 당장의 위험은 아니다. 다만 RLS는 TRUNCATE에 적용되지 않으므로 권한 자체가 남아 있는 것은 방어 계층 하나가 비어 있다는 뜻이다. **7단계 배포 전 보안 점검에서 두 테이블의 쓰기성 권한(INSERT/UPDATE/DELETE/TRUNCATE 등) 회수 여부를 검토**한다. `src` 전체에 supabase `insert`/`update`/`upsert`/`delete` 호출이 0건이라 프론트는 SELECT만 쓴다(2026-09-20 grep). 회수해도 프론트 영향은 없을 것이나, 회수 시점에 다시 확인한다
+- ~~**anon 쓰기 차단 재확인 (`pg_policies`)**~~ **[완료 2026-09-21, §16: `Setlist`·`Line Up`에 SELECT 외 정책 0건을 직접 조회로 확인]** (2026-09-20 추가) — §8에서 "anon key로 쓰기가 거부되는 것을 확인"했으나, 이번 6단계 1/2 작업에서는 **anon 쓰기 차단을 직접 다시 확인하지 않았다**(anon 조회만 확인). 7단계 보안 점검에서 `pg_policies`로 `Setlist`·`Line Up`에 **SELECT 외 정책이 없는지**를 직접 조회해 확인한다. 위 권한 회수 항목과 한 번에 점검한다
 - **서버 비밀값 보관 위치** (2026-09-20 추가) — 지금은 `apps/api/.env`에 서버 전용 비밀값을 둔다(로컬 개발 기준). 배포 시에는 `.env` 파일 대신 **AWS SSM Parameter Store 등 관리형 비밀 저장소로 옮기는 것을 검토**한다. 저장소 선택과 주입 방식은 배포 대상(7단계)이 정해진 뒤에 결정한다
 - **프론트 `open-track-video`의 URL 파싱 예외 처리** (2026-09-20, §14 작업 중 확인) — `src/lib/open-track-video.ts:15`의 `new URL(track.youtubeUrl)`에 **try/catch가 없다.** 같은 함수의 `fetch` 폴백 안쪽(`:36`)은 바깥 `.catch`가 받아 주지만, 이 첫 분기는 동기 코드라 예외가 그대로 던져진다. 브라우저 콘솔에서 `youtubeUrl`에 잘못된 값을 넣으면 클릭 핸들러가 깨진다. 현재 DB 값은 F013이 서버에서 유튜브 URL만 통과시켜 정규화해 저장하므로 **정상 경로에서는 발생하지 않는다** — 다만 work03 대량 삽입처럼 서버 검증을 거치지 않고 들어온 값에는 방어가 없다. **7단계 프론트 수정 항목**: 파싱 실패 시 `fetch` 폴백(검색 결과 페이지)으로 떨어지게 한다
 
 - **저장 형식 DB CHECK 여부** (2026-09-20, §14 교차 리뷰에서 추가) — `youtube_url`이 항상 `https://www.youtube.com/watch?v=<11자>`라는 불변식은 지금 `checkYoutubeUrl` **함수 하나**에만 있다. SQL·work03 대량 삽입·향후 F012 등 다른 쓰기 경로는 아무 문자열이나 넣을 수 있고, 프론트 `open-track-video.ts:15`는 그런 값에서 깨진다. 형식 CHECK를 걸면 이 결함 계열을 DB가 막아 주지만, work03 대량 삽입이 형식을 어기면 통째로 실패한다(`approved면 URL 있음` CHECK를 걸지 않은 이유와 같은 계열의 트레이드오프). **2/2 설계에서 결정한다.** 결정 전까지는 work03 삽입 시 형식을 별도로 검증한다. 형식 검사는 영상 존재 여부를 보장하지 않는다는 점도 함께 기억한다(예약어 결함이 그 사례)
-- **스펙 파일이 빌드·타입 검사에서 제외됨** (2026-09-20, §14 교차 리뷰에서 추가) — `tsconfig.build.json`이 `**/*spec.ts`를 제외하고, `package.json`에 타입 검사 스크립트가 없으며, vitest는 타입을 검사하지 않는다. 그래서 이 브랜치의 픽스처 타입 오류 4건이 CI 없이는 아무도 모르는 채 커밋돼 있었다(이번에 `npx tsc --noEmit -p tsconfig.json`으로 발견·수정). 같은 검사로 **기존 오류 8건이 남아 있다**: `prisma.config.ts` 1, `album-cover.service.spec.ts` 3, `storage/supabase-storage.client.spec.ts` 2, `teams/team-card-image.service.spec.ts` 2 — 이 브랜치가 만든 것이 아니다(추측: 해당 줄이 브랜치 diff 밖에 있음으로 판단, 이전 단계에서 만들어졌는지는 확인하지 않음). **7단계 CI에서 스펙 포함 타입 검사를 넣고, 그 전에 이 8건을 먼저 정리**해야 검사가 통과한다
-- **`prisma.config.ts`의 `directUrl` 무시 가능성** (2026-09-20, 위 타입 검사에서 발견) — `prisma.config.ts:14`의 `directUrl: env('DIRECT_URL')`이 Prisma 7.10 타입(`url`, `shadowDatabaseUrl`만 있음)에 없어 tsc가 오류를 낸다. 추측: 런타임에서 **무시되어** `migrate deploy`가 주석("마이그레이션용 direct connection")과 달리 `url`(= `DATABASE_URL`, Session pooler)로 접속하고 있을 수 있다. 확인하지 못했다. 지금 실해는 없다 — §14에서 두 값의 문자열이 동일(해시 일치)함을 확인했으므로 어느 쪽으로 붙어도 같은 곳이다. 두 값이 달라지는 순간(pooler와 direct를 분리하는 배포 구성 등) 마이그레이션 접속 경로가 의도와 달라지므로, 7단계 배포 전에 실제로 무시되는지 확인하고 마이그레이션용 URL을 `url`로 지정하는 방식으로 정리한다
-- **본문 JSON 파싱 실패 시 오류 메시지 / 전역 예외 필터 부재** (2026-09-20, §14 교차 리뷰에서 추가) — `main.ts`에 전역 예외 필터가 없다. 본문이 깨진 JSON이면 파서의 오류 메시지가 400 응답으로 그대로 나가고, Node의 JSON 오류 메시지는 입력의 일부를 포함할 수 있다(추측: 실제 응답은 확인하지 않았다). 이번 diff가 만든 경로는 아니고 기존 동작이다. **7단계 배포 전 점검**에서 실제 응답을 확인하고, 필요하면 전역 필터로 응답 형태를 통일한다
-- **`P2025` 외 Prisma 오류의 기본 핸들러 노출 경로** (2026-09-20, §14 교차 리뷰에서 추가) — `mapRecordNotFound`는 `P2025`만 404로 바꾸고 나머지 Prisma 오류는 그대로 다시 던진다. 그러면 Nest 기본 핸들러가 로깅하는데, Prisma 오류 메시지는 호출 인자(`data`)를 담을 수 있어 500 로그에 요청 값이 남을 수 있다(추측: 실제로 재현하지는 않았다). F013 경로에서는 값이 정규화된 URL뿐이라 비밀이 아니지만, 이 헬퍼를 쓰는 다른 경로(팀/곡/앨범 커버)에서 인자에 무엇이 실리는지는 확인하지 않았다. 연결 실패 계열(`PrismaClientInitializationError`)이 접속 호스트를 메시지에 담는지도 함께 본다. **7단계**에서 전역 예외 필터와 함께 점검한다
+- ~~**스펙 파일이 빌드·타입 검사에서 제외됨**~~ **[완료 2026-09-21, §16: 오류 8건 해소(서비스 로직 변경 없음), `apps/api`에 `typecheck` 스크립트, GitHub Actions 워크플로 추가]** (2026-09-20, §14 교차 리뷰에서 추가) — `tsconfig.build.json`이 `**/*spec.ts`를 제외하고, `package.json`에 타입 검사 스크립트가 없으며, vitest는 타입을 검사하지 않는다. 그래서 이 브랜치의 픽스처 타입 오류 4건이 CI 없이는 아무도 모르는 채 커밋돼 있었다(이번에 `npx tsc --noEmit -p tsconfig.json`으로 발견·수정). 같은 검사로 **기존 오류 8건이 남아 있다**: `prisma.config.ts` 1, `album-cover.service.spec.ts` 3, `storage/supabase-storage.client.spec.ts` 2, `teams/team-card-image.service.spec.ts` 2 — 이 브랜치가 만든 것이 아니다(추측: 해당 줄이 브랜치 diff 밖에 있음으로 판단, 이전 단계에서 만들어졌는지는 확인하지 않음). **7단계 CI에서 스펙 포함 타입 검사를 넣고, 그 전에 이 8건을 먼저 정리**해야 검사가 통과한다
+- ~~**`prisma.config.ts`의 `directUrl` 무시 가능성**~~ **[완료 2026-09-21, §16: `migrate status` 기준 무시됨을 실측으로 확정하고 줄을 삭제했다. `migrate deploy`는 같은 엔진이라 동일할 것으로 추정하나 확인하지 않았다(미확인)]** (2026-09-20, 위 타입 검사에서 발견) — `prisma.config.ts:14`의 `directUrl: env('DIRECT_URL')`이 Prisma 7.10 타입(`url`, `shadowDatabaseUrl`만 있음)에 없어 tsc가 오류를 낸다. 추측: 런타임에서 **무시되어** `migrate deploy`가 주석("마이그레이션용 direct connection")과 달리 `url`(= `DATABASE_URL`, Session pooler)로 접속하고 있을 수 있다. 확인하지 못했다. 지금 실해는 없다 — §14에서 두 값의 문자열이 동일(해시 일치)함을 확인했으므로 어느 쪽으로 붙어도 같은 곳이다. 두 값이 달라지는 순간(pooler와 direct를 분리하는 배포 구성 등) 마이그레이션 접속 경로가 의도와 달라지므로, 7단계 배포 전에 실제로 무시되는지 확인하고 마이그레이션용 URL을 `url`로 지정하는 방식으로 정리한다
+- ~~**본문 JSON 파싱 실패 시 오류 메시지 / 전역 예외 필터 부재**~~ **[완료 2026-09-21, §16: 추측이 사실로 확인됐다(본문 앞 10자 에코). 어댑터+전역 필터로 고정 문구 처리]** (2026-09-20, §14 교차 리뷰에서 추가) — `main.ts`에 전역 예외 필터가 없다. 본문이 깨진 JSON이면 파서의 오류 메시지가 400 응답으로 그대로 나가고, Node의 JSON 오류 메시지는 입력의 일부를 포함할 수 있다(추측: 실제 응답은 확인하지 않았다). 이번 diff가 만든 경로는 아니고 기존 동작이다. **7단계 배포 전 점검**에서 실제 응답을 확인하고, 필요하면 전역 필터로 응답 형태를 통일한다
+- ~~**`P2025` 외 Prisma 오류의 기본 핸들러 노출 경로**~~ **[완료 2026-09-21, §16: 응답은 500 고정 문구, 로그는 클래스명·code·method·path·상태만. 위 "연결 실패가 호스트를 노출한다"는 응답이 아니라 로그가 경로였다. 다른 경로에서 Prisma 인자에 무엇이 실리는지는 재현하지 못해 미확인이나, 메시지를 로그에 남기지 않으므로 무관해졌다]** (2026-09-20, §14 교차 리뷰에서 추가) — `mapRecordNotFound`는 `P2025`만 404로 바꾸고 나머지 Prisma 오류는 그대로 다시 던진다. 그러면 Nest 기본 핸들러가 로깅하는데, Prisma 오류 메시지는 호출 인자(`data`)를 담을 수 있어 500 로그에 요청 값이 남을 수 있다(추측: 실제로 재현하지는 않았다). F013 경로에서는 값이 정규화된 URL뿐이라 비밀이 아니지만, 이 헬퍼를 쓰는 다른 경로(팀/곡/앨범 커버)에서 인자에 무엇이 실리는지는 확인하지 않았다. 연결 실패 계열(`PrismaClientInitializationError`)이 접속 호스트를 메시지에 담는지도 함께 본다. **7단계**에서 전역 예외 필터와 함께 점검한다
 
 #### 6단계 2/2(유튜브 배치 추천·리뷰) 관련 7단계 항목 (2026-09-20, §15에서 추가)
 
@@ -472,7 +478,7 @@ F011/F012 API는 구현됐지만(§15) 관리자가 실제로 쓰려면 아래�
 - **YouTube API 키 제한과 로테이션** — 배치 키는 **API 제한 = YouTube Data API v3 하나만**을 권장한다(애플리케이션 제한은 배포 위치가 정해진 뒤 서버 IP로). 프론트 실시간 폴백(`src/app/api/youtube/top-video/route.ts`)은 키를 **URL 쿼리(`key=`)** 로 보낸다 — 구글 문서가 URL 스캔으로 도난될 수 있다고 경고하는 방식이라 헤더(`X-goog-api-key`)로 바꾸는 것을 프론트 수정 항목으로 검토한다. 배치 키와 폴백 키는 **서로 다른 Cloud 프로젝트**의 것이어야 쿼터가 실제로 분리된다
 - **프론트 실시간 폴백 검토 (§15 게이트 2 발견)** — `top-video/route.ts`는 이식 전 원본과 같은 점수로 1위를 고르는데, 승인된 5곡 기준으로 그 1위가 사람이 승인한 영상과 5/5 달랐다(표본 5곡, 다른 것이 곧 틀린 것은 아니다). 백엔드의 후보 선정은 원본 순서로 바꿨으므로 **방문자가 URL 없는 곡에서 만나는 폴백과 관리자 리뷰 후보가 서로 다른 기준**이 된다. 관리자가 59곡을 승인해 URL이 채워지면 폴백 호출 자체가 줄어들지만, 남는 곡을 위해 폴백의 선택 기준(원본 순서로의 전환 또는 제거)을 정한다. 근거 테스트는 `youtube-score.spec.ts`
 - **`prd-admin.md` 정정 (완료, 2026-09-20)** — "배치용 API 키와 폴백용 API 키를 분리해 방문자 quota를 보호"는 **키를 나눠서는 성립하지 않는다**(쿼터는 Cloud 프로젝트 단위, §15 조사). "서로 다른 Cloud 프로젝트의 키를 쓴다"로 고치고 근거 문서 링크를 달았다
-- **mutex·아웃바운드 상한은 단일 인스턴스 전제** — 배포가 둘 이상의 인스턴스가 되는 순간 일일 상한(80)과 iTunes 분당 상한(15)이 인스턴스 수만큼 늘어날 수 있다. 특히 일일 상한은 두 프로세스가 사용량 COUNT를 동시에 읽는 TOCTOU라 **곡 단위 부분 유니크 인덱스로는 막히지 않는다**(§15). 스케일아웃을 논의하는 시점에 공유 저장소 기반으로 둘을 함께 옮긴다
+- **mutex·아웃바운드 상한은 단일 인스턴스 전제** **(2026-09-21: §16의 throttler 저장소도 인메모리라 같은 전제다 — 스케일아웃 시 셋을 함께 옮긴다)** — 배포가 둘 이상의 인스턴스가 되는 순간 일일 상한(80)과 iTunes 분당 상한(15)이 인스턴스 수만큼 늘어날 수 있다. 특히 일일 상한은 두 프로세스가 사용량 COUNT를 동시에 읽는 TOCTOU라 **곡 단위 부분 유니크 인덱스로는 막히지 않는다**(§15). 스케일아웃을 논의하는 시점에 공유 저장소 기반으로 둘을 함께 옮긴다
 - **work03 대량 삽입 체크리스트에 추가** — 이미 있는 두 항목(시퀀스 재동기화, `youtube_url`이 있는 행을 `approved`로 갱신)에 더해 **`youtube_url` 형식 검증**(`https://www.youtube.com/watch?v=<11자>`, `videoseries`·`live_stream` 제외)을 추가한다. §15에서 형식 DB CHECK를 걸지 않기로 했으므로 삽입 쪽이 검증해야 한다
 
 ### 완료 상태 및 다음 단계
@@ -1367,7 +1373,463 @@ enum 값 단언이 `name[]`을 문자열로 받아 실패했고(`::text` 캐스�
 ### 완료 상태 및 다음 단계
 
 - 브랜치 `feature/youtube-batch-review`, 푸시·PR 보류
-- **다음**: 7단계(관리자 UI, 배포 전 점검). 59곡 배치는 위 "보류된 운영 실행"의 조건(UI 준비, 쿼터 리셋 이후)이 갖춰졌을 때 별도 승인으로 실행한다. 게이트 2(실제 호출 7회 + 임시 곡 쓰기 검증)는 완료됐다
+- **다음**: 7단계(관리자 UI, 배포 전 점검). **(2026-09-21: 7a API 하드닝은 §16에서 완료)** 59곡 배치는 위 "보류된 운영 실행"의 조건(UI 준비, 쿼터 리셋 이후)이 갖춰졌을 때 별도 승인으로 실행한다. 게이트 2(실제 호출 7회 + 임시 곡 쓰기 검증)는 완료됐다
+
+## 16. work02-7a — API 하드닝: 로그인 시도 제한 · CORS · 헬스체크 · 예외 필터 · 타입 검사 CI (2026-09-21)
+
+- **날짜**: 2026-09-21
+- **브랜치**: `feature/api-hardening` (`feature/admin-panel-ui`라는 이름으로 `develop`과 같은 커밋 `c015fef`에 있던 브랜치를 그대로 사용. 커밋 0개·upstream 없음·원격에 없음을 확인하고 `git branch -m`으로 이름만 바꿨다. 분기 전 로컬 `develop`이 `origin/develop`과 동일함을 확인)
+- **커밋**: throttler `358f45e` / CORS·헬스체크·`@Public` 전수 회귀 `d22b275` / 예외 필터 `14dbfb5` / 스펙 포함 tsc·CI·`directUrl` 정리 `cef3941` / 문서(이 섹션)
+- **관련 PR**: work02-7a, `feat: API 하드닝 (로그인 시도 제한, CORS, 예외 필터, 헬스체크 정리, 타입 검사 CI)` (푸시/PR 생성은 보류)
+- **상태**: 구현·단위/통합 테스트·런타임 검증(포트 3012, 프로덕션 쓰기 0건, DB 스냅샷 diff 0)까지 완료. **JWT 방식 변경과 권한 회수 실행은 하지 않았다**(각각 별도 결정·별도 게이트). 이 단계는 배포와 관리자 UI를 하지 않는다
+
+### 배경
+
+7단계(관리자 UI·배포) 전에 끝나야 하는 보안·품질 선행 작업이다. §10·§11·§13·§14·§15가 "7단계 전 확인 항목"으로 미뤄 온 것을 한 번에 처리한다. 지금까지는 API가 로컬 전용이라 로그인 시도 제한, CORS, 오류 응답 정리를 일부러 하지 않았다(§10 "의도적으로 하지 않은 것"). 배포하는 순간 이 항목들이 전부 현실의 위험이 되므로, 배포 전에 코드와 읽기 전용 조사만으로 끝낼 수 있는 것은 여기서 끝낸다. 프로덕션 DB에는 쓰지 않았다.
+
+### 구현 전 조사 (실측)
+
+**기준선**: `develop == origin/develop`, `migrate status` 최신, 테스트 712개(40파일), lint·build 통과, 스펙 포함 tsc 오류 **정확히 8건**(§14가 기록한 파일·개수와 일치). 라우트 20개 중 `@Public()`은 `GET /health`·`POST /auth/login` 둘뿐이었다(이번에 `GET /health/db`가 추가돼 21개).
+
+**예외 응답 12건 (변경 전, 서버를 띄워 실측)**
+
+| # | 요청 | 상태 | 응답 본문 / 관찰 |
+| --- | --- | --- | --- |
+| 1 | `GET /health` | 200 | `{"status":"ok","database":"connected","rowCounts":{...}}` — **공개 라우트가 행 수를 노출** |
+| 2 | 미지정 라우트 | 404 | `{"message":"Cannot GET /nope",...}` — **요청 경로를 그대로 되돌려 줌** |
+| 3 | 토큰 없는 보호 라우트 | 401 | `{"message":"인증이 필요합니다.","error":"Unauthorized","statusCode":401}` |
+| 4 | **깨진 JSON** (`PASSWORD_LEAK...`로 시작) | 400 | `Unexpected token 'P', "PASSWORD_L"... is not valid JSON` — **본문 앞 10자가 에코됨** (배열 형태도 동일) |
+| 5 | 깨진 JSON (미종료 문자열) | 400 | `Unterminated string in JSON at position 47 ...` — 위치만 있고 에코는 없음 |
+| 6 | `Content-Type: text/plain` / 없음 | 400 | 본문이 파싱되지 않아 DTO 검증 400(한국어) |
+| 7 | 200KB 본문 | 413 | `{"statusCode":413,"message":"request entity too large"}` — **영어, `error` 필드 없음** |
+| 8 | preflight `OPTIONS` | **404** | CORS 미설정 확인 |
+| 9 | 없는 팀 | 404 | `{"message":"해당 팀을 찾을 수 없습니다.",...}` |
+| 10 | 범위 초과 bigint id | 400 | `id는 1 이상의 정수여야 합니다.` — 파이프가 DB 전에 막음 |
+| 11 | **DB 연결 불가** 서버 | 500 | `{"statusCode":500,"message":"Internal server error"}` — **`error` 필드 없음**, 응답에는 호스트가 안 실림 |
+| 12 | 로그인 10회 연속(없는 계정) | 401×10 (260ms) | **시도 제한 없음** |
+
+§10의 두 가설에 대한 판정:
+
+- 「깨진 JSON 오류가 입력 일부를 포함한다」 → **사실로 확인**(#4). 값이 따옴표로 시작하지 않으면 파서가 앞 10자를 에코한다
+- 「연결 실패 오류가 접속 호스트를 노출한다」 → **응답은 아니고 로그가 노출 경로**였다. 응답(#11)에는 호스트가 없지만, Nest 기본 핸들러가 오류 객체 전체를 로깅해서 서버 로그에 `host: 'db-host-does-not-exist.invalid'`, `driverAdapterError`, `meta`, **절대 경로가 들어간 스택**이 그대로 찍혔다
+
+**로그 노출 경로 (변경 전 → 후)**: DB 연결이 안 되는 서버에 요청 3건을 보낸 뒤 로그 전체(50줄)를 검사했다.
+
+| 항목 | 변경 전 | 변경 후 |
+| --- | --- | --- |
+| 예외 로그 형태 | 오류 객체 전체(메시지·`meta`·`cause`·스택) | `예외 처리: PrismaClientKnownRequestError(code=P1001) GET /health/db → 500` 한 줄 |
+| 접속 호스트 / 자격증명 / 절대 경로 / `driverAdapterError` / 요청 쿼리스트링 / `Bearer` | 로그에 나옴 | **전부 0줄** (검사한 10개 문자열 모두) |
+
+**`directUrl` 실험 (`migrate status` 기준)**
+
+| 실험 | 결과 |
+| --- | --- |
+| `DIRECT_URL`만 존재하지 않는 호스트로 덮어쓰기 | **정상 성공**, 접속 호스트는 `...pooler.supabase.com:5432` (변화 없음) |
+| `DATABASE_URL`만 존재하지 않는 호스트로 덮어쓰기 | **P1001 실패**, 접속 호스트가 가짜 호스트로 바뀜 |
+
+→ Prisma 7.10은 `prisma.config.ts`의 `directUrl`을 조용히 버린다(§10의 추측이 사실로 확정). **`migrate deploy`도 같은 마이그레이션 엔진이라 동일할 것으로 추정하나, 확인하지 않았다(미확인).**
+
+**권한 현황 (읽기 전용 SQL, 2026-09-21)**
+
+| 항목 | 결과 |
+| --- | --- |
+| `pg_policies` | `Setlist`·`Line Up` 각각 `Allow public read access` / `SELECT` / `true` **하나뿐**. INSERT·UPDATE·DELETE 정책 **0건** → anon 쓰기 차단을 **직접 확인**(§10의 재확인 항목 해소) |
+| RLS | 6개 테이블 전부 `relrowsecurity = true`, 소유자 `postgres`, `FORCE` 아님 |
+| `Setlist`·`Line Up`·`AdminUser`·`_prisma_migrations`의 테이블 권한 | `anon`/`authenticated`가 **전 권한**(SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER). RLS는 TRUNCATE에 적용되지 않는다 |
+| `AdminUser`·`_prisma_migrations` | RLS는 켜져 있으나 **정책이 0개**라 읽기·쓰기는 전부 막히고, TRUNCATE 권한만 남아 있다 |
+| `YoutubeSearchAttempt`·`YoutubeRecommendation` | `anon`/`authenticated` **권한 없음** — 해당 마이그레이션이 명시적으로 `REVOKE`했기 때문이다(`20260920210000_add_youtube_recommendation`) |
+| 시퀀스 | `AdminUser_id_seq`·`Setlist_id_seq`·`setlist_id_seq`에 `anon`/`authenticated`가 `USAGE,SELECT,UPDATE` |
+| `pg_default_acl` | `public`에 `postgres`가 새로 만드는 테이블·시퀀스·함수에 `anon`/`authenticated`/`service_role` **자동 부여**(테이블 `arwdDxtm`, 시퀀스 `rwU`, 함수 `X`) — §15의 기록과 같다 |
+| `setlist_id_seq` (소문자) | 고아가 아니라 **`"Line Up".id`의 identity 시퀀스**다(`pg_get_serial_sequence`로 확인, identity `d`). 이 조사 중 "고아 추정"이라 적었던 것은 틀렸다 |
+| 프론트 영향 | `src` 전체에 supabase `insert`/`update`/`upsert`/`delete`/`rpc` **0건**. `.from()`은 3곳(`card-carousel.tsx:184`, `fetch-line-up-and-setlist.ts:27,40`)이고 전부 `.select("*")` + `.order()` |
+
+**`@nestjs/throttler` 조사**: `latest`=6.7.0(RC/beta 아님, 2026-09-17), peer `@nestjs/core`·`common` `^12.0.0` 명시 지원. **CJS 전용 패키지**(`type`·`exports` 없음)라 ESM인 Nest 12(`"type":"module"`)와의 궁합이 위험 요소였다 — 설치 후 **실제 기동으로 확인**했다(아래 검증). 소스에서 확인한 동작:
+
+- `ttl`·`blockDuration`은 **밀리초**, `Retry-After`는 **초**
+- 차단 판정은 `totalHits > limit`이라 **`limit=5`면 6번째 요청부터 429**
+- 카운트 키에 **클래스명·핸들러명**이 들어가 한도는 **라우트별**로 센다(전역 300이 아니라 라우트마다 300)
+- **`setHeaders: false`면 `Retry-After`도 함께 나가지 않는다**(`guard.js`가 `if (setHeaders)` 안에서 둘 다 씀) → "X-RateLimit 숨김 + Retry-After 유지"는 옵션만으로 안 된다
+- express는 `trust proxy`만 켜면 `req.ip`가 클라이언트 IP가 되어 커스텀 Guard가 필요 없다(fastify만 `req.ips`)
+
+**Nest의 본문 파서 오류 처리 (소스 확인)**: 깨진 JSON은 body-parser가 `SyntaxError`(`type: 'entity.parse.failed'`)를 던지고, **`ExpressAdapter.mapException()`이 이를 `new BadRequestException(error.message)`로 바꾼 뒤에야** 예외 필터에 넘긴다(`routes-resolver.js`의 `registerExceptionHandler`). 즉 필터는 그 오류가 본문 파서에서 왔다는 것을 알 수 없고 메시지에는 본문 앞 10자가 이미 실려 있다.
+
+**`cors` 패키지(2.8.6) 소스 확인**: `origin`이 falsy(`false`/`''`/`undefined`)이면 **미들웨어를 통째로 건너뛴다**(preflight도 404). 빈 배열은 truthy라 "허용 목록 비어 있음"으로 정상 처리되어 `Access-Control-Allow-Origin`을 내지 않는다.
+
+**CI 현황과 실측**: `.github`·`vercel.json`·`.vercelignore` 없음. 루트 `tsconfig.json`이 `exclude: ["apps"]`, 루트 `eslint.config.mjs`가 `apps/**`를 무시해서 **Vercel의 Next.js 빌드는 `apps/`를 건드리지 않는다**. 생성 Prisma 클라이언트(`apps/api/src/generated`)는 **gitignore라 커밋돼 있지 않다** → CI에서 `prisma generate`가 필수다. 아래 "검증"의 CI 실측 참조.
+
+**tsc 오류 8건 원인 분류** — 전부 테스트 대역·설정 타입이고 서비스 로직이 아니었다:
+
+| 파일 | 원인 | 조치 |
+| --- | --- | --- |
+| `prisma.config.ts:14` | `directUrl`이 7.10 타입에 없음(런타임에서도 무시됨) | 줄 삭제 + 주석 |
+| `album-cover.service.spec.ts:83` | `songRow()`의 `singer`가 `string`인데 `null` 대입 | 픽스처 타입을 `string \| null`로 |
+| `album-cover.service.spec.ts:143,159` | `.catch(e => e as Error)`가 성공 타입과의 **유니온**이 됨 | `unknown`으로 받아 단언 |
+| `supabase-storage.client.spec.ts:280,281` | 위와 동일(`void \| Error`) | 동일 |
+| `team-card-image.service.spec.ts:71` | 인자 없는 `vi.fn()`의 `mock.calls`가 `[]` 튜플로 추론(§15 트러블슈팅 2와 같은 계열) | 목 정의에 인자 타입 명시 |
+
+### 작업 내용
+
+**1) throttler (`358f45e`)** — `src/throttling/`. 두 개의 named throttler를 **서로 배타적으로** 적용한다.
+
+- `default`: IP당 분당 300회. 로그인 핸들러가 아닌 모든 라우트. `X-RateLimit-*`와 `Retry-After`를 낸다
+- `login`: 5분에 5회, 초과하면 15분 차단. `@LoginThrottle()`이 붙은 핸들러(`POST /auth/login`)만. 남은 횟수를 알려 주지 않도록 라이브러리 헤더를 끄고 **`Retry-After`는 가드(`AppThrottlerGuard.throwThrottlingException`)에서 직접** 낸다(위 조사: `setHeaders:false`가 `Retry-After`도 끔)
+- 429는 `{message: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.', error: 'Too Many Requests', statusCode: 429}` + `Retry-After`(최소 1초)
+- `ThrottlingModule`을 **`AuthModule`보다 먼저** import — 전역 Guard는 등록 순서대로 실행되므로 401 요청도 카운트하려면 이 순서여야 한다(런타임에서 관측으로 확인: 토큰 없는 요청이 300번째까지 401, 301번째에 429) **→ 교차 리뷰 M2로 대체: 순서를 import 순서가 아니라 `GlobalGuard`가 코드로 고정한다(아래 "교차 리뷰 반영").**
+- `TRUST_PROXY_HOPS`(기본 **0 = 믿지 않음**, 정수 0~5, 잘못된 값은 기동 실패)로 `trust proxy` 설정
+- `/health`는 `@SkipThrottle()`
+- 저장소는 인메모리 = **단일 인스턴스 전제**
+
+**2) CORS·헬스체크 (`d22b275`)**
+
+- `CORS_ALLOWED_ORIGINS`(콤마 구분): **미설정 = 크로스 오리진 전부 거부(fail-closed)**. 와일드카드·끝 슬래시·경로·쿼리·기본 포트 명시·대문자 호스트·`null`·http(s) 외 스킴은 **기동 실패**(브라우저가 보내는 `Origin` 정규형과 달라 조용히 매칭에 실패하는 값들이다) **→ 교차 리뷰 L8·L10으로 갱신: `http:`는 루프백만 허용하고, 기동 오류는 입력 값을 출력하지 않는다.**
+- `credentials: false`, `methods` GET/POST/PATCH/PUT/OPTIONS(`DELETE` 제외), `allowedHeaders` Authorization/Content-Type, `maxAge` 600. **`exposedHeaders: ['Retry-After']`를 추가했다** — 결정 항목에는 없었지만, 없으면 브라우저 JS가 429의 `Retry-After`를 읽지 못해 관리자 화면이 재시도 시각을 안내할 수 없다
+- `origin`은 **항상 배열**로 넘긴다(위 `cors` 조사)
+- `x-powered-by` 제거
+- `GET /health` → `{"status":"ok"}`만(공개, DB 미조회, `@SkipThrottle`). `GET /health/db` 신설(**인증 필요**, 기존 `database`·`rowCounts` 이관, `@Public()` 없음, 클래스 수준 `@SkipThrottle`)
+- HTTP 계층 설정을 `app.setup.ts`(`configureHttp`·`createHttpAdapter`·`createValidationPipe`)로 분리 — 스펙이 설정을 복사해 흉내 내지 않고 운영과 **같은 함수를 호출**하게 하려는 것
+- `auth/public-routes.spec.ts`: `AppModule`에서 컨트롤러를 자동 발견해 `@Public()` 핸들러가 허용 목록(`AuthController.login`, `HealthController.check`)과 **정확히 일치**하는지, 컨트롤러 클래스에 `@Public()`이 없는지 검사한다
+
+**3) 전역 예외 필터 (`14dbfb5`)**
+
+- 모든 오류 응답을 `{message, error, statusCode}`로 통일(기존 413·500은 `error`가 없었다)
+- `HttpException`은 `message`·`statusCode`를 **바꾸지 않고** 빠진 `error`만 상태코드에서 채운다. 응답에 실린 추가 필드는 유지. 기존 400/401/404/409/413/429 계약, multer 한국어 치환, Prisma 404/409 매핑, `ParseBigIntPipe` 400은 이미 `HttpException`이라 그대로 통과한다
+- `HttpException`이 아닌 오류(Prisma·연결 실패·알 수 없는 오류·throw된 문자열/null)는 **원본 메시지 없이 500 고정 문구**
+- **`HardenedExpressAdapter`**(`ExpressAdapter` 상속, `mapException` 오버라이드): 깨진 JSON(`entity.parse.failed`)을 Nest가 `BadRequestException(원본 메시지)`로 바꾸기 **전에** 고정 한국어 문구로 치환. 413(`entity.too.large`)·415(charset/encoding)·`URIError`(경로의 잘못된 퍼센트 인코딩)도 같은 방식
+- 미지정 라우트 404는 경로를 되돌려 주지 않는 한국어 문구. **현재 요청의 `Cannot METHOD URL`과 메시지가 정확히 같을 때만** 바꾸므로 앱이 던진 404는 건드리지 않는다
+- 로깅: **`HttpException`이 아닌 오류만**, 내용은 클래스명·Prisma `code`·method·path(쿼리스트링·해시 제거, 200자 제한)·상태코드뿐. 클래스명·`code`·method는 식별자 형태 정규식을 통과한 것만 남긴다(로그 주입 방지). 5xx는 `error`, 그 밖은 `warn` **→ 교차 리뷰 M3로 갱신: 허용 목록의 내장 오류(`TypeError` 등)는 메시지와 프로젝트 상대 경로 위치가 함께 남는다(아래 "교차 리뷰 반영").**
+- 컨트롤러에 `@UseFilters()`로 붙은 `OutboundRateLimitFilter`·`YoutubeQuotaExhaustedFilter`는 전역 필터보다 먼저 잡으므로 `Retry-After` 응답이 유지된다(통합 테스트로 고정). 두 예외의 본문은 이미 `{statusCode, message, error}`를 갖고 있었다
+
+**4) tsc·CI (`cef3941`)** — 오류 8건 해소(서비스 로직 변경 없음), `apps/api`에 `typecheck` 스크립트, `.github/workflows/ci.yml`, `prisma.config.ts`에서 `directUrl` 삭제 + 주석("7.10은 이 옵션을 무시함: `migrate status` 기준 실측, `migrate deploy`는 같은 엔진이라 동일할 것으로 추정, 미확인"), `.env.example`에서 `DIRECT_URL` 제거(개발자의 `.env`는 건드리지 않았다). 적용된 마이그레이션 SQL 안에 `DIRECT_URL`을 언급한 주석이 한 곳 남아 있으나 **체크섬 때문에 수정하지 않는다**.
+
+### 기술 판단
+
+| 쟁점 | 선택 | 이유 |
+| --- | --- | --- |
+| throttler 적용 범위 | **전역 APP_GUARD**(기본 300/분) + 로그인 전용 엄격 한도 | `JwtAuthGuard`와 같은 fail-closed 철학. 7단계 이후 라우트가 늘어도 최소 방어가 자동 적용된다. 기본을 관대하게 둬야 배치(최악 50초)·업로드·관리자 화면이 걸리지 않는다 |
+| 두 throttler를 겹치지 않고 **배타적**으로 | `skipIf`로 로그인 핸들러는 `login`만, 나머지는 `default`만 | 겹치면 로그인 응답에 `default`의 `X-RateLimit-*`가 섞여 남은 시도 횟수를 알려 준다 |
+| `Retry-After`를 가드에서 직접 | `throwThrottlingException` 오버라이드 | `setHeaders:false`가 `Retry-After`까지 끈다(소스 확인). 옵션만으로는 결정 사항을 만족시킬 수 없었다 |
+| 로그인 5회/5분 + 15분 차단 | `blockDuration` 사용 | 차단이 창보다 길어야 창이 지날 때마다 5회씩 갉아먹는 저속 공격이 의미를 잃는다. 관리자 1~3명 규모에 5분 5회는 정상 사용을 막지 않는다 |
+| 계정 단위 제한 | **미추가**(IP 단위만) | 계정이 1~3개라 IP 제한으로 충분하다고 판단. **한계: IP를 분산하면 우회된다.** 실질 방어선은 Argon2id 비용 + 계정 수가 적다는 점 |
+| 성공한 로그인도 카운트 | 포함(기본 동작) | 제외하려면 가드 우회 로직이 필요한데 5분 5회면 정상 사용을 막지 않는다 |
+| `TRUST_PROXY_HOPS` 기본값 | **0(믿지 않음)** | 프록시 없이 노출된 서버에서 켜면 `X-Forwarded-For` 위조로 제한이 무력화된다. 기본은 닫아 두고 배포 구성이 정해지면 값을 정한다(위조 시도가 통하지 않는 것을 테스트로 고정) |
+| CORS 미설정 시 | fail-closed | 열어 두고 잊는 사고 방지. 같은 오리진·서버 간 호출은 영향 없다 |
+| CORS 값 검증을 엄격하게 | 정규형이 아니면 **기동 실패** | 끝 슬래시·기본 포트 같은 값은 실패가 아니라 "조용히 안 맞음"으로 나타나 배포 후 원인 찾기가 어렵다. 오류 메시지가 올바른 정규형을 알려 준다 |
+| `credentials: false` | Authorization 헤더 방식 유지 | 쿠키 방식으로 가면 CSRF 설계가 함께 필요하다(아래 JWT 검토) |
+| `/health`에서 DB 확인 분리 | `/health`는 프로세스 생존만, DB는 인증 필요한 `/health/db` | DB가 잠깐 흔들릴 때 헬스체크가 실패하면 **살아 있는 인스턴스가 교체·재시작되는 사고**가 난다. 공개 라우트가 행 수를 노출하는 것도 없앤다 |
+| 필터가 아니라 **어댑터**에서 파서 오류 치환 | `ExpressAdapter.mapException` 오버라이드 | 필터에 도착했을 때는 `type`이 사라져 식별할 수 없다. `mapException`은 어댑터의 공개 확장점이고, 상속은 Nest가 시그니처를 바꾸면 컴파일에서 드러난다(몽키패치는 조용히 깨진다) |
+| 404 치환의 조건 | 메시지가 **현재 요청의 method+URL과 정확히 같을 때만** | 정규식(`^Cannot ...`)으로 잡으면 앱이 같은 형태의 메시지를 던질 때 오탐한다. 요청과 대조하면 Nest가 만든 것만 잡는다 |
+| `HttpException`은 `error`만 보완 | message·statusCode 불변 | 기존 계약(한국어 메시지·상태코드)을 깨지 않기 위함. 회귀는 실제 예외 클래스와 매핑 헬퍼로 고정했다 |
+| 로그에서 메시지를 통째로 제외 | 클래스명·code·method·path·상태만 | Prisma 오류 메시지는 호출 인자(`data`)를, 연결 오류는 접속 호스트를 담을 수 있다. 어느 필드에 무엇이 실리는지 일일이 가리는 것보다 **메시지를 아예 안 남기는 쪽이 안전**하다 **[M3로 갱신: 허용 목록의 내장 오류는 메시지·위치를 남긴다]** |
+| `HttpException`은 로그 안 남김 | 기존 Nest 기본 동작과 동일 | 범위 밖의 동작 변경을 하지 않는다. 5xx `HttpException`(502/504)은 일부 서비스(예: 유튜브 배치)가 자체 로그를 남긴다. 그렇지 않은 서비스가 있는지는 전수 확인하지 않았다 |
+| CI의 `prisma generate`에만 자리표시 `DATABASE_URL` | 해당 단계에만 접속 정보 없는 값 | `.env` 없이는 `PrismaConfigEnvError`로 실패(실측). generate는 접속하지 않는다. 다른 단계에는 주지 않아 테스트가 DB를 쓰지 않는다는 것을 매번 확인한다. **대안**: `prisma.config.ts`를 `process.env`로 느슨하게 바꾸는 것 — 프로덕션 마이그레이션 경로의 실패 메시지가 흐려져서 택하지 않았다 |
+| 웹 잡은 **lint만** | 루트 `next build`는 환경변수 없이 실패 | 실측(`supabaseUrl is required`). `NEXT_PUBLIC_*`는 공개 값이지만 CI에 둘지는 별도 결정 |
+| 액션은 태그가 아니라 **커밋 SHA 고정** | `checkout` v7.0.1, `setup-node` v7.0.0 (각 최신 릴리스) | 공개 레포에서 태그는 옮겨질 수 있다. SHA는 GitHub API로 조회했고, `action.yml`에서 쓰는 입력(`persist-credentials`, `node-version`, `cache`, `cache-dependency-path`)이 존재하고 런타임이 `node24`임을 확인했다 |
+
+### JWT 방식 검토 (결정: **현행 유지**, 이번엔 구현하지 않음)
+
+만료 2시간·refresh 없음·서버측 무효화 없음을 유지한다. 근거와 옵션을 남긴다.
+
+| 안 | 장점 | 단점 | 판정 |
+| --- | --- | --- | --- |
+| (a) 현행: `Authorization` 헤더 + 브라우저 저장 | CORS가 단순(credentials 불필요), CSRF와 무관, 프론트 구현 최소 | XSS가 나면 토큰 탈취. 서버측 무효화 수단이 `JWT_SECRET` 교체뿐 | **채택** |
+| (b) httpOnly 쿠키 | XSS로 토큰을 읽지 못함 | `admin.` ↔ `api.` 오리진 분리에서 `SameSite=None; Secure`가 필요해 **CSRF 토큰 설계가 따라온다**. CORS `credentials:true` 필요 | 보류 |
+| (c) 짧은 access + refresh | 유출 창이 짧고 서버측 무효화 가능 | refresh 저장·회전·재사용 탐지까지 구현해야 함. 관리자 3명 MVP에는 과설계 | 보류 |
+
+- "입력 도중 로그인이 풀리는" 문제는 서버가 아니라 **7단계 UI 과제**로 넘긴다: 401을 받으면 입력 중이던 내용을 로컬에 보존한 채 재로그인시키는 방식
+- 토큰 유출 시 강제 만료는 여전히 `JWT_SECRET` 교체뿐이다. 관리자 1~3명 규모에서는 받아들일 만한 비용으로 판단한다
+- 방식을 바꾸면 CORS(`credentials`)·CSRF·관리자 프론트 구현이 함께 바뀐다 → 별도 승인 사항
+
+### 권한 회수 — **초안·영향 평가·롤백 문서만. 실행하지 않았다(별도 게이트)**
+
+**SQL 초안** (`prisma/migrations`에 넣지 않았다 — 넣으면 `migrate deploy`가 집어 든다. 실행 여부가 정해지면 그때 마이그레이션으로 만든다):
+
+```sql
+-- ⚠️ 초안. 별도 승인 전에는 실행하지 않는다.
+BEGIN;
+SET LOCAL lock_timeout = '5s';
+
+-- 공개 프론트가 SELECT만 쓰는 두 테이블: 쓰기성 권한만 회수(SELECT는 남긴다)
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
+  ON TABLE public."Setlist", public."Line Up" FROM anon, authenticated;
+
+-- 프론트가 전혀 쓰지 않는 테이블: 전부 회수 (RLS는 켜져 있으나 정책이 없어 읽기·쓰기는 이미 막혀 있고, TRUNCATE만 남아 있음)
+REVOKE ALL ON TABLE public."AdminUser", public."_prisma_migrations" FROM anon, authenticated;
+
+-- 시퀀스: anon/authenticated는 삽입하지 않는다 (삽입은 Prisma = postgres 롤). setlist_id_seq는 "Line Up".id의 identity 시퀀스다
+REVOKE ALL ON SEQUENCE public."Setlist_id_seq", public."AdminUser_id_seq", public."setlist_id_seq"
+  FROM anon, authenticated;
+COMMIT;
+```
+
+**영향 평가**
+
+| 대상 | 영향 | 근거 |
+| --- | --- | --- |
+| 공개 프론트 | **없음** | `src` 전체에 supabase 쓰기 호출 0건, `.from()` 3곳 전부 `.select("*")`+`.order()` |
+| Nest(Prisma) | 없음 | `postgres` 롤은 소유자이며 이번 REVOKE의 대상이 아니다 |
+| `service_role` | **건드리지 않는다** | Supabase 내부 동작(Storage 등)에 영향을 줄 수 있다(§15 판단 유지). 이번 초안의 대상에서 제외 |
+| PostgREST 스키마 캐시 | **확인하지 못했다** | 회수 후 캐시 반응은 실제로 해 보지 않았다 — 실행 절차에 검증 항목으로 넣는다 |
+| 미래의 새 테이블 | 초안으로 해결되지 않는다 | `pg_default_acl`이 `postgres`가 만드는 새 테이블·시퀀스에 anon/authenticated 전 권한을 **자동 부여**한다. 지금은 마이그레이션마다 명시적 `REVOKE`(Youtube 두 테이블이 그 선례)로 막고 있다. `ALTER DEFAULT PRIVILEGES`로 기본값 자체를 바꾸면 Supabase가 관리하는 객체까지 영향을 줄 수 있어 **초안에 넣지 않았다** |
+
+**롤백 SQL** (문서 전용. 실행 직전에 `information_schema.role_table_grants`·시퀀스 ACL을 스냅샷으로 떠 두고 그 값으로 복원한다):
+
+```sql
+GRANT INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
+  ON TABLE public."Setlist", public."Line Up" TO anon, authenticated;
+GRANT ALL ON TABLE public."AdminUser", public."_prisma_migrations" TO anon, authenticated;
+GRANT USAGE, SELECT, UPDATE ON SEQUENCE public."Setlist_id_seq", public."AdminUser_id_seq", public."setlist_id_seq"
+  TO anon, authenticated;
+```
+
+**실행 시 절차(별도 게이트)**: ① 현재 ACL 스냅샷 → ② `BEGIN…ROLLBACK` 드라이런 → ③ 마이그레이션으로 `migrate deploy` → ④ 직후 검증(권한 조회, `migrate status`, `migrate diff --exit-code`, 린터) → ⑤ anon 키로 SELECT 회귀 + 공개 프론트 페이지(`/`, `/setlist`, `/event-goods`) 확인. 순서 원칙: **코드 되돌리기 → DB 제거**.
+
+### 검증
+
+**단위·통합 테스트: 712 → 852개(40 → 47파일), 전부 통과.** 신규 140개:
+
+- throttler 15(실제 Nest 앱+supertest): 운영 상수 고정, 6번째 로그인 429, 429 본문·`Retry-After`, **로그인 응답에 `X-RateLimit-*` 없음**, 로그인 차단이 다른 라우트에 영향 없음, 일반 라우트 한도 소진이 로그인 카운트에 영향 없음(배타적 적용), 차단 시간 경과 후 회복, 일반 라우트 429 헤더, **`X-Forwarded-For` 위조로 한도를 못 피함**(`trust proxy` 0)과 1단 신뢰 시 클라이언트별 분리, `/health` 제한 제외, `@LoginThrottle()` 표시 위치
+- `trust-proxy` 15: 기본 0, 정수 파싱, 음수·소수·문자·IP·지수·16진수·상한 초과 거부
+- CORS 35: 파싱(빈 값·중복·와일드카드·`null`·스킴 없음·끝 슬래시·경로·쿼리·기본 포트·대문자·사용자 정보), 실제 앱에서 허용/거부 오리진·preflight·`credentials` 없음·`Retry-After` 노출·**미설정 시 어떤 오리진도 허용 안 함**·Origin 없는 요청 정상·`x-powered-by` 없음
+- 헬스 10 / `@Public` 전수 3: `/health` 본문 `{status:"ok"}`와 **DB 미조회**, `/health/db` 401(없음·위조)·200, `@Public()` 위치, 클래스 수준 `@SkipThrottle`, 앱 전체에서 `@Public()` 핸들러가 허용 목록과 정확히 일치
+- 예외 필터 42(단위) + 20(통합): 기존 계약(400/401/404/409/413/429, 실제 예외 클래스와 Prisma 매핑 헬퍼), 알 수 없는 오류 8종이 500 고정 문구이고 어느 값도 새지 않음, 파서류 4xx, **로그가 정확히 그 한 줄이며 인자는 그 한 개뿐**, 연결 실패 시 호스트·스택·절대 경로 없음, 쿼리스트링 제거, 로그 주입 방지, 깨진 JSON 4종·413·415·잘못된 퍼센트 인코딩·미지정 라우트 404(쿼리스트링 포함), ValidationPipe·`ParseBigIntPipe`·409, **컨트롤러 범위 필터와의 공존**
+- 기존 스펙 3개(multer 파이프라인·throttler·health)가 이제 **전역 필터를 거친다** — multer 한국어 413/400, 401, 429가 필터 위에서도 유지되는 회귀
+
+**변조(mutation)로 검사가 실제로 걸리는지 확인**: (1) 컨트롤러에 `@Public()`을 몰래 붙이면 `public-routes.spec.ts`가 `TeamsController.findAll`을 정확히 지목하며 실패, (2) 어댑터의 오류 변환을 끄면 깨진 JSON 4건과 퍼센트 인코딩 1건이 실패. 둘 다 복원했다. (첫 시도는 `import` 치환이 매칭되지 않아 컴파일 오류로 "no tests"가 나온 **무효한 변조**였고, 원복 후 올바르게 다시 했다.)
+
+**런타임 검증 (포트 3012, 로컬 서명 토큰, 프로덕션 쓰기 0건)** — 서버는 항상 하나만 띄웠고 끝날 때마다 종료를 확인했다.
+
+| 구성 | 확인한 것 | 결과 |
+| --- | --- | --- |
+| 기동 실패 | `CORS_ALLOWED_ORIGINS`=`*` / 끝 슬래시 / 스킴 없음, `TRUST_PROXY_HOPS`=`abc` / `99` / `-1` | **6건 모두 exit=1**, 포트가 열리지 않음. 오류 메시지가 올바른 정규형을 안내 |
+| throttler | 로그인 7회(없는 계정) | `401×5` 후 **6번째부터 429**, `Retry-After: 900`, 로그인 응답에 `X-RateLimit-*` **없음**, 다른 라우트는 정상 + `X-RateLimit-*` 노출 |
+| 가드 순서 | 토큰 없는 `GET /teams` 310회 | **401×300, 429×10** → throttler가 JWT Guard보다 먼저 실행됨을 관측 |
+| `/health` | 310회 | 전부 200 (제한 제외) |
+| XFF 위조 | `X-Forwarded-For` 바꿔 로그인 | 429 (위조가 통하지 않음) |
+| ESM 기동 | CJS 패키지 `@nestjs/throttler`가 ESM Nest 12 위에서 | **정상 기동**, 라우트 20개 매핑(커밋 1 시점). Node 24의 `require(esm)`에 기댄 것으로 보이나 그 메커니즘은 확인하지 않았다(동작만 확인) |
+| CORS(미설정) | preflight·실제 요청 | 어떤 응답에도 `Access-Control-Allow-Origin` **없음**. preflight는 204이며 `allow-methods`·`allow-headers`·`max-age`는 실리지만 ACAO가 없어 브라우저는 거부한다(`cors` 패키지 동작) |
+| CORS(허용 `http://localhost:3010`) | 허용/악성 오리진 | 허용 오리진에만 ACAO, `vary: Origin`, `credentials` 헤더 없음 |
+| 헤더 | `x-powered-by` | 없음 |
+| `/health` 분리 | 토큰 없음/위조/서명 토큰 | `/health` 200 `{"status":"ok"}`, `/health/db` **401 / 401 / 200**(행 수) |
+| 깨진 JSON | 3종 + 인증된 `PATCH` | **전부 400 고정 문구**, `LEAK_MARKER`·`Unexpected`·`position` 없음 |
+| 그 밖의 파서 오류 | 200KB / `charset=iso-8859-1` / `%E0%A4%A_PARAM_LEAK` | 413 / 415 / 400, **전부 고정 한국어 + `error` 필드**, 입력 값이 응답에 없음 |
+| 미지정 라우트 | `GET /nope?token=QUERY_LEAK`, `POST /nope/deeper` | 404 `요청하신 경로를 찾을 수 없습니다.`, 경로·쿼리·`Cannot` 없음 |
+| 기존 계약 회귀 | 401·404(서비스)·404(앨범 커버)·`ParseBigIntPipe` 400·범위 초과 id·ValidationPipe 400(배열)·DTO 금지 필드·없는 계정 401 | **전부 기존과 동일**한 메시지·상태 |
+| DB 연결 불가 서버 | `/health/db`·`/auth/login`·`/teams` | 전부 **500 고정 문구**(`error` 포함). `/health`는 200. 로그는 요청당 한 줄, 금지 문자열 10종 **0줄** |
+| 정상 서버 로그 | 예외 관련 줄 | 0줄(`HttpException`은 로그를 남기지 않는다) |
+
+**DB 스냅샷 diff = 0** (읽기 전용 확인). 런타임 검증 **전후**로 6개 테이블의 행 수와 내용 해시(`md5(string_agg(row::text ...))`), 5개 시퀀스의 `last_value`를 비교했다.
+
+| 테이블 | 행 수 | 내용 해시 (전 = 후) |
+| --- | --- | --- |
+| `Line Up` | 15 | `69cd66f5…` |
+| `Setlist` | 64 | `11e1741c…` |
+| `AdminUser` | 1 | `c89f760c…` |
+| `YoutubeSearchAttempt` / `YoutubeRecommendation` | 0 / 0 | 빈 집합 해시 |
+| `_prisma_migrations` | 6 | `6f3d62a4…` |
+
+시퀀스 `last_value`(전 = 후): `AdminUser_id_seq` 1 / `Setlist_id_seq` 75 / `YoutubeRecommendation_id_seq` 12 / `YoutubeSearchAttempt_id_seq` 8 / `setlist_id_seq` 24. **이번 단계는 시퀀스를 소모하지 않았다.**
+
+**빌드·린트·타입 검사**: `apps/api` `build`·`lint`·`test`·**스펙 포함 `typecheck` 전부 exit 0**(기존 8건 해소, 이번 브랜치 오류 0). 루트도 실제 작업 트리(환경변수 있음)에서 `npm run lint`·`npm run build` **exit 0**(TypeScript 통과, 정적 페이지 12/12 생성, 소요 약 1분 28초)이다. 이번 브랜치는 루트 앱의 소스를 건드리지 않았고 회귀 확인용이다. 이 빌드는 Supabase를 anon 키로 **SELECT만** 한다. 비밀값 패턴(Supabase secret 키 접두사, JWT 접두사, Google API 키 접두사, 접속 문자열의 자격증명 부분)은 커밋마다 **스테이지된 diff**에서 검사해 매번 0건이었다(문서 커밋에서는 이 문장이 검사 패턴을 리터럴로 적고 있어 오탐이 나서 표현을 바꿨다).
+
+**CI 사전 실측** — 커밋될 파일만(추적 파일 + 무시 대상이 아닌 새 파일 = `.env`·`node_modules`·`dist`·생성 클라이언트 제외)을 깨끗한 디렉터리에 복제해, **관련 환경변수 0개·`.env` 없음**을 확인하고 실행했다.
+
+| 단계 | 결과 |
+| --- | --- |
+| `npm ci` (apps/api, 루트) | 성공 (515 / 594 패키지, 각 약 26s / 43s) |
+| `prisma generate` (환경변수 없음) | **실패** — `PrismaConfigEnvError: Cannot resolve environment variable: DATABASE_URL` |
+| `prisma generate` (자리표시 `DATABASE_URL=postgresql://localhost:5432/ci`) | 성공 → 워크플로에서 **이 단계에만** 지정 |
+| `lint` / `build` / `typecheck` (환경변수 없음) | 전부 exit 0 |
+| `test` (환경변수·`.env` 없음) | **852개 전부 통과** — 테스트가 DB·외부 API를 쓰지 않음을 확인 |
+| 루트 `npm run lint` | exit 0 |
+| 루트 `next build` (`NEXT_PUBLIC_*` 없음) | **실패** — 컴파일·TypeScript는 통과하나 `Collecting page data`에서 `supabaseUrl is required`(`/setlist`, `/event-goods`) → web 잡은 lint만 |
+
+워크플로 자체는 YAML 파서로 구조를 검증했고(잡 2개, 권한 `contents: read`, 트리거 `pull_request`+`push(develop)`), 금지 패턴(저장소 비밀값·변수 참조, 포크 PR에 권한을 넘기는 이벤트 유형)이 0건이며 액션 4개가 모두 40자 SHA로 고정된 것을 확인했다. **GitHub에서 실제로 돌려 보지는 않았다**(아래 미확인).
+
+### 트러블슈팅 기록
+
+**1) `setHeaders:false`가 `Retry-After`도 끈다**
+"로그인은 `X-RateLimit-*` 숨김, `Retry-After` 유지"를 옵션 하나로 될 것으로 봤으나, `guard.js`가 두 헤더를 같은 `if (setHeaders)` 안에서 쓴다. 옵션으로는 불가능해 `login` throttler만 헤더를 끄고 `Retry-After`는 가드에서 직접 내도록 바꿨다. 설계 승인 전에 소스를 읽어 발견했으므로 구현 도중 방향을 바꾼 것은 아니다.
+
+**2) 예외 필터로는 깨진 JSON을 식별할 수 없었다**
+처음 설계는 필터에서 `type === 'entity.parse.failed'`를 보는 것이었다. Nest 소스를 확인하니 `mapException`이 필터보다 앞서 `SyntaxError`를 `BadRequestException(원본 메시지)`로 바꿔 `type`을 잃는다. 메시지 문자열로 추측해 잡으면 앱이 던진 비슷한 400과 구분되지 않는다. 그래서 식별이 가능한 지점(어댑터의 `mapException`)에서 바꾸는 쪽으로 설계를 바꿨다.
+
+**3) 테스트 전제가 틀렸던 것 — `charset=utf-16`은 415가 아니다**
+415 케이스를 `charset=utf-16`으로 썼다가 400이 나왔다. body-parser의 JSON 파서는 charset이 `utf-`로 **시작하기만 하면** 통과시키고(`charset.slice(0, 4) === 'utf-'`), UTF-8 본문을 UTF-16으로 디코딩하다 파싱 실패(400)가 난다. 코드 결함이 아니라 테스트 전제의 오류라 실제 415가 나는 `iso-8859-1`로 고쳤다.
+
+**4) 첫 변조 시험이 무효했다**
+`@Public()` 회귀가 실제로 걸리는지 확인하려고 컨트롤러를 변조했는데, `import` 치환이 매칭되지 않아 컴파일 오류(`no tests`)가 났다. 스펙이 잡은 것이 아니라 파일이 깨진 것이라 결론에 쓰지 않았다. `git checkout`으로 원복 후 import를 맨 앞에 붙여 다시 했고, 그때 `TeamsController.findAll`을 정확히 지목하며 실패했다.
+
+**5) 첫 CI 실측이 환경변수와 무관한 이유로 실패했다**
+깨끗한 복제본에서 루트 `next build`가 실패했는데, 원인은 **Windows 경로 길이 초과**(Turbopack, 내 scratchpad 경로가 너무 깊음)였다. 이 결과로 "환경변수 없이 실패"라고 결론 내릴 수 없어 짧은 경로로 옮겨 다시 측정했고, 그때 진짜 원인(`supabaseUrl is required`)을 확인했다.
+
+**6) 검증 도구 쪽 문제들 (API 코드와 무관)**
+`python`이 Windows 스토어 스텁이라 편집이 조용히 적용되지 않았고(Node 스크립트로 대체), 긴 heredoc이 파싱에 실패해 스펙 두 개를 만들지 못한 적이 있었다(파일 생성 도구로 대체). `grep -r`을 루트에서 돌려 `node_modules`까지 훑는 바람에 시간 초과가 났다(ripgrep 기반 검색으로 대체). `/health` 테스트는 처음에 Prisma 대역이 비어 500이 났는데(제한이 아니라 구현이 Prisma를 호출), 커밋 단위가 각자 통과하도록 대역을 채웠다.
+
+**7) 조사 보고에서 틀렸던 두 가지 (문서·코드에는 반영되지 않았다)**
+(a) "Prisma가 만든 테이블엔 Supabase 기본 ACL이 안 붙음"은 **틀렸다.** `pg_default_acl`은 새 테이블에 anon/authenticated 전 권한을 자동 부여하고(§15에 이미 기록돼 있었다), Youtube 두 테이블은 마이그레이션이 **명시적으로 `REVOKE`**해서 권한이 없는 것이다. 이 차이가 "미래의 새 테이블" 위험(위 권한 회수 영향 평가)에 직결된다. (b) `setlist_id_seq`를 "고아 추정"이라 했으나 `"Line Up".id`의 identity 시퀀스다.
+
+### 이 단계에서 의도적으로 하지 않은 것
+
+- **JWT 방식 변경**, **권한 회수 실행**, **관리자 UI**, **배포·인프라**, **공개 프론트 코드 수정**, **59곡 배치 실행**, **DB 스키마·권한의 실제 변경** — 이번 단계 범위 밖(권한 회수는 SQL 초안·영향·롤백 문서만)
+- **계정 단위 로그인 제한** — IP 단위만. IP 분산 공격에는 무력하다(위 기술 판단)
+- **`/health/db`의 별도 제한** — 결정에 따라 `@SkipThrottle`이다. 인증된 사용자가 반복 호출하면 DB 조회 3건이 매번 실행된다(관리자 1~3명 규모라 위험이 낮다고 판단)
+- **5xx `HttpException`의 로그 추가** — 기존 Nest 기본 동작(로그 없음)을 그대로 뒀다
+- **`Retry-After` 외의 응답 헤더 정리**(예: 보안 헤더 `helmet`) — 범위 밖
+- **CI에서 루트 `next build`·`tsc`·Dependabot(액션 SHA 갱신)** — web 잡은 lint만. 액션 SHA 고정은 갱신을 사람이 해야 한다는 뜻이다
+
+### 남겨둔 결정 (다음 단계로 이월)
+
+- **권한 회수 실행 여부** — 초안·영향·롤백은 위에 있다. 실행은 별도 게이트(마이그레이션으로 `migrate deploy`, `BEGIN…ROLLBACK` 드라이런 → 적용 → 직후 검증). 실행 전에 **PostgREST 스키마 캐시 반응**을 확인해야 하고, `service_role`은 건드리지 않는다. 새 테이블 기본 ACL 문제는 이 초안으로 해결되지 않는다
+- **JWT 방식** — 현행 유지가 이번 결정이다. 7단계 UI를 만든 뒤 실제 사용 패턴(입력 도중 로그인 풀림 빈도)을 보고 재검토한다
+- **`TRUST_PROXY_HOPS` 배포 값** — 기본 0. 배포 구성(EC2+nginx면 1)이 정해지면 정한다. **틀리면 위험하다**: 실제보다 크게 잡으면 `X-Forwarded-For` 위조로 요청 제한을 피할 수 있고, 프록시가 있는데 0이면 모든 요청이 프록시 IP 하나로 세어져 **정상 사용자가 한꺼번에 429를 맞는다**(특히 로그인 5회/5분). 배포 직후 `req.ip`가 실제 클라이언트 IP인지 확인한다
+- **`CORS_ALLOWED_ORIGINS` 배포 값** — 미설정이면 관리자 프론트가 API를 호출하지 못한다. 배포 시 `admin.` 오리진을 넣는다(로컬 개발은 `http://localhost:3010` 등을 `.env`에)
+- **스케일아웃 시 mutex·아웃바운드 상한·throttler를 함께 공유 저장소로 이전** — 셋 다 인메모리라 단일 인스턴스를 전제한다(§15의 mutex·`OutboundRateLimiter`와 같은 문제). 인스턴스가 둘이 되면 로그인 한도가 인스턴스 수만큼 늘어난다
+- **CI를 GitHub에서 실제로 실행** — 로컬 시뮬레이션은 Windows·Node 24.12에서 했고 Linux 러너 특유의 문제(대소문자 구분·경로 구분자·`prisma generate`의 엔진 취득)는 확인하지 못했다. 첫 PR에서 실제로 통과하는지 본다. 또한 웹 잡에 `NEXT_PUBLIC_*`를 넣어 `next build`까지 볼지, 액션 SHA 갱신을 어떻게 할지(Dependabot 등)는 별도 결정 **→ 2026-09-21 첫 실행에서 web 잡이 `npm ci`로 실패해 잠금 파일을 고쳤다(위 "교차 리뷰 반영"의 트러블슈팅 5). 수정 후 재실행 결과는 미확인.**
+- **로그인 카운트의 범위** — 본문 파서에서 실패하는 요청(깨진 JSON·413·415)은 Guard보다 **앞**에서 끝나 throttler에 세어지지 않는다. 로그인 시도가 될 수 없는 요청이라 위험은 낮지만(요청당 본문 100KB 상한), 반대로 ValidationPipe 400(빈 본문 등)은 **세어진다** — 관리자 UI가 빈 폼을 반복 제출하면 정상 사용자도 5회 제한에 닿을 수 있으므로 UI에서 제출 전 검증을 해야 한다
+- **`/health/db`를 배포 플랫폼이 쓸지** — 쓰지 않는 것을 권장한다(위 기술 판단). 플랫폼 헬스체크는 `GET /health`로 잡는다
+- **배포 후 확인 사항**: `req.ip` 정상 여부, 429·`Retry-After`가 브라우저에서 읽히는지(`Access-Control-Expose-Headers`), preflight 캐시, 배포 플랫폼의 요청 타임아웃이 배치(최악 25~50초)보다 짧지 않은지, 업로드 본문 상한이 앱 레벨(multer 2MB)보다 작지 않은지
+- **§10의 관리자 UI 요건**(추천 리뷰 화면, 재검토 필요 목록, 앨범 커버 후보 선택·URL 직접 입력, 카드 이미지 비율 안내 등)은 그대로 유지한다
+
+### 교차 리뷰 반영 (2026-09-21, 같은 날)
+
+위 작업을 `git diff develop...HEAD`로 교차 리뷰한 결과(High 이상 없음, Medium 3 · Low 13 · Info 4)를 **코드로 고칠 것**과 **기록만 할 것**으로 나눠 반영했다. 코드 수정은 지시한 범위로 한정했고, 나머지는 여기와 §10에만 남긴다.
+
+- **커밋**: M2 `a45674f` / M3 `74cc89a` / L1·L3 `f0107bc` / L8·L10·M1 `5252bba` / L11·L13 `622b3b9` / 문서(이 절)
+
+| ID | 심각도 | 지적 | 처리 |
+| --- | --- | --- | --- |
+| M2 | Medium | 전역 Guard 순서가 모듈 import 순서에서 우연히 나오고 테스트가 없다 | **수정** — `GlobalGuard`가 코드로 고정 |
+| M3 | Medium | 로그에서 메시지·스택을 전부 뺀 탓에 코드 버그(`TypeError` 등)를 진단할 수 없다 | **수정** — 허용 목록 방식 |
+| L1 | Low | 어댑터가 모든 `SyntaxError`를 400으로 위장(로그도 없음) | **수정** |
+| L3 | Low | 필터 내부 실패 시 안전망 없음 | **수정** |
+| L8 | Low | `http:` 오리진이 비루프백에도 허용 | **수정** — 루프백만 |
+| L10 | Low | 기동 오류 메시지가 입력 값을 그대로 출력 | **수정** |
+| L11·L13 | Low | `push`가 `develop`뿐, `ubuntu-latest` 부동 | **수정** |
+| M1 | Medium | `TRUST_PROXY_HOPS` 양방향 설정 함정 | **경고 로그만 추가**(동작 변경 없음) + 배포 체크리스트 기록 |
+| L2·L4·L5·L6·L7·L9·L12·I1~I4 | Low/Info | — | **기록만**(아래) |
+
+#### 코드로 반영한 것
+
+**M2 — Guard 순서를 코드로 고정.** `GlobalGuard`(`src/guards/global.guard.ts`)가 `AppThrottlerGuard`와 `JwtAuthGuard`를 주입받아 **요청 제한 → 인증 순으로 직접 호출**한다. `GlobalGuardsModule`이 앱에서 **유일한 `APP_GUARD`**를 등록하고, `ThrottlingModule`·`AuthModule`은 `APP_GUARD` 등록을 제거하고 Guard만 export한다. 기본이 "인증 필요"(fail-closed)이고 `@Public()`으로만 여는 구조는 그대로다. 위 "작업 내용 1)"의 "`ThrottlingModule`을 `AuthModule`보다 먼저 import"는 이것으로 **대체**됐다 — 이제 `AppModule`의 import 순서는 실행 순서에 영향이 없다.
+
+| 검토한 방법 | 판단 |
+| --- | --- |
+| 모듈 import 순서 유지 + 주석 | 기존 방식. 문서화된 보장이 아니고 다른 모듈이 `AuthModule`을 먼저 import하면 뒤집힌다 |
+| 한 모듈 안에서 `APP_GUARD` 두 개를 배열 순서로 등록 | 배열 순서가 Nest의 보장인지 확인하지 못했다(추측) |
+| **합성 Guard가 순차 호출** | **채택** — 순서가 우리 코드의 `await` 두 줄이라 Nest의 등록 순서와 무관하다 |
+
+회귀 테스트(`guards/global.guard.spec.ts`, 10개): ① 가짜 Guard로 호출 순서(제한 → 인증), 한도 초과 예외가 나면 인증을 호출하지 않음 ② **실제 모듈 배선**(운영 한도 300 + 실제 `JwtAuthGuard`)에서 **토큰 없는 요청이 300번째까지 401, 이후 429**, 위조 토큰도 카운트, 한도 안에서는 유효 토큰 200·토큰 없음 401·공개 라우트 200, 로그인 6번째 429 ③ 모듈 트리를 스캔해 **`APP_GUARD`가 `GlobalGuard` 하나뿐**임을 검사. **변조 확인**: 호출 순서를 뒤집으면 5건(단위 3 + 통합 2), `AuthModule`에 `APP_GUARD`를 다시 등록하면 1건 실패. 새 전역 Guard가 필요하면 다른 곳에 `APP_GUARD`를 등록하지 말고 `GlobalGuard`에 순서를 정해 넣는다.
+
+**M3 — 예외 로그를 허용 목록 방식으로.** 위 "작업 내용 3)"의 로깅 서술과 기술 판단의 "로그에서 메시지를 통째로 제외"는 이것으로 **갱신**됐다. 기본은 종전대로 `클래스명(code) method path → 상태`다. 아래 조건을 **모두** 만족하는 내장 오류에만 ` | 메시지: … | 위치: …`가 붙는다(`common/error-log.ts`).
+
+| 조건 | 이유 |
+| --- | --- |
+| 프로토타입이 `TypeError`/`RangeError`/`ReferenceError`/`EvalError`와 **정확히** 같을 것 | 서브클래스(라이브러리가 값을 담은 메시지를 만든다)와 **이름만 위장한 객체**를 배제. 이름이 아니라 프로토타입으로 판별 |
+| `code`가 **없을 것** | Node 내부 오류(`ERR_INVALID_ARG_TYPE` 등)는 메시지에 **받은 값**을 싣는다 |
+| `SyntaxError`는 **위치만** | `JSON.parse`·`BigInt("…")`의 메시지에 입력 조각이 실린다 |
+| 일반 `Error`·Prisma·연결 오류는 **제외** | 앱·라이브러리가 메시지에 값을 넣을 수 있다. 종전과 같은 한 줄 |
+
+메시지는 제어문자·줄 구분자 제거, 절대 경로 마스킹(프로젝트 안의 경로는 상대로), 200자 제한. 위치는 **프로젝트 루트 아래 첫 프레임**만 `함수 (상대경로:줄:열)`로 남기고 node 내부·다른 경로의 프레임은 건너뛴다. 로깅이 접근하면 던지는 객체를 만나도 다시 실패하지 않는다.
+
+> **남는 위험**: V8 내장 메시지는 대부분 식별자·속성명이지만 **드물게 값이 실린다**(예: 숫자 값을 담은 `RangeError`). 허용 목록과 정리로 줄였을 뿐 값을 완전히 배제하지는 못한다. 일반 `Error`를 일부러 제외했기 때문에 앱 코드가 `throw new Error(…)`로 던지는 버그는 여전히 클래스명뿐이다 — 그런 경로가 생기면 전용 예외 클래스를 쓰는 편이 낫다.
+
+변조 확인: 프로토타입 대신 이름으로 판별하면 "이름 위장" 테스트가, `code` 제외 검사를 지우면 "Node 내부 오류" 테스트가 각각 실패. 기존 금지 문자열 10종 검사(접속 호스트·자격증명·절대 경로·스택·`meta`·`driverAdapterError`·쿼리스트링·`Bearer` 등)는 그대로 통과한다.
+
+**L1 — 서버 원인 `SyntaxError`를 400으로 위장하지 않는다.** 부모 `mapException`은 **모든** `SyntaxError`를 `BadRequestException(원본 메시지)`로 바꾸고, `HttpException`이 된 것은 로그도 남지 않는다. 그래서 어댑터는 이제 본문 파서가 붙인 `type`으로 식별되는 오류와 `URIError`만 치환하고, 그 밖의 `SyntaxError`는 **부모를 호출하지 않고 그대로** 돌려준다 → 전역 필터가 500 고정 문구로 응답하고 위치를 로그에 남긴다(`type`이 있는 파서 유래는 종전대로 400 고정 문구). 단위 테스트에 "부모 구현은 실제로 같은 입력을 400+원본 메시지로 바꾼다"는 기준선을 두었고, 실제 Express에서는 `app.use('/syntax-mw', …)`로 서버 쪽 `SyntaxError`를 흘려 500·위치 로그를 확인한다. 변조(부모에 넘김) 시 단위 2건·통합 1건 실패.
+
+**L3 — 필터 내부 안전망.** 응답 결정·작성 전체를 `try/catch`로 감싸고, 실패하면 **미리 만들어 둔 500 본문 문자열**(직렬화 불필요)로 끝낸다. 그마저 실패하면 `destroy()`로 연결을 끊는다(응답 없이 매달리는 것보다 낫다). 원인은 `응답 작성 실패: <실패 클래스> (원본: <원본 클래스>) method path` 한 줄로 남긴다. 로깅 실패는 삼켜서 **정상적으로 결정한 응답을 fallback으로 바꾸지 않는다**. 실제 Express에서 재현되는 경로: 범위 밖 상태코드(`res.status(1000)`이 `RangeError`), 직렬화할 수 없는 값(`BigInt` — 이 코드베이스는 int8을 BigInt로 다룬다), 접근하면 던지는 예외 객체. 변조(안전망 제거) 시 8건 실패.
+
+**L8 — `http:` 오리진은 루프백만.** `localhost`·`127.x.x.x`·`[::1]`만 허용하고 그 밖의 `http:`는 기동 실패. 토큰이 브라우저 JS에 있는 구조라 평문 오리진이 허용되면 네트워크 중간자가 그 오리진의 스크립트를 바꿔 토큰을 빼 갈 수 있다. `https:`는 제한 없음. 자격증명(`사용자:비밀번호@`)이 든 항목도 거부한다. 변조(검사 끔) 시 9건 실패.
+
+**L10 — 기동 오류에 입력 값을 출력하지 않는다.** `CORS_ALLOWED_ORIGINS`·`TRUST_PROXY_HOPS`의 오류는 **항목 위치**(빈 항목 제외, 1부터)와 **이유 범주**만 알린다. 기동 오류는 stderr·journal에 남고, 잘못 붙여 넣은 값이 자격증명일 수 있다. 종전에는 "올바른 정규형"을 되돌려 알려 줬는데 그것도 입력에서 파생된 출력이라 없앴다. 표식(`ECHOMARK`)을 입력에 넣어 메시지에 나오지 않는 것을 13종(CORS)·5종(홉 수)으로 확인했고, 실제 서버 기동에서도 6종이 exit 1이며 표식 노출 0줄이었다.
+
+**M1 — 코드 변경 없음, 경고 로그만.** `TRUST_PROXY_HOPS`가 0이 아니면 기동 때 경고 한 줄(`TRUST_PROXY_HOPS=1: …`, 값과 고정 문장뿐)을 남긴다. 0(기본)이면 없다. `configureHttp` 안에서 남기므로 스펙이 같은 경로를 검증한다.
+
+**L11·L13 — CI.** `push` 트리거에 `main` 추가. `runs-on`을 `ubuntu-latest` → **`ubuntu-24.04`**로 고정(두 잡 모두). 라벨 선택 근거(GitHub `actions/runner-images` 공식 문서, 2026-09-21 확인):
+
+| 확인한 사실 | 출처 |
+| --- | --- |
+| `ubuntu-latest`는 현재 **24.04**를 가리킨다. `-latest`는 "가장 최신 **안정** 버전"이며 1~2개월에 걸쳐 조용히 다음 OS로 옮겨 간다 | README "Available Images" 표, "Latest Migration Process" |
+| 더 새로운 `ubuntu-26.04`는 공식 공지에 **"now available as a public preview"** — GA가 아니다 | `Ubuntu2604-Readme.md` 공지. 이미지 릴리스는 `prerelease=false`지만 그것이 GA를 뜻하지는 않아 **공지 문구를 기준**으로 했다 |
+| 22.04는 9월 17일부터 deprecation이 시작돼 다음 4월 17일까지 완전 미지원 | 같은 공지(연도는 표기되지 않음) |
+
+그래서 현재 `ubuntu-latest`와 같은 안정판인 24.04를 고정 라벨로 썼다. 26.04가 GA가 되면 두 잡의 `runs-on`을 함께 올린다. **워크플로 자체는 GitHub에서 아직 실행해 보지 않았다**(YAML 구조 검증과 로컬 시뮬레이션만).
+
+#### 검증 (교차 리뷰 반영분)
+
+**테스트 852 → 972개(+120, 47 → 53파일), 전부 통과.** 신규 파일: `guards/global.guard.spec` 10 / `common/error-log.spec` 32 / `common/all-exceptions.filter.log.spec` 5 / `…filter.safety.spec` 10 / `common/hardened-express.adapter.spec` 16 / `app.setup.spec` 3 (76개). 기존 파일 증가: 통합 계약 스펙 +4(TypeError·SyntaxError·범위 밖 상태코드·BigInt), `cors.spec` +31, `trust-proxy.spec` +9. `build`·`lint`·**스펙 포함 `typecheck` 전부 exit 0**.
+
+런타임(포트 3012, 로컬 서명 토큰, 프로덕션 쓰기 0건, 서버는 하나씩만 띄우고 종료 확인):
+
+| 확인한 것 | 결과 |
+| --- | --- |
+| **합성 `GlobalGuard` 순서** | 토큰 없는 `GET /teams` 310회 → **401×300, 429×10**(이전 배선과 동일). 로그인 7회 → `401×5` 후 429(`Retry-After: 900`), 로그인 응답에 `X-RateLimit-*` 없음, `/health` 310회 전부 200, XFF 위조 무효 |
+| 예외 응답 회귀 | 19개 항목(깨진 JSON 4종·413·415·퍼센트 인코딩·404 2종·401·404(서비스)·404(앨범 커버)·`ParseBigIntPipe` 2종·ValidationPipe 2종·없는 계정 401·`/health`·로그인 429) **전부 기존과 동일** |
+| 기동 실패 6종 | `CORS_ALLOWED_ORIGINS` 4종(대문자 호스트라 정규형 오류로 걸린 http 항목·자격증명·2번째 항목의 형식 오류·와일드카드), `TRUST_PROXY_HOPS` 2종(문자·상한 초과) → **exit 1, 입력 표식 노출 0줄**, 메시지는 항목 위치와 이유 범주. **"http는 루프백만" 메시지 자체는 실제 기동으로는 확인하지 않았고 단위 테스트로만 확인했다**(런타임 입력이 대문자 호스트라 정규형 검사에서 먼저 걸렸다) |
+| 정상 기동 | `http://localhost:3010,https://admin.example.com` 기동 성공 |
+| DB 연결 불가 서버 | 응답 500 고정 문구 4건 통과. 로그는 요청당 `PrismaClientKnownRequestError(code=P1001) GET /health/db → 500` **한 줄**(허용 목록에 없으므로 메시지·위치 없음), 금지 문자열 10종 **0줄** |
+| `TRUST_PROXY_HOPS=1` 기동 | `WARN [Bootstrap] TRUST_PROXY_HOPS=1: …` 한 줄. 미설정 기동에는 없음 |
+| **DB 스냅샷 diff = 0** | 6개 테이블의 행 수·내용 해시와 5개 시퀀스 `last_value`가 §16 검증 절의 기준선과 **동일**. 시퀀스 소모 없음 |
+
+#### 트러블슈팅 기록 (교차 리뷰 반영 중)
+
+**1) 정규식을 도구를 거쳐 쓰다 두 번 잘못 저장됐다.** ① 제어문자 제거 정규식에 쓴 `  `가 저장되면서 **실제 줄 구분 문자로 풀려** 정규식 리터럴이 끊겼다(컴파일 오류로 즉시 드러남). ② 이를 유니코드 카테고리로 바꾸는 치환에서 백슬래시가 소실돼 `\p{Cc}`가 **`p{Cc}`로 저장**됐다 — 이것은 **컴파일이 통과하는 잘못된 동작**(글자 `p`·`{`·`}`를 지우는 코드)이었다. 스크립트 문자열의 이스케이프 계층이 원인이라 정규식이 든 수정은 Edit 도구로 직접 하기로 했다. 재발을 막으려고 제어문자 제거 테스트를 **결과 문자열 정확 비교**로 쓰고, 일반 글자(`p{Cc} plain`)가 지워지지 않는 케이스를 넣었다. 같은 계열의 이스케이프 오류가 테스트 코드에서도 두 번 있었다(`toContain()`이 빈 인자가 되고 개행이 실제 줄바꿈으로 풀림, 정규식 `[\/]`가 `[\\/]`가 아니었음) — 모두 실행·검토로 잡아 고쳤다.
+
+**2) 스파이 호출 기록이 테스트 간에 누적됐다.** 통합 계약 스펙의 `Logger.prototype.error` 스파이는 재사용되는데 호출 기록을 비우지 않아, 기존 `boom` 테스트의 `toHaveBeenCalledTimes(1)`이 **우연히 첫 번째라서** 통과하고 있었다. 새 테스트가 끼자 2회로 잡혔다. `beforeEach`에서 `mockClear()`를 하도록 고쳤다(기존 테스트가 옳게 통과하고 있던 이유가 순서였다는 점이 이번에 드러났다).
+
+**3) 첫 시도에서 L3 테스트를 M3 커밋에 넣었다.** Proxy 예외 객체가 던지는 지점은 로그가 아니라 **응답 결정 단계**(`instanceof`의 `getPrototypeOf` 트랩)라 L3 범위였다. 커밋 단위가 각자 통과하도록 L3 커밋으로 옮겼다.
+
+**4) 간헐 실패 1건 관측(미조치).** 전체 테스트 5회 중 1회 `common/cors.spec.ts`의 첫 테스트가 **5,053ms로 기본 타임아웃(5초)을 넘겨** 실패했다. 단독 실행과 전체 3회 재실행은 모두 통과했다. 로직 실패가 아니라 **CPU 경합 시 Nest 앱 최초 생성이 느려진 것**으로 보이며(전체 실행의 누적 import 시간이 300초 이상), 이번에 추가한 300요청 통합 테스트가 부하를 늘렸을 가능성이 있다. 지시 범위 밖이라 `vitest` 설정은 건드리지 않았다 — 반복되면 `testTimeout` 상향을 검토한다(**미확인**: 원인을 부하로 단정할 근거는 재현하지 못한 상태의 추정이다).
+
+**5) CI를 GitHub에서 처음 돌리자 web 잡의 `npm ci`가 실패했다 (로컬 시뮬레이션이 놓친 것).**
+`apps/api` 잡은 통과했고 루트 `web` 잡만 8초 만에 `EUSAGE`로 실패했다(사용법 출력이 붙는 형태라 로그 화면에는 원인 줄이 보이지 않았다). 러너의 `24.x`는 Node 24.21.0과 **npm 11.19.0**을 번들하는데, 로컬 시뮬레이션은 npm 11.6.2였다. 같은 npm 버전으로 재현하니 정확히 이 오류가 났다: `Missing: @emnapi/runtime@1.11.3 from lock file`, `Missing: @emnapi/core@1.11.3 from lock file`.
+- **원인**: 잠금 파일에 `@emnapi/core`·`runtime`이 `@unrs/resolver-binding-wasm32-wasi` 안쪽의 중첩본(1.10.0)으로만 있고 최상위에는 없었다. 최상위의 `@napi-rs/wasm-runtime@1.1.4`(옵셔널)가 둘을 **peer**로 요구하는데 예전 npm이 그 항목을 잠금에 적지 않았다. 신형 npm은 이를 불일치로 보고, 구형은 통과시킨다
+- **조치**: npm 11.19.0으로 `npm install --package-lock-only`를 실행해 잠금 파일을 재생성했다(`5e85c09`). **패키지 8개 추가 + 기존 17개 항목의 peer 표시**뿐이고 버전 변경 0·삭제 0이다
+- **검증**: 수정 전 잠금은 npm 11.19.0에서 실패, 수정 후는 11.19.0·11.6.2 모두 `npm ci --dry-run` 통과. `.env`·환경변수 없는 깨끗한 복제본에서 npm 11.19.0으로 **실제 `npm ci`와 `npm run lint` 통과**. `apps/api` 잠금도 11.19.0 dry-run 통과. **수정 후 GitHub에서의 재실행 결과는 아직 확인하지 못했다**
+- 앞서 "로컬 시뮬레이션은 Windows·Node 24.12에서 했다"고 한계로 적어 둔 바로 그 유형이다. CI 사전 실측을 러너와 같은 npm 버전으로 했다면 잡혔다 — 이후 CI 관련 검증은 `npx npm@<러너 번들 버전>`로 한다
+- **남은 경고(실패 아님)**: 같은 설치 로그에 npm 11.19.0의 `install-scripts` 경고가 있다 — `sharp@0.34.5`·`unrs-resolver@1.12.2`의 install 스크립트가 `allowScripts`로 아직 허용되지 않았다는 내용이다. 지금은 경고일 뿐이지만 이후 npm이 기본 차단으로 바꾸는지는 **확인하지 않았다(미확인)**. §16 L12(`npm ci --ignore-scripts` 검토)와 함께 볼 것
+
+#### 기록만 하는 것
+
+**M1 — `TRUST_PROXY_HOPS` 배포 체크리스트** (틀리면 요청 제한 우회 또는 전 사용자 단일 IP 집계로 관리자 로그인이 잠긴다. 아래 실험 근거는 교차 리뷰 때 `express`로 직접 확인한 `req.ip`다: 홉 수가 실제 프록시보다 크거나 프록시 없이 앱 포트에 직접 접속하면 **위조한 `X-Forwarded-For`가 `req.ip`가 된다**):
+
+1. **앱 포트(3001)는 프록시에서만 접근 가능해야 한다.** 보안 그룹/방화벽으로 외부 직접 접근을 막는다. 현재 `main.ts`의 `app.listen(PORT)`는 호스트를 지정하지 않아 모든 인터페이스에 바인딩한다 — 배포 시 `127.0.0.1` 바인딩 또는 보안 그룹으로 제한하는 것을 함께 검토한다(코드는 이번에 바꾸지 않았다)
+2. **프록시가 클라이언트가 보낸 `X-Forwarded-For` 뒤에 실제 IP를 덧붙이는지 확인한다**(nginx: `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`). 받은 헤더를 그대로 전달하는 설정은 위조를 그대로 통과시킨다
+3. **홉 수 = 실제 프록시 수.** nginx 한 대면 1이다. ALB·CDN이 앞에 붙으면 단계마다 더한다
+4. **배포 서버에서 실측한다(필수).** (a) 없는 계정으로 로그인을 6번 시도해 429를 만든 뒤, `X-Forwarded-For`를 바꿔 다시 시도해도 **429가 유지**되는지(위조가 무효인지) (b) **다른 네트워크의 클라이언트**(예: 모바일 데이터)에서는 429가 **아닌지**(전 사용자가 한 IP로 집계되고 있지 않은지) (c) 기동 로그에 `WARN [Bootstrap] TRUST_PROXY_HOPS=…` 경고가 있는지
+5. 틀렸을 때의 증상: **우회**(값이 크거나 앱 포트가 열려 있음) — 로그인 5회 제한이 무력화된다 / **전 사용자 단일 IP 집계**(프록시가 있는데 0) — 익명 공격자가 15분마다 5요청으로 관리자 로그인을 계속 잠그고 기본 300/분 한도도 전원이 공유한다
+6. 인스턴스가 늘거나 프로세스가 재시작되면 인메모리 카운터가 초기화된다(I3)
+
+**L2** — `AllExceptionsFilter.catch`가 `getType() !== 'http'`이면 응답도 로그도 없이 반환한다. 지금은 HTTP뿐이지만 WebSocket·RPC를 추가하는 순간 그 컨텍스트의 예외가 조용히 사라진다. 그때 컨텍스트별 처리를 넣는다.
+
+**L4** — 어댑터의 치환 표에 없는 본문 파서 4xx(예: `request.aborted`)는 필터가 `warn` 로그를 요청마다 남긴다. 클라이언트가 연결 중단만으로 로그를 부풀릴 수 있다. 필요하면 표에 추가하거나 로그 수준을 낮춘다.
+
+**L5 — 관리자 UI는 제출 전 검증이 필요하다.** 로그인 한도(5분 5회)는 **성공한 로그인과 DTO 400(빈 값 등)도 센다.** 오타를 5번 내면 6번째에는 **올바른 비밀번호여도 15분 잠긴다**(차단 중 재요청은 차단을 연장하지 않는다 — 저장소 소스로 확인). UI는 (a) 빈 값·길이를 서버로 보내기 전에 막고 (b) 429의 `Retry-After`(CORS로 노출돼 있다)를 "N분 뒤 다시 시도"로 보여 주고 (c) 실패가 누적되기 전에 남은 시도 횟수를 알려 줄 수 없다는 점(`X-RateLimit-*`를 일부러 숨겼다)을 감안해 문구를 정해야 한다.
+
+**L6** — 카운트 키에 클래스·핸들러 이름이 들어가 한도가 **라우트별**이다(IP당 300×라우트 수). 미지정 라우트 404·preflight·본문 파서 실패는 Guard보다 앞에서 끝나 **제한이 없다.** 필요하면 프록시(nginx `limit_req`)에서 총량을 함께 제한한다.
+
+**L7** — `/health/db`도 클래스 수준 `@SkipThrottle()`이다(결정 사항). 유효한 토큰이 유출되면 `count` 3건짜리 쿼리를 제한 없이 부를 수 있다. 배포 플랫폼의 헬스체크는 `GET /health`만 쓰고, 필요하면 `/health/db`의 제한을 다시 켠다.
+
+**L9** — `app.setup.ts`의 주석 "요청 값·접속 호스트가 응답과 로그에 남지 않게"는 **과장**이다. `HttpException`은 그대로 통과하고, 요청에서 온 값을 메시지에 끼우는 곳이 있다: `teams.service.ts:159`(`팀 id 형식이 올바르지 않습니다: ${teamId}`), `:173`(`${dto.day}`), `:220`(`${day}`), `:233`(`${key}`). 값은 정규식·길이 검증을 거치고 요청자 본인에게만 돌아가므로 **유출은 아니다.** 다만 `ReorderTeamsDto.teamIds`의 각 항목은 `/^\d+$/`만 검사하고 **길이 상한이 없어**, 본문 100KB 한도까지의 숫자열이 400 응답으로 되돌아간다(증폭). 이번에 코드도 주석도 바꾸지 않았다.
+
+**L12** — CI의 `npm ci`가 의존성 install 스크립트를 실행한다. 비밀값이 없어 영향은 러너로 한정되지만 `--ignore-scripts`를 검토할 수 있다(`prisma`·`@node-rs/argon2`가 install 스크립트를 필요로 하는지 확인이 먼저다 — 확인하지 않았다).
+
+**I1** 로그인 창이 슬라이딩이라 꾸준히 시도하면 IP당 시간당 약 60회는 가능하다. **I2** IPv6는 /64로 묶이고 `::ffff:a.b.c.d`는 IPv4와 같은 버킷이다(더 큰 대역을 가진 공격자는 버킷을 돌릴 수 있다). **I3** 저장소가 인메모리라 프로세스 재시작마다 한도가 초기화된다. **I4** CORS preflight는 거부된 오리진에도 204와 `Allow-Methods/Headers/Max-Age`를 내려준다(`cors` 패키지 동작, `Allow-Origin`이 없어 브라우저는 거부한다).
+
+#### 이 절에서 의도적으로 하지 않은 것
+
+- 위 "기록만" 항목의 코드 수정(특히 앱 포트 바인딩 호스트, `teamIds` 길이 상한, `/health/db` 제한, 파서 4xx 로그 수준)
+- `vitest` 설정(간헐 타임아웃), `npm ci --ignore-scripts`
+- `ubuntu-26.04` 채택(GA 아님)
+
+### 롤백
+
+코드 변경만이고 **DB·스키마 변경이 없다**(마이그레이션 0개). 되돌리려면 브랜치를 되돌리면 된다. 환경변수(`CORS_ALLOWED_ORIGINS`·`TRUST_PROXY_HOPS`)는 코드가 없어지면 무시된다. 되돌리면 `/health`가 다시 행 수를 공개하고 깨진 JSON이 본문 앞 10자를 에코하는 상태로 돌아간다.
+
+### 완료 상태 및 다음 단계
+
+- 브랜치 `feature/api-hardening`, 푸시·PR 보류
+- **다음**: 공개 프론트 버그 수정 → 관리자 UI(`apps/admin`, 별도 Vercel 프로젝트) → 배포(EC2 서울 1순위) → 59곡 유튜브 배치·리뷰. 위 "남겨둔 결정"의 배포 값 3가지(`TRUST_PROXY_HOPS`·`CORS_ALLOWED_ORIGINS`·권한 회수 실행)는 배포 시점에 정한다
 
 ## 부록: 원본 리포트 참조
 

@@ -16,7 +16,7 @@ import type { SongResponse } from './dto/song-response.js';
  * 유일하게 지목되므로, 중첩하면 `:teamId`와 실제 소속을 대조하는 분기가
  * 추가로 생겨 실패 모드만 늘어난다.
  *
- * `@Public()`을 붙이지 않는다 — `AuthModule`이 등록한 전역 Guard 덕분에
+ * `@Public()`을 붙이지 않는다 — 전역 `GlobalGuard`(요청 제한 → 인증) 덕분에
  * 기본으로 인증이 필요하다. 곡 삭제는 MVP 스코프 밖이라 만들지 않는다.
  */
 @Controller('teams/:teamId/songs')

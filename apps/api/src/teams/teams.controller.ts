@@ -9,7 +9,7 @@ import type { TeamResponse } from './dto/team-response.js';
 /**
  * 팀(Line Up) 관리 API (PRD F003~F006).
  *
- * `@Public()`을 붙이지 않는다 — `AuthModule`이 등록한 전역 Guard 덕분에
+ * `@Public()`을 붙이지 않는다 — 전역 `GlobalGuard`(요청 제한 → 인증) 덕분에
  * 네 엔드포인트 모두 기본으로 인증이 필요하다. 삭제는 MVP 스코프 밖이라
  * 만들지 않는다(오입력은 수정으로 대응).
  */

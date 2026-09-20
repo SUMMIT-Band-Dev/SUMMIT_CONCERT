@@ -267,14 +267,15 @@ describe('SupabaseStorageClient — 시크릿이 새지 않는다', () => {
     async (_name, arrange) => {
       arrange();
 
-      const error = await createClient()
+      // .catch의 반환 타입이 성공 타입(void)과의 유니온이 되므로 unknown으로 받아 단언한다
+      const error = (await createClient()
         .upload({
           path: '1/a.jpg',
           body: Buffer.from([0xff]),
           contentType: 'image/jpeg',
           cacheControlSeconds: 60,
         })
-        .catch((caught: unknown) => caught as Error);
+        .catch((caught: unknown) => caught)) as Error;
 
       const serialized = JSON.stringify({
         message: error.message,

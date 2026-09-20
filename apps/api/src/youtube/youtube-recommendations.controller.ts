@@ -34,7 +34,7 @@ import type { SongResponse } from '../songs/dto/song-response.js';
  * 전부 POST 200이다. 승인·반려·재큐는 자원을 만드는 게 아니라 기존 자원의 상태를 바꾸므로
  * 201이 아니다 (§10에서 `POST /auth/login`을 200으로 둔 것과 같은 기준).
  *
- * `@Public()`을 붙이지 않는다 — `AuthModule`이 등록한 전역 Guard가 기본으로 인증을 요구한다.
+ * `@Public()`을 붙이지 않는다 — 전역 `GlobalGuard`(요청 제한 → 인증)가 기본으로 인증을 요구한다.
  */
 @Controller('youtube')
 @UseFilters(YoutubeQuotaExhaustedFilter)

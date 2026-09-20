@@ -3,6 +3,7 @@ import { AuthService, type AdminProfile, type LoginResult } from './auth.service
 import { LoginDto } from './dto/login.dto.js';
 import { Public } from './public.decorator.js';
 import { CurrentAdmin } from './current-admin.decorator.js';
+import { LoginThrottle } from '../throttling/login-throttle.decorator.js';
 import type { JwtPayload } from './jwt-payload.js';
 
 @Controller('auth')
@@ -11,6 +12,7 @@ export class AuthController {
 
   /** 관리자 로그인 (PRD F001). 토큰을 발급할 뿐 자원을 만들지 않으므로 201이 아니라 200. */
   @Public()
+  @LoginThrottle()
   @Post('login')
   @HttpCode(HttpStatus.OK)
   login(@Body() dto: LoginDto): Promise<LoginResult> {
