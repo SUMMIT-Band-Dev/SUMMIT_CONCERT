@@ -17,6 +17,7 @@
     "seed:admin": "npm run build && node dist/scripts/seed-admin.js",
     "youtube:cleanup": "npm run build && node dist/scripts/youtube-cleanup.js",
     "lint": "oxlint src/ test/",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",

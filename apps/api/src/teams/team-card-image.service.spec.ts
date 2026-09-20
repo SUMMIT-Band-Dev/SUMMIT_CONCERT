@@ -49,7 +49,8 @@ interface Harness {
 function createHarness(): Harness {
   const storage = {
     bucketName: 'team-cards',
-    upload: vi.fn(async () => undefined),
+    // 인자 타입을 적어 두지 않으면 mock.calls가 빈 튜플([])로 추론돼 호출 인자를 꺼낼 수 없다
+    upload: vi.fn(async (_input: { path: string }) => undefined),
     remove: vi.fn(async () => undefined),
     getPublicUrl: vi.fn((path: string) => `${PUBLIC_PREFIX}/${path}`),
     getBucket: vi.fn(),

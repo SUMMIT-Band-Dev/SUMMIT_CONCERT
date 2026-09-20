@@ -27,7 +27,8 @@ const songRow = (albumCoverUrl: string | null = null) => ({
   id: SONG_ID,
   teamId: 12n,
   title: '0+0',
-  singer: '한로로',
+  // 가수가 NULL인 행도 만들 수 있어야 해서 string | null로 넓혀 둔다(리터럴 타입으로 굳지 않게)
+  singer: '한로로' as string | null,
   albumCoverUrl,
   youtubeUrl: null,
   // DB 컬럼이 NOT NULL DEFAULT 'pending'이라 실제 행에는 항상 값이 있다.
@@ -136,9 +137,10 @@ describe('AlbumCoverService — 외부 실패 분류', () => {
     const h = createHarness();
     h.search.mockRejectedValue(new ItunesUpstreamError('internal detail', 500));
 
-    const error = await h.service
+    // .catch의 반환 타입이 성공 타입과의 유니온이 되므로 unknown으로 받아 단언한다
+    const error = (await h.service
       .findCandidates(SONG_ID)
-      .catch((caught: unknown) => caught as Error);
+      .catch((caught: unknown) => caught)) as Error;
 
     expect(error.message).not.toContain('internal detail');
   });
@@ -151,9 +153,9 @@ describe('AlbumCoverService — 아웃바운드 상한', () => {
     await h.service.findCandidates(SONG_ID);
     await h.service.findCandidates(SONG_ID);
 
-    const error = await h.service
+    const error = (await h.service
       .findCandidates(SONG_ID)
-      .catch((caught: unknown) => caught as OutboundRateLimitException);
+      .catch((caught: unknown) => caught)) as OutboundRateLimitException;
 
     expect(error).toBeInstanceOf(OutboundRateLimitException);
     expect(error.retryAfterSeconds).toBeGreaterThan(0);
