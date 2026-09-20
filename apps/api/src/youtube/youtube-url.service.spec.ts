@@ -35,7 +35,12 @@ type UpdateArgs = {
   data: { youtubeUrl: string; youtubeReviewStatus: YoutubeReviewStatus };
 };
 
-function createHarness(current: Partial<SongRow> = {}) {
+/**
+ * work02-6b에서 대역 구조가 바뀌었다. 서비스가 곡 갱신과 "열린 추천 닫기"를 한 트랜잭션으로
+ * 묶으므로 `$transaction`과 추천 테이블 델리게이트가 필요하다.
+ * `setlist.update`가 여전히 **1회만** 불리는 것은 기존 테스트가 그대로 고정한다.
+ */
+function createHarness(current: Partial<SongRow> = {}, openAttemptIds: bigint[] = []) {
   const update = vi.fn(async (args: UpdateArgs) =>
     songRow({
       ...current,
@@ -43,10 +48,29 @@ function createHarness(current: Partial<SongRow> = {}) {
       youtubeReviewStatus: args.data.youtubeReviewStatus,
     }),
   );
+  const attemptFindMany = vi.fn(async () => openAttemptIds.map((id) => ({ id })));
+  const attemptUpdateMany = vi.fn(async () => ({ count: openAttemptIds.length }));
+  const recommendationDeleteMany = vi.fn(async () => ({ count: 0 }));
 
-  const prisma = { setlist: { update } } as unknown as PrismaService;
+  const tx = {
+    setlist: { update },
+    youtubeSearchAttempt: { findMany: attemptFindMany, updateMany: attemptUpdateMany },
+    youtubeRecommendation: { deleteMany: recommendationDeleteMany },
+  };
 
-  return { service: new YoutubeUrlService(prisma), update };
+  const prisma = {
+    ...tx,
+    $transaction: vi.fn(async (run: (client: typeof tx) => unknown) => run(tx)),
+  } as unknown as PrismaService;
+
+  return {
+    service: new YoutubeUrlService(prisma),
+    update,
+    attemptFindMany,
+    attemptUpdateMany,
+    recommendationDeleteMany,
+    transaction: prisma.$transaction as unknown as ReturnType<typeof vi.fn>,
+  };
 }
 
 describe('YoutubeUrlService — 정상 경로', () => {
@@ -196,41 +220,105 @@ describe('YoutubeUrlService — 거부', () => {
   });
 });
 
+/** 곡 갱신이 실패하는 경우만 보는 대역. 트랜잭션 콜백이 그대로 예외를 올려보내야 한다. */
+function createFailingHarness(error: unknown) {
+  const update = vi.fn(async () => {
+    throw error;
+  });
+  const tx = {
+    setlist: { update },
+    youtubeSearchAttempt: { findMany: vi.fn(), updateMany: vi.fn() },
+    youtubeRecommendation: { deleteMany: vi.fn() },
+  };
+  const prisma = {
+    ...tx,
+    $transaction: vi.fn(async (run: (client: typeof tx) => unknown) => run(tx)),
+  } as unknown as PrismaService;
+
+  return { service: new YoutubeUrlService(prisma), update, tx };
+}
+
 describe('YoutubeUrlService — 없는 곡', () => {
   it('P2025를 404로 바꾼다', async () => {
     // 존재 확인 쿼리를 따로 돌리지 않으므로, 이 매핑이 404의 유일한 경로다.
-    const update = vi.fn(async () => {
-      throw Object.assign(new Error('record not found'), { code: 'P2025' });
-    });
-    const prisma = { setlist: { update } } as unknown as PrismaService;
+    const { service } = createFailingHarness(
+      Object.assign(new Error('record not found'), { code: 'P2025' }),
+    );
 
-    await expect(
-      new YoutubeUrlService(prisma).update(999n, CANONICAL),
-    ).rejects.toThrow(NotFoundException);
+    await expect(service.update(999n, CANONICAL)).rejects.toThrow(NotFoundException);
   });
 
   it('다른 Prisma 에러는 그대로 올려보낸다', async () => {
     // 404로 뭉개면 연결 실패 같은 장애가 "없는 곡"으로 보인다.
-    const update = vi.fn(async () => {
-      throw Object.assign(new Error('connection reset'), { code: 'P1017' });
-    });
-    const prisma = { setlist: { update } } as unknown as PrismaService;
+    const { service } = createFailingHarness(
+      Object.assign(new Error('connection reset'), { code: 'P1017' }),
+    );
 
-    await expect(
-      new YoutubeUrlService(prisma).update(SONG_ID, CANONICAL),
-    ).rejects.toThrow('connection reset');
+    await expect(service.update(SONG_ID, CANONICAL)).rejects.toThrow('connection reset');
+  });
+
+  it('곡 갱신이 실패하면 추천을 닫지 않는다 (같은 트랜잭션)', async () => {
+    // 갱신이 롤백됐는데 추천만 닫히면 "URL은 없는데 추천도 사라진" 곡이 남는다.
+    const { service, tx } = createFailingHarness(
+      Object.assign(new Error('record not found'), { code: 'P2025' }),
+    );
+
+    await expect(service.update(999n, CANONICAL)).rejects.toThrow(NotFoundException);
+    expect(tx.youtubeSearchAttempt.findMany).not.toHaveBeenCalled();
+    expect(tx.youtubeRecommendation.deleteMany).not.toHaveBeenCalled();
   });
 
   it('형식이 틀린 URL이면 404보다 400이 먼저다', async () => {
     // 검증을 DB 왕복 뒤에 두면 없는 곡에 대한 400/404가 뒤섞인다.
-    const update = vi.fn(async () => {
-      throw Object.assign(new Error('record not found'), { code: 'P2025' });
-    });
-    const prisma = { setlist: { update } } as unknown as PrismaService;
+    const { service, update } = createFailingHarness(
+      Object.assign(new Error('record not found'), { code: 'P2025' }),
+    );
 
-    await expect(
-      new YoutubeUrlService(prisma).update(999n, 'https://vimeo.com/123'),
-    ).rejects.toThrow(BadRequestException);
+    await expect(service.update(999n, 'https://vimeo.com/123')).rejects.toThrow(
+      BadRequestException,
+    );
     expect(update).not.toHaveBeenCalled();
+  });
+});
+
+describe('YoutubeUrlService — 열린 추천 닫기 (work02-6b, D(1))', () => {
+  it('열린 추천을 superseded로 닫고 후보를 지운다', async () => {
+    // 사람이 직접 주소를 넣으면 자동 추천은 의미를 잃는다. 그대로 두면 URL이 채워진 곡의
+    // 추천이 리뷰 목록에 남아 관리자가 이미 끝난 일을 다시 본다.
+    const { service, attemptFindMany, attemptUpdateMany, recommendationDeleteMany } =
+      createHarness({}, [11n, 12n]);
+
+    await service.update(SONG_ID, CANONICAL);
+
+    expect(attemptFindMany).toHaveBeenCalledWith({
+      where: { songId: SONG_ID, reviewState: 'open' },
+      select: { id: true },
+    });
+    expect(recommendationDeleteMany).toHaveBeenCalledWith({
+      where: { attemptId: { in: [11n, 12n] } },
+    });
+    expect(attemptUpdateMany).toHaveBeenCalledWith({
+      where: { id: { in: [11n, 12n] } },
+      data: expect.objectContaining({ reviewState: 'superseded' }),
+    });
+  });
+
+  it('열린 추천이 없으면 아무것도 지우지 않는다', async () => {
+    const { service, recommendationDeleteMany, attemptUpdateMany } = createHarness({}, []);
+
+    await service.update(SONG_ID, CANONICAL);
+
+    expect(recommendationDeleteMany).not.toHaveBeenCalled();
+    expect(attemptUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it('곡 갱신과 추천 정리가 하나의 트랜잭션 안에서 일어난다', async () => {
+    const { service, transaction, update } = createHarness({}, [11n]);
+
+    await service.update(SONG_ID, CANONICAL);
+
+    expect(transaction).toHaveBeenCalledTimes(1);
+    // 단일 UPDATE 계약은 그대로다 — URL과 상태를 한 번에 바꾼다.
+    expect(update).toHaveBeenCalledTimes(1);
   });
 });

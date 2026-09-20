@@ -1,0 +1,171 @@
+-- 롤백 SQL — 20260920210000_add_youtube_recommendation
+--
+-- ⚠️ 이 파일은 적용하지 않는다. 문제가 생겼을 때 참고할 절차만 기록해 둔 문서다.
+-- Prisma는 이 디렉터리를 마이그레이션으로 인식하지 않는다 (prisma/migrations 밖).
+-- ⚠️ 이미 적용된 prisma/migrations/20260920210000_add_youtube_recommendation/migration.sql은
+--    절대 수정하지 않는다 — 체크섬이 어긋나 이후 모든 migrate deploy가 막힌다.
+--
+-- ⛔ 안전 기간: **첫 배치 실행(F011)이 이 테이블에 쓰기 시작하기 전까지만 안전하다.**
+--    그 전에는 두 테이블이 비어 있어 DROP이 잃는 정보가 없다.
+--    **첫 배치 실행 이후의 DROP은 검토 이력을 통째로 지운다** — 관리자가 무엇을 왜 반려했는지
+--    (rejectedReason), 곡별 연속 실패 이력, 어느 등수를 골랐는지(approvedRank)는 다른 어디에도
+--    없어 복구할 수 없다. 승인된 URL만은 Setlist.youtube_url에 남아 손실되지 않는다.
+--    착수 이후에 되돌려야 한다면, DROP 대신 테이블을 남겨둔 채 애플리케이션 코드만 되돌리는
+--    쪽을 먼저 검토한다 (빈 테이블 두 개가 스키마에 남는 비용은 검토 이력 소실보다 훨씬 작다).
+--
+-- ⚠️ 락 주의 — **DROP은 적용보다 강한 락을 잡는다.**
+--    적용 시의 FK 생성은 참조 대상 Setlist에 SHARE ROW EXCLUSIVE를 잡아 ACCESS SHARE(공개
+--    프론트의 SELECT)와 충돌하지 않았다. 그러나 DROP TABLE은 FK 트리거를 제거하기 위해
+--    **참조 대상인 Setlist에도 ACCESS EXCLUSIVE 락**을 잡으므로, 그동안 공개 페이지의
+--    Setlist 조회가 잠깐 막힐 수 있다. 두 테이블이 작아 점유 시간은 짧지만 0은 아니다.
+--    그래서 아래 SQL에도 SET LOCAL lock_timeout = '5s'를 반드시 둔다 — 못 잡으면 방문자를
+--    락 뒤에 세워 두는 대신 차라리 실패하고 트래픽이 적은 시각에 다시 한다.
+
+-- ============================================================================
+-- 0) 실행 순서 — 반드시 "코드 먼저, DB 나중"
+-- ============================================================================
+--
+--   ① API 코드를 이 테이블들이 없던 버전으로 되돌려 배포하거나, 되돌리기 전이라면 API 배포를 중지한다.
+--   ② 그 뒤에 DB에서 테이블·타입을 DROP 한다 (아래 2).
+--
+--   왜 이 순서인가: 새 코드가 떠 있는 채로 테이블을 먼저 지우면 배치·리뷰 엔드포인트가 전부
+--   실패하고, 곡 수정(PATCH /songs/:id)과 F013(PUT /songs/:id/youtube-url)까지 함께 깨진다 —
+--   두 경로가 열린 추천을 superseded로 닫으려고 이 테이블을 건드리기 때문이다(work02-6b).
+--   즉 이 롤백은 6단계 1/2까지의 기능에도 영향을 준다. 코드를 먼저 되돌리면 테이블이 남아
+--   있어도 옛 코드는 참조하지 않아 무해하다.
+--   공개 프론트는 이 테이블을 전혀 읽지 않으므로(src 전체 참조 0건) 영향이 없다.
+--
+--   코드 되돌리기 자체: prisma/schema.prisma의 YoutubeSearchAttempt·YoutubeRecommendation 모델,
+--   YoutubeSearchOutcome·YoutubeReviewState enum, Setlist.searchAttempts 역방향 필드를 제거한 뒤
+--   `npx prisma generate`. 아래 3)의 (다) 브랜치 폐기 경로에서만 마이그레이션 디렉터리도 함께
+--   지운다. 정방향으로 되돌리는 경우 기존 마이그레이션 디렉터리는 지우지 않는다(이력의 일부).
+
+-- ============================================================================
+-- 1) 먼저 실제 스키마 상태부터 확인한다 — _prisma_migrations의 기록만 믿지 않는다
+-- ============================================================================
+--
+--   Prisma는 스크립트를 실행하기 전에 이력 행(started_at)을 만들고, 스크립트가 끝난 뒤에
+--   finished_at을 채운다. 스크립트는 하나의 트랜잭션으로 실행되지만(migration.sql [원자성] 참고),
+--   **스크립트 커밋과 finished_at 기록은 별개의 단계**다. 그 사이에 연결이 끊기면
+--   "스키마는 이미 바뀌었는데 이력은 실패로 남는" 어긋남이 생길 수 있다(추측 — 실제로 재현한 적
+--   없다). 그래서 --rolled-back 이든 DROP 이든 하기 전에 아래를 먼저 본다.
+--   (logs 컬럼은 오류 본문이 들어 있을 수 있으므로 조회하지 않는다.)
+--
+--   -- 이력
+--   SELECT migration_name, started_at, finished_at, rolled_back_at, applied_steps_count
+--     FROM "_prisma_migrations"
+--    WHERE migration_name = '20260920210000_add_youtube_recommendation';
+--
+--   -- 테이블이 실제로 있는가
+--   SELECT table_name FROM information_schema.tables
+--    WHERE table_schema = 'public'
+--      AND table_name IN ('YoutubeSearchAttempt', 'YoutubeRecommendation');
+--
+--   -- 타입이 실제로 있는가
+--   SELECT typname FROM pg_type WHERE typname IN ('youtube_search_outcome', 'youtube_review_state');
+--
+--   -- ⛔ 지울 이력이 실제로 있는가 (안전 기간을 벗어났는지 판단하는 근거)
+--   SELECT count(*) AS attempts FROM "YoutubeSearchAttempt";
+--
+--   결과 조합에 따라 3)에서 갈래를 고른다:
+--     이력 finished_at 있음(성공) .............................. → 3)의 (나)
+--     이력 finished_at 없음(실패) + 테이블·타입 모두 없음 ......... → 3)의 (가)
+--     이력 finished_at 없음(실패) + 테이블 또는 타입이 있음 ....... → 3)의 (라)  ← 어긋남
+--     이력 행 자체가 없음 + 테이블 또는 타입이 있음 ............... → 3)의 (라)와 같이 다룬다
+
+-- ============================================================================
+-- 2) 스키마 되돌리기 SQL (아래 3)에서 "DROP이 필요하다"고 한 갈래에서만 실행한다)
+-- ============================================================================
+--
+--   ▶ 수동 실행(콘솔/세션)용. SET LOCAL은 트랜잭션 안에서만 효력이 있으므로 BEGIN/COMMIT으로 감싼다.
+--     위 "락 주의"의 이유로 lock_timeout을 반드시 건다.
+--     (콘솔이 자체적으로 트랜잭션을 씌우는지는 확인하지 못했다 — 실행 전에 `SHOW lock_timeout;`을
+--      같은 트랜잭션 안에서 찍어 5s가 보이는지 본다.)
+--
+--     BEGIN;
+--     SET LOCAL lock_timeout = '5s';
+--     DROP TABLE "YoutubeRecommendation";
+--     DROP TABLE "YoutubeSearchAttempt";
+--     DROP TYPE "youtube_review_state";
+--     DROP TYPE "youtube_search_outcome";
+--     COMMIT;
+--
+--   ▶ 정방향 마이그레이션 파일용(3의 (나)). Prisma가 파일 전문을 하나의 트랜잭션으로 실행하므로
+--     BEGIN/COMMIT은 넣지 않는다(넣으면 그 위에 중첩된다). 본문은 같다:
+--
+--     SET LOCAL lock_timeout = '5s';
+--     DROP TABLE "YoutubeRecommendation";
+--     DROP TABLE "YoutubeSearchAttempt";
+--     DROP TYPE "youtube_review_state";
+--     DROP TYPE "youtube_search_outcome";
+--
+--   순서: 후보 → 시도 → 타입. YoutubeRecommendation이 YoutubeSearchAttempt를 FK로 참조하므로
+--   자식을 먼저 지운다(CASCADE에 기대지 않고 명시적으로). 타입은 그 타입을 쓰는 컬럼이 전부
+--   사라진 뒤에야 DROP 된다.
+--   ※ 위 "안전 기간"을 벗어났다면(YoutubeSearchAttempt에 행이 있다면) 이 DROP은 검토 이력을
+--     잃는다. 그 경우 이 절차 자체를 재검토한다.
+--
+--   ※ CHECK 제약만 따로 지우는 경로는 두지 않는다. 아래 4) 참고.
+
+-- ============================================================================
+-- 3) Prisma 이력 처리 — 1)의 확인 결과에 따라 갈린다 (SQL이 아니라 CLI로 실행)
+-- ============================================================================
+--
+--    (가) 이력은 "실패", 스키마에 테이블·타입이 **전부 없음** (정상적인 실패):
+--         2)의 DROP은 필요 없다. 트랜잭션이 롤백돼 스키마가 남지 않은 상태다.
+--         npx prisma migrate resolve --rolled-back 20260920210000_add_youtube_recommendation
+--
+--    (나) 이력이 "성공" — ✅ 우선안: 정방향 새 마이그레이션으로 되돌린다.
+--         새 폴더(예: prisma/migrations/<더 늦은 타임스탬프>_drop_youtube_recommendation/migration.sql)를
+--         수동으로 만들어 2)의 정방향 파일용 문장을 넣고 `npx prisma migrate deploy`로 적용한다.
+--         (프로덕션 DB에는 migrate dev를 쓰지 않는다 — 드리프트 감지 시 DB 리셋을 제안하는 경로가 있다.)
+--         _prisma_migrations는 append-only로 남아 "추가됐다가 제거됐다"는 이력이 그대로 보존되고,
+--         이미 이 마이그레이션 폴더를 가진 다른 클론/CI/환경과도 체크섬·이력이 어긋나지 않는다.
+--         ※ 성공 기록에는 migrate resolve --rolled-back 이 동작하지 않는다.
+--
+--    (다) 예외 — `DELETE FROM "_prisma_migrations" ...`는 **머지 전에 브랜치 자체를 폐기할 때만** 가능하다.
+--         이 마이그레이션이 develop/main에 들어가지 않았고, 다른 어떤 환경에도 적용·복제되지 않았으며,
+--         마이그레이션 폴더도 브랜치와 함께 버려지는 경우에 한한다. 2)의 수동 실행 DROP을 마친 뒤:
+--           DELETE FROM "_prisma_migrations" WHERE migration_name = '20260920210000_add_youtube_recommendation';
+--         이때는 마이그레이션 디렉터리도 함께 지운다(체크섬 불일치 방지).
+--         머지된 뒤에는 이력 행을 지우지 않는다. 다른 곳에 남은 폴더/이력과 어긋나 드리프트를 만들고,
+--         이력이 조용히 거짓이 된다.
+--
+--    (라) 이력은 "실패"(또는 행 없음)인데 스키마에는 테이블 또는 타입이 **있음** (어긋남 — 스크립트는
+--         커밋됐고 성공 기록만 없다). 이 상태에서 --rolled-back 만 하면 이력은 "롤백됨"인데 스키마는
+--         남아 있어 다음 migrate deploy가 같은 마이그레이션을 다시 적용하려다 "type already exists"로
+--         실패한다. **먼저 무엇을 원하는지 정한다:**
+--
+--         (라-1) 마이그레이션을 **유지**하려는 경우: 스키마가 migration.sql이 만든 결과와 실제로 같은지
+--                먼저 사람이 확인한다 — 테이블 2개, enum 2개(값 4개/6개), CHECK 제약 4개, FK 2개,
+--                인덱스 4개, 두 테이블 RLS 활성 + 정책 0개, anon/authenticated 권한이 테이블·시퀀스
+--                모두에서 회수됨. 그리고
+--                `npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code`
+--                를 본다(해석은 아래 4 참고). **전부 일치할 때만**:
+--                  npx prisma migrate resolve --applied 20260920210000_add_youtube_recommendation
+--                ⚠️ `--applied`는 SQL이 실제로 실행됐는지 검증하지 않고 이력만 기록한다. 확인 없이 쓰면
+--                이력이 조용히 거짓이 된다 — 그래서 위 확인이 선행 조건이다. 일부만 적용된 것처럼 보이면
+--                원자성 가정이 깨진 것이므로 여기서 멈추고 원인을 먼저 조사한다.
+--         (라-2) 마이그레이션을 **되돌리려는** 경우: 2)의 수동 실행 DROP으로 스키마를 먼저 지우고
+--                (1)의 확인 쿼리로 테이블·타입이 사라졌는지 다시 확인한 뒤 (가)로 처리한다
+--                (npx prisma migrate resolve --rolled-back ...). 이미 머지된 마이그레이션이면
+--                이력을 "롤백됨"으로 남기는 것이 (나)의 정방향 원칙과 충돌하므로, 이 경우에도
+--                (나)처럼 정방향 DROP 마이그레이션을 새로 만드는 쪽을 먼저 검토한다.
+
+-- ============================================================================
+-- 4) migrate diff가 0이 아닐 때 — CHECK 제약은 지우지 않는다
+-- ============================================================================
+--
+--   Prisma 스키마는 CHECK 제약을 표현하지 못한다. 그래서
+--   `migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code`가
+--   CHECK 때문에 0이 아닐 가능성이 있다(적용 시점에 실측해 REFACTOR_NOTES에 기록한다).
+--
+--   ▶ **diff가 CHECK 제약 때문에만 0이 아니라면 제약은 그대로 유지하고 원인을 문서화한다.**
+--     제약을 지워 도구 출력을 깨끗하게 만드는 것은 순서가 거꾸로다 — 불변식(outcome × reviewState
+--     조합, approvedRank, rejectedReason)을 DB가 지키는 것이 diff 출력보다 중요하고, 지우면
+--     그 불변식이 애플리케이션 코드 한 곳에만 남는다(§14의 checkYoutubeUrl과 같은 상태가 된다).
+--     이 경우 `--exit-code`를 무결성 판정 기준으로 쓸 수 없게 되므로, 그 사실과 diff 출력 전문을
+--     REFACTOR_NOTES에 남겨 다음 사람이 "드리프트가 생겼다"고 오해하지 않게 한다.
+--
+--   ▶ diff에 CHECK 이외의 차이(테이블·컬럼·인덱스·FK·타입)가 섞여 있으면 그것은 진짜 드리프트다.
+--     그때는 이 문서의 1)부터 다시 본다.

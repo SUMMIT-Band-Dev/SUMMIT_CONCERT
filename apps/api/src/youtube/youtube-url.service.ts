@@ -5,6 +5,7 @@ import { SONG_NOT_FOUND_MESSAGE } from '../songs/songs.constants.js';
 import { toSongResponse, type SongResponse } from '../songs/dto/song-response.js';
 import { YoutubeReviewStatus } from '../generated/prisma/enums.js';
 import { checkYoutubeUrl } from './youtube-url.js';
+import { supersedeOpenAttempts } from './youtube-attempt.js';
 import { YOUTUBE_URL_REJECTION_MESSAGES } from './youtube.constants.js';
 
 @Injectable()
@@ -32,6 +33,16 @@ export class YoutubeUrlService {
    * `forbidNonWhitelisted`가 막고, `data`에도 넣지 않는다.
    *
    * URL 중복은 허용한다 — 다른 팀이 같은 곡을 연주할 수 있다.
+   *
+   * **열린 추천을 함께 닫는다 (work02-6b에서 추가).** 사람이 직접 주소를 넣은 순간 자동
+   * 추천은 의미를 잃는데, 그대로 두면 URL이 채워진 곡의 추천이 리뷰 목록에 계속 남아
+   * 관리자가 이미 끝난 일을 다시 본다. 후보 행도 함께 지운다 — YouTube 개발자 정책의
+   * 30일 보관 제한 대응으로 "리뷰가 끝나는 모든 경로에서 후보를 삭제"하기 때문이다.
+   *
+   * 곡 갱신과 추천 정리를 **한 트랜잭션**으로 묶는다. 나누면 사이에서 실패했을 때
+   * "URL은 approved인데 추천은 열려 있는" 행이 남아, F012 승인이 그 곡을 다시 건드릴 수 있다.
+   * 잠금 순서는 `Setlist` → `YoutubeSearchAttempt`로 전역 규칙을 따른다
+   * (`common/lock-order.ts`). 역순으로 잡는 경로가 없어 데드락이 성립하지 않는다.
    */
   async update(songId: bigint, rawUrl: string): Promise<SongResponse> {
     const checked = checkYoutubeUrl(rawUrl);
@@ -46,17 +57,21 @@ export class YoutubeUrlService {
       );
     }
 
-    const updated = await mapRecordNotFound(
-      this.prisma.setlist.update({
-        where: { id: songId },
-        data: {
-          youtubeUrl: checked.url,
-          youtubeReviewStatus: YoutubeReviewStatus.approved,
-        },
-      }),
-      SONG_NOT_FOUND_MESSAGE,
-    );
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await mapRecordNotFound(
+        tx.setlist.update({
+          where: { id: songId },
+          data: {
+            youtubeUrl: checked.url,
+            youtubeReviewStatus: YoutubeReviewStatus.approved,
+          },
+        }),
+        SONG_NOT_FOUND_MESSAGE,
+      );
 
-    return toSongResponse(updated);
+      await supersedeOpenAttempts(tx, songId);
+
+      return toSongResponse(updated);
+    });
   }
 }
