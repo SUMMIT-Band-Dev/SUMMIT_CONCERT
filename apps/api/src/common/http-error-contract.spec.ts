@@ -71,6 +71,13 @@ class ProbeController {
     throw new Error('BOOM_SECRET_VALUE at db-host-does-not-exist.invalid');
   }
 
+  @Get('typeerr')
+  typeerr() {
+    // 진짜 TypeError를 만든다: 코드 버그(undefined 접근)의 전형
+    const song = undefined as { title: string } | undefined;
+    return song!.title.length;
+  }
+
   @Get('prisma')
   prisma() {
     throw new PrismaClientKnownRequestError();
@@ -102,6 +109,9 @@ afterAll(async () => {
 beforeEach(() => {
   errorLog = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
   warnLog = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+  // 같은 스파이가 재사용되므로 호출 기록을 테스트마다 비운다(비우지 않으면 앞선 테스트의 호출이 섞인다)
+  errorLog.mockClear();
+  warnLog.mockClear();
 });
 
 const server = () => app.getHttpServer();
@@ -259,6 +269,24 @@ describe('알 수 없는 오류 — 500 고정 문구, 로그에는 식별자만
 
     expect(errorLog).toHaveBeenCalledTimes(1);
     expect(errorLog).toHaveBeenCalledWith('예외 처리: Error GET /boom → 500');
+  });
+
+  it('진짜 TypeError(코드 버그): 응답은 고정 문구이고 로그에는 메시지와 프로젝트 상대 경로 위치가 남는다', async () => {
+    const res = await request(server()).get('/typeerr?token=QUERY_SECRET_VALUE').expect(500);
+
+    expect(res.body).toEqual({
+      message: INTERNAL_ERROR_MESSAGE,
+      error: 'Internal Server Error',
+      statusCode: 500,
+    });
+    expect(res.text).not.toContain('title');
+
+    expect(errorLog).toHaveBeenCalledTimes(1);
+    const line = errorLog.mock.calls[0][0] as string;
+    expect(line).toContain("예외 처리: TypeError GET /typeerr → 500 | 메시지: Cannot read properties of undefined (reading 'title') | 위치: ");
+    expect(line).toContain('src/common/http-error-contract.spec.ts');
+    expect(line).not.toContain('QUERY_SECRET_VALUE');
+    expect(line).not.toMatch(/[A-Za-z]:[\\/]/);
   });
 
   it('Prisma 오류: 응답·로그 모두에 메시지가 없고 code만 남는다', async () => {

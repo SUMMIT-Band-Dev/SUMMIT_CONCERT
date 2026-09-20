@@ -13,6 +13,7 @@ import {
   ROUTE_NOT_FOUND_MESSAGE,
   STATUS_PHRASE,
 } from './http-messages.js';
+import { describeError, describeErrorDetails } from './error-log.js';
 
 /** 모든 오류 응답의 형태. 기존 Nest 내장 예외 응답과 같다 */
 export interface ErrorBody {
@@ -23,8 +24,6 @@ export interface ErrorBody {
 }
 
 /** 로그에 남겨도 되는 최소한의 식별자만 통과시키는 패턴 */
-const CLASS_NAME_PATTERN = /^[A-Za-z0-9_]{1,80}$/;
-const ERROR_CODE_PATTERN = /^(P\d{4}|[A-Z][A-Z0-9_]{1,40})$/;
 const METHOD_PATTERN = /^[A-Z]{3,10}$/;
 const MAX_LOGGED_PATH_LENGTH = 200;
 
@@ -68,9 +67,11 @@ function requestMethod(request: Request | undefined): string {
  *   **현재 요청의 method+URL과 메시지가 정확히 같을 때만** 바꾸므로 앱이 던진 404는 건드리지 않는다
  *
  * ## 로그
- * `HttpException`이 아닌 오류만 남기며, 내용은 **클래스명·오류 코드(Prisma 등)·method·path·상태코드뿐**이다.
- * 스택, `meta`, 요청 본문·헤더·쿼리스트링, 접속 호스트, 오류 메시지는 남기지 않는다 — Nest 기본 핸들러는
+ * `HttpException`이 아닌 오류만 남기며, 내용은 **클래스명·오류 코드(Prisma 등)·method·path·상태코드**다.
+ * 스택, `meta`, 요청 본문·헤더·쿼리스트링, 접속 호스트는 남기지 않는다 — Nest 기본 핸들러는
  * 오류 객체 전체를 로깅해서 연결 실패 시 DB 호스트와 절대 경로가 그대로 찍혔다.
+ * **예외:** 코드 버그를 진단할 수 있도록 허용 목록의 내장 오류(`TypeError`·`RangeError` 등, 조건은
+ * `error-log.ts`)에 한해 메시지와 프로젝트 상대 경로의 첫 프레임을 함께 남긴다. Prisma·연결 오류의 메시지는 남기지 않는다.
  *
  * 컨트롤러에 `@UseFilters()`로 붙은 필터(`OutboundRateLimitFilter` 등)는 전역 필터보다 먼저 실행되므로
  * 그쪽이 잡는 예외는 여기까지 오지 않는다.
@@ -158,26 +159,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
       return;
     }
 
-    const line = `예외 처리: ${describeError(exception)} ${requestMethod(request)} ${requestPath(request)} → ${status}`;
+    // 클래스명·code·method·path·상태가 기본이다. 허용 목록의 내장 오류(TypeError 등)만 메시지와 첫 프로젝트 프레임이 붙는다
+    const line = `예외 처리: ${describeError(exception)} ${requestMethod(request)} ${requestPath(request)} → ${status}${describeErrorDetails(exception)}`;
     if (status >= 500) {
       this.logger.error(line);
     } else {
       this.logger.warn(line);
     }
   }
-}
-
-/** `클래스명` 또는 `클래스명(code=P2002)`. 메시지·스택·meta는 절대 포함하지 않는다 */
-function describeError(exception: unknown): string {
-  if (typeof exception !== 'object' || exception === null) {
-    return 'NonObjectThrown';
-  }
-
-  const name = exception.constructor?.name;
-  const className = typeof name === 'string' && CLASS_NAME_PATTERN.test(name) ? name : 'UnknownError';
-
-  const code = (exception as { code?: unknown }).code;
-  return typeof code === 'string' && ERROR_CODE_PATTERN.test(code)
-    ? `${className}(code=${code})`
-    : className;
 }
