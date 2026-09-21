@@ -35,7 +35,6 @@ src/
     notice/page.tsx       # 공지사항
     book/page.tsx
     desktop-404/page.tsx
-    api/youtube/...       # API 라우트 핸들러
     layout.tsx
     globals.css
   components/

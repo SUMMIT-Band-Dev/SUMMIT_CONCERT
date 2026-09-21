@@ -95,7 +95,6 @@ src/
     event-goods/page.tsx  # 세트리스트 상세 (539줄 — 크기 큼, 분할 필요)
     location/page.tsx     # 장소 정보 (권장 패턴: Server + Client)
     [other routes]/       # time-table, ticket-info, notice 등
-    api/youtube/...       # API 핸들러
     layout.tsx
     globals.css
   components/

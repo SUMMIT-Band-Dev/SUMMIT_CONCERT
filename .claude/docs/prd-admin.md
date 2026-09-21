@@ -197,13 +197,13 @@
 
 - **iTunes Search API** — 앨범 커버 자동 매칭
   - 분당 약 20회 rate limit 존재. 개별 곡 입력 단위로는 문제없으나, 대량 마이그레이션 시나리오(work03)에서는 별도 고려 필요
-- **기존 유튜브 스코어링 로직** (`src/app/api/youtube/`) — 배치 추천 검색에 재사용
+- **기존 유튜브 스코어링 로직** (`src/app/api/youtube/`, **2026-09-22 work02-7b에서 프론트 라우트 삭제** — 점수 로직은 `apps/api/src/youtube/youtube-score.ts`에만 남음) — 배치 추천 검색에 재사용
   - YouTube Data API `search.list`는 별도 quota 버킷 적용, 일일 기본 한도 100회 → 하루 최대 약 100회 검색 가능
-  - 배치와 기존 실시간 폴백(`src/app/api/youtube/top-video`)은 **서로 다른 Google Cloud 프로젝트**의 API 키를 사용 (관리자 배치 작업이 일반 방문자 폴백의 quota를 잠식하지 않도록)
+  - ~~배치와 기존 실시간 폴백(`src/app/api/youtube/top-video`)은 **서로 다른 Google Cloud 프로젝트**의 API 키를 사용 (관리자 배치 작업이 일반 방문자 폴백의 quota를 잠식하지 않도록)~~ **[2026-09-22 work02-7b: 프론트 실시간 폴백을 제거했다(결정: 영상 링크가 없는 곡은 "곡명 가수" YouTube 검색 결과 페이지를 새 탭으로 연다). 방문자 쪽 `search.list` 호출이 없어졌으므로 "방문자 폴백 quota 보호"는 더 이상 이유가 아니다. 배치 전용 Cloud 프로젝트 분리는 그대로 유지한다(배치가 다른 소비자와 quota를 나누지 않게)]**
     - ⚠️ **키만 나누는 것으로는 quota가 분리되지 않는다.** quota는 API 키가 아니라 Cloud 프로젝트 단위로 집계된다. 같은 프로젝트에서 키를 두 개 발급하면 `search.list`의 일일 100회 버킷을 그대로 공유한다.
       - 근거: API 키로 요청하면 "그 키에 연결된 프로젝트가 quota 프로젝트"로 쓰인다 — [Google Cloud: Quota project](https://docs.cloud.google.com/docs/quotas/quota-project)
       - 근거: `search.list`는 별도 quota 버킷을 가지며 기본 한도가 하루 100회이고, 일일 quota는 태평양 시간 자정에 리셋된다 — [YouTube Data API: Quota Calculator](https://developers.google.com/youtube/v3/determine_quota_cost)
-    - 배치 전용 프로젝트(`summit-admin-batch`)를 별도로 만들어 분리했고, 할당량 화면에서 `Search Queries per day = 100`, `per minute = 100`을 확인했다. 앱 일일 상한은 그 80%인 80회이며 환경변수는 `YOUTUBE_BATCH_API_KEY`(프론트 폴백은 `YOUTUBE_API_KEY`)다
+    - 배치 전용 프로젝트(`summit-admin-batch`)를 별도로 만들어 분리했고, 할당량 화면에서 `Search Queries per day = 100`, `per minute = 100`을 확인했다. 앱 일일 상한은 그 80%인 80회이며 환경변수는 `YOUTUBE_BATCH_API_KEY`다(프론트 폴백이 쓰던 `YOUTUBE_API_KEY`는 폴백 제거로 더 이상 쓰이지 않는다)
 - **Supabase Storage** — 카드뉴스 이미지 업로드
 
 ### 🚀 배포 & 호스팅
