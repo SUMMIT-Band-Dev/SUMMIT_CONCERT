@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { motion, type PanInfo } from "framer-motion";
 import { useEffect, useState } from "react";
 import FadeInUp from "@/components/common/fade-in-up";
+import { normalizeImageSource } from "@/lib/image-source";
+import { parseDay } from "@/lib/line-up";
 import { supabase } from "@/lib/supabase";
 
 type SetlistItem = {
@@ -192,34 +194,31 @@ export default function CardCarousel() {
           loadedRows = (data as Array<Record<string, unknown>>)
             .map((row) => {
               const id = typeof row.id === "number" ? row.id : Number(row.id);
-              const teamNameRaw =
+              // 공백만 있는 팀명은 없는 것으로 본다(/setlist·/event-goods 빌더와 같은 기준)
+              const teamNameRaw = (
                 typeof row.team_name === "string"
                   ? row.team_name
                   : typeof row.team === "string"
                     ? row.team
-                    : "";
+                    : ""
+              ).trim();
               const dayRaw = typeof row.day === "string" ? row.day : "";
-              const imageRaw =
-                typeof row.image_src === "string" ? row.image_src : "";
-              const normalizedImageRaw = imageRaw
-                .trim()
-                .replaceAll("\\", "/")
-                .replace(/^(public|dist)\//i, "");
-              const imageSrc = normalizedImageRaw
-                ? normalizedImageRaw.startsWith("/") ||
-                  normalizedImageRaw.startsWith("http")
-                  ? normalizedImageRaw
-                  : `/${normalizedImageRaw}`
-                : "";
+              const imageSrc = normalizeImageSource(row.image_src);
 
-              if (!Number.isFinite(id) || !teamNameRaw || !imageSrc) {
+              // 노출 조건: 팀명·포스터 이미지가 있고, 일차(dayN)가 유효한 팀만
+              if (
+                !Number.isFinite(id) ||
+                !teamNameRaw ||
+                !imageSrc ||
+                parseDay(dayRaw) === null
+              ) {
                 return null;
               }
 
               return {
                 id,
                 team_name: teamNameRaw,
-                day: dayRaw || "SUMMIT",
+                day: dayRaw,
                 image_src: imageSrc,
               } satisfies SetlistItem;
             })

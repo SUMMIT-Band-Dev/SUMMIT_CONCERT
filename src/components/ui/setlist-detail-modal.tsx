@@ -138,6 +138,11 @@ export default function SetlistDetailModal({
                     PLAYLIST
                   </p>
                   <div className="mt-3 space-y-2 pr-1">
+                    {trackItems.length === 0 ? (
+                      <p className="py-6 text-center text-[13px] text-white/70">
+                        등록된 곡이 없습니다.
+                      </p>
+                    ) : null}
                     {trackItems.map((track, index) => (
                       <button
                         key={track.id}
@@ -297,6 +302,11 @@ export default function SetlistDetailModal({
                   </p>
 
                   <div className="mt-4 max-h-97.5 space-y-2 overflow-y-auto pr-1">
+                    {trackItems.length === 0 ? (
+                      <p className="py-6 text-center text-[13px] text-white/70">
+                        등록된 곡이 없습니다.
+                      </p>
+                    ) : null}
                     {trackItems.map((track, index) => (
                       <button
                         key={track.id}

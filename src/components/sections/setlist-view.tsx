@@ -8,60 +8,6 @@ import { getDayLabel, getSortedDays } from "@/lib/line-up";
 import { openTrackVideo } from "@/lib/open-track-video";
 import type { DayType, SetlistCard, TrackItem } from "@/types/setlist";
 
-const trackListByDay: Record<DayType, TrackItem[]> = {
-  1: [
-    { id: 101, title: "Twilight", artist: "SUMMIT Band", coverShape: "square" },
-    {
-      id: 102,
-      title: "Sunset Sky",
-      artist: "SUMMIT Band",
-      coverShape: "square",
-    },
-    { id: 103, title: "Dreaming", artist: "SUMMIT Band", coverShape: "square" },
-    {
-      id: 104,
-      title: "Blue Hour",
-      artist: "SUMMIT Band",
-      coverShape: "square",
-    },
-    {
-      id: 105,
-      title: "After Party",
-      artist: "SUMMIT Band",
-      coverShape: "square",
-    },
-    { id: 106, title: "Encore", artist: "SUMMIT Band", coverShape: "square" },
-  ],
-  2: [
-    {
-      id: 201,
-      title: "Night Drive",
-      artist: "SUMMIT Band",
-      coverShape: "square",
-    },
-    {
-      id: 202,
-      title: "Moonlight",
-      artist: "SUMMIT Band",
-      coverShape: "square",
-    },
-    {
-      id: 203,
-      title: "Afterglow",
-      artist: "SUMMIT Band",
-      coverShape: "square",
-    },
-    {
-      id: 204,
-      title: "Last Song",
-      artist: "SUMMIT Band",
-      coverShape: "square",
-    },
-    { id: 205, title: "Midnight", artist: "SUMMIT Band", coverShape: "square" },
-    { id: 206, title: "Finale", artist: "SUMMIT Band", coverShape: "square" },
-  ],
-};
-
 export default function SetlistView({
   cardsData,
   trackItemsByTeamId,
@@ -85,12 +31,8 @@ export default function SetlistView({
     [cardsData, selectedDay],
   );
 
-  const matchedTrackItems = selectedCard
-    ? trackItemsByTeamId[selectedCard.id]
-    : undefined;
-  const trackItems = matchedTrackItems?.length
-    ? matchedTrackItems
-    : (trackListByDay[selectedDay] ?? []);
+  // 곡이 없는 팀은 빈 목록을 넘기고, 모달이 "등록된 곡이 없습니다"를 보여 준다.
+  const trackItems = selectedCard ? (trackItemsByTeamId[selectedCard.id] ?? []) : [];
 
   const handleSelectCard = useCallback((card: SetlistCard) => {
     setSelectedCard(card);
