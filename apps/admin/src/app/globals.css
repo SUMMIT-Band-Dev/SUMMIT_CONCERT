@@ -36,7 +36,8 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* 최소 토큰: 흰 배경 + 중립 회색 + 검정 강조 + 오류 빨강 */
+/* ⚠️ 임시 토큰(디자인 승인 대기, work02-7c-1b): shadcn 기본 중립 팔레트를 그대로 둔 자리표시다.
+   승인되면 색·radius·폰트·밀도·레이아웃 치수를 이 파일의 :root 한 곳에서 정의하고 레이아웃 컴포넌트는 변수만 참조한다. */
 :root {
   color-scheme: light;
   --background: oklch(1 0 0);
