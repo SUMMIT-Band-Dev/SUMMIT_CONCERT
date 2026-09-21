@@ -3,10 +3,11 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import FadeInUp from "@/components/common/fade-in-up";
+import TrackActionIndicator from "@/components/ui/track-action-indicator";
 import TrackCoverImage from "@/components/ui/track-cover-image";
 import { SquareGrayArtwork } from "@/components/ui/artwork-placeholders";
 import { getDayLabel, getSortedDays } from "@/lib/line-up";
-import { openTrackVideo } from "@/lib/open-track-video";
+import { getTrackActionLabel, openTrackVideo } from "@/lib/open-track-video";
 import type { DayType, TeamPlaylist } from "@/types/setlist";
 
 function DayPlaylistSection({ day, teams }: { day: DayType; teams: TeamPlaylist[] }) {
@@ -49,6 +50,7 @@ function DayPlaylistSection({ day, teams }: { day: DayType; teams: TeamPlaylist[
                       key={track.id}
                       type="button"
                       onClick={() => openTrackVideo(track)}
+                      aria-label={getTrackActionLabel(track)}
                       className="flex w-full items-center gap-3 rounded-[10px] border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left transition-all hover:border-white/30 hover:bg-white/[0.1]"
                     >
                       <div className="w-6 shrink-0 text-center text-[12px] font-semibold text-white/55">
@@ -73,9 +75,7 @@ function DayPlaylistSection({ day, teams }: { day: DayType; teams: TeamPlaylist[
                           {track.artist}
                         </p>
                       </div>
-                      <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/35 text-[12px] text-white/85">
-                        ▶
-                      </div>
+                      <TrackActionIndicator track={track} />
                     </button>
                   );
                 })}

@@ -2,7 +2,9 @@
 
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
+import TrackActionIndicator from "@/components/ui/track-action-indicator";
 import TrackCoverImage from "@/components/ui/track-cover-image";
+import { getTrackActionLabel } from "@/lib/open-track-video";
 import { DummyPosterArtwork, SquareGrayArtwork } from "@/components/ui/artwork-placeholders";
 import type { SetlistCard, TrackItem } from "@/types/setlist";
 
@@ -148,6 +150,7 @@ export default function SetlistDetailModal({
                         key={track.id}
                         type="button"
                         onClick={() => onTrackClick(track)}
+                        aria-label={getTrackActionLabel(track)}
                         className="flex w-full items-center gap-3 rounded-[10px] border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left transition-all hover:border-white/30 hover:bg-white/[0.1]"
                       >
                         <div className="w-5.5 shrink-0 text-center text-[11px] font-semibold text-white/55">
@@ -172,9 +175,7 @@ export default function SetlistDetailModal({
                             {track.artist}
                           </p>
                         </div>
-                        <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/35 text-[12px] text-white/85">
-                          ▶
-                        </div>
+                        <TrackActionIndicator track={track} />
                       </button>
                     ))}
                   </div>
@@ -312,6 +313,7 @@ export default function SetlistDetailModal({
                         key={track.id}
                         type="button"
                         onClick={() => onTrackClick(track)}
+                        aria-label={getTrackActionLabel(track)}
                         className="flex w-full items-center gap-3 rounded-[10px] border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left transition-all hover:border-white/30 hover:bg-white/[0.1]"
                       >
                         <div className="w-6 shrink-0 text-center text-[12px] font-semibold text-white/55">
@@ -336,9 +338,7 @@ export default function SetlistDetailModal({
                             {track.artist}
                           </p>
                         </div>
-                        <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/35 text-[12px] text-white/85">
-                          ▶
-                        </div>
+                        <TrackActionIndicator track={track} />
                       </button>
                     ))}
                   </div>
