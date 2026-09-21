@@ -3,10 +3,12 @@
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LoginForm } from "@/components/login-form";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/lib/auth/auth-context";
 import { sanitizeNextPath } from "@/lib/auth/next-path";
+import { BRAND_NAME } from "@/lib/nav";
 
-// 임시 최소 스타일: 디자인(레이아웃·토큰) 승인 전이라 꾸밈 없이 기능만 둔다. 승인 후 교체한다.
+// 로그인 화면: 블랙 배경 + 파랑 브랜드 표시 위에 카드형 중앙 정렬. 색은 전부 globals.css 토큰이다
 export function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -21,13 +23,34 @@ export function LoginPageContent() {
   }, [status, nextPath, router]);
 
   return (
-    <main className="mx-auto max-w-sm p-8">
-      <h1 className="mb-6 text-lg font-semibold">SUMMIT 관리자 로그인</h1>
-      {status === "loading" || status === "authenticated" ? (
-        <p role="status">확인 중입니다…</p>
-      ) : (
-        <LoginForm onSuccess={() => router.replace(nextPath)} />
-      )}
+    <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-auth p-4">
+      <div className="flex items-center gap-3">
+        <span
+          aria-hidden="true"
+          className="flex size-10 items-center justify-center rounded-lg bg-primary text-section font-bold text-primary-foreground"
+        >
+          S
+        </span>
+        <span className="text-title font-semibold text-auth-foreground">{BRAND_NAME}</span>
+      </div>
+
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle className="text-section">로그인</CardTitle>
+          <CardDescription>관리자 계정으로 로그인해 주세요.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {status === "loading" || status === "authenticated" ? (
+            <p role="status" className="text-body text-muted-foreground">
+              확인 중입니다…
+            </p>
+          ) : (
+            <LoginForm onSuccess={() => router.replace(nextPath)} />
+          )}
+        </CardContent>
+      </Card>
+
+      <p className="text-caption text-auth-muted">SUMMIT 정기공연 관리자 페이지</p>
     </main>
   );
 }

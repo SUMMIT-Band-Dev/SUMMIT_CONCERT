@@ -2,31 +2,160 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* 관리자 UI는 라이트 단색 하나만 쓴다(다크모드 없음, 7c-1 결정).
-   shadcn 컴포넌트의 dark: 변형이 OS 다크 설정에 반응하지 않도록 클래스 기반으로 두고, .dark 클래스는 어디에도 붙이지 않는다. */
+/* ─────────────────────────────────────────────────────────────────────────────
+   디자인 토큰 — 색·radius·글꼴·밀도·레이아웃 치수는 **이 파일의 :root 한 곳에만** 둔다.
+   컴포넌트(.tsx)에는 색상 값(#hex, rgb(), 팔레트 클래스 bg-blue-500 등)을 직접 쓰지 않고 아래 토큰을
+   Tailwind 유틸리티(bg-primary, text-muted-foreground, w-(--sidebar-width) …)로만 참조한다.
+   (src/lib/design-tokens.test.ts 가 이를 검사한다.) 디자인을 바꿀 때는 :root 블록과 layout/ 컴포넌트만 손보면 된다.
+
+   방향(7c-1b, 사용자 승인): 공개 랜딩과 다른 전형적인 관리자 대시보드. 블랙 + 파랑(VS Code 계열),
+   어두운 고정 사이드바 + 밝은 콘텐츠, 표준-조밀 밀도, 시스템 폰트, 다크모드 없음.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* shadcn 컴포넌트의 dark: 변형이 OS 다크 설정에 반응하지 않도록 클래스 기반으로 두고 .dark 는 어디에도 붙이지 않는다 */
 @custom-variant dark (&:is(.dark *));
 
+:root {
+  color-scheme: light;
+
+  /* ── 표면·글자(밝은 콘텐츠 영역) ── */
+  --background: #f3f5f8; /* 페이지 배경 */
+  --foreground: #1b2430; /* 본문 글자 — 카드 위 15.65:1 */
+  --card: #ffffff;
+  --card-foreground: #1b2430;
+  --popover: #ffffff;
+  --popover-foreground: #1b2430;
+  --muted: #eaeef3; /* 옅은 면(표 머리글, 비활성 영역) */
+  --muted-foreground: #4f5b6b; /* 보조 글자 — 페이지 배경 위 6.32:1 */
+  --secondary: #eaeef3;
+  --secondary-foreground: #1b2430;
+  --accent: #e3eaf3; /* hover 배경 */
+  --accent-foreground: #1b2430;
+  --border: #dbe1e9; /* 카드·구분선(장식용) */
+  --input: #7d8899; /* 입력칸 테두리 — 카드 위 3.59:1 (WCAG 1.4.11 3:1 이상) */
+  --ring: #0072c0; /* 포커스 링 */
+  --overlay: rgb(13 17 23 / 0.55); /* 대화상자·서랍 뒤 어둡게 */
+
+  /* ── 주색(파랑): #007acc 계열에서 흰 글자 대비 5:1 이상이 되도록 살짝 진하게 ── */
+  --primary: #0072c0; /* 흰 글자 5.04:1 */
+  --primary-foreground: #ffffff;
+  --primary-hover: #005fa3; /* 흰 글자 6.63:1 */
+
+  /* ── 상태색: 글자/아이콘용 진한 값 + 뱃지 배경용 옅은 값 ── */
+  --destructive: #c62828; /* 흰 배경 5.62:1 */
+  --destructive-foreground: #ffffff;
+  --success: #1b7a3a;
+  --warning: #8a5a00;
+  --info: #0072c0;
+  --badge-neutral-bg: #e8ecf1;
+  --badge-neutral-fg: #3d4756;
+  --badge-success-bg: #dcf5e3;
+  --badge-success-fg: #0f5a29;
+  --badge-warning-bg: #fdf0c8;
+  --badge-warning-fg: #6f4700;
+  --badge-danger-bg: #fde4e4;
+  --badge-danger-fg: #9c1c1c;
+  --badge-info-bg: #dcefff;
+  --badge-info-fg: #00507f;
+
+  /* ── 사이드바(어두운 남색-차콜, 순검정 아님) ── */
+  --sidebar: #141a24;
+  --sidebar-foreground: #d3dae6; /* 12.42:1 */
+  --sidebar-muted: #8f9bb0; /* 6.22:1 */
+  --sidebar-border: #252d3b;
+  --sidebar-hover: #1e2634;
+  --sidebar-active: #0b3a63; /* 활성 메뉴 배경 — 흰 글자 11.67:1 */
+  --sidebar-active-foreground: #ffffff;
+  --sidebar-indicator: #3b9eff; /* 활성 메뉴 왼쪽 막대, 브랜드 표시 — 사이드바 위 6.25:1 */
+  --sidebar-warning: #ffb454; /* 로그인 유지 시간이 얼마 안 남았을 때 — 9.9:1 */
+
+  /* ── 로그인 화면 ── */
+  --auth-background: #0d1117;
+  --auth-foreground: #ffffff;
+  --auth-muted: #8f9bb0; /* 배경 위 6.4:1 이상 */
+
+  /* ── 형태 ── */
+  --radius: 0.5rem; /* 8px. 작은 요소는 아래 @theme 에서 0.6배(≈5px), 대화상자는 1.4배(≈11px) */
+
+  /* ── 글꼴: 시스템 폰트 스택(웹폰트 없음 — 외부 요청·CSP 부담 없음). 나중에 교체하기 쉽게 여기서만 정의 ── */
+  --font-family-sans: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --fs-title: 1.25rem; /* 20px 페이지 제목 */
+  --fs-section: 1rem; /* 16px 섹션 제목 */
+  --fs-body: 0.875rem; /* 14px 본문 */
+  --fs-small: 0.8125rem; /* 13px 표·보조 */
+  --fs-caption: 0.75rem; /* 12px 캡션 */
+
+  /* ── 밀도(표준-조밀) ── */
+  --control-height: 2.25rem; /* 36px 입력·버튼 */
+  --row-height: 2.75rem; /* 44px 표 행 */
+  --nav-item-height: 2.5rem; /* 40px 사이드바 항목 */
+  --page-padding: 1.5rem; /* 24px 페이지 여백 */
+  --card-padding: 1.25rem; /* 20px 카드 안 여백 */
+
+  /* ── 레이아웃 치수 ── */
+  --sidebar-width: 14.5rem; /* 232px */
+  --topbar-height: 3.5rem; /* 56px */
+  --content-max-width: 75rem; /* 1200px */
+  --list-panel-width: 17rem; /* 272px 곡 관리의 팀 목록 패널 */
+}
+
 @theme inline {
-  --font-sans: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-heading: var(--font-sans);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --color-foreground: var(--foreground);
+  --font-sans: var(--font-family-sans);
+  --font-heading: var(--font-family-sans);
+
+  --text-title: var(--fs-title);
+  --text-section: var(--fs-section);
+  --text-body: var(--fs-body);
+  --text-small: var(--fs-small);
+  --text-caption: var(--fs-caption);
+
   --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-overlay: var(--overlay);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-badge-neutral-bg: var(--badge-neutral-bg);
+  --color-badge-neutral-fg: var(--badge-neutral-fg);
+  --color-badge-success-bg: var(--badge-success-bg);
+  --color-badge-success-fg: var(--badge-success-fg);
+  --color-badge-warning-bg: var(--badge-warning-bg);
+  --color-badge-warning-fg: var(--badge-warning-fg);
+  --color-badge-danger-bg: var(--badge-danger-bg);
+  --color-badge-danger-fg: var(--badge-danger-fg);
+  --color-badge-info-bg: var(--badge-info-bg);
+  --color-badge-info-fg: var(--badge-info-fg);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-active-foreground: var(--sidebar-active-foreground);
+  --color-sidebar-indicator: var(--sidebar-indicator);
+  --color-sidebar-warning: var(--sidebar-warning);
+  --color-auth: var(--auth-background);
+  --color-auth-foreground: var(--auth-foreground);
+  --color-auth-muted: var(--auth-muted);
+
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -36,40 +165,23 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* ⚠️ 임시 토큰(디자인 승인 대기, work02-7c-1b): shadcn 기본 중립 팔레트를 그대로 둔 자리표시다.
-   승인되면 색·radius·폰트·밀도·레이아웃 치수를 이 파일의 :root 한 곳에서 정의하고 레이아웃 컴포넌트는 변수만 참조한다. */
-:root {
-  color-scheme: light;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  /* 입력칸 테두리는 배경(흰색) 대비 3:1 이상이어야 경계가 보인다(WCAG 1.4.11). 카드·구분선용 --border보다 진하게 둔다 */
-  --input: oklch(0.6 0 0);
-  --ring: oklch(0.708 0 0);
-  --radius: 0.625rem;
-}
-
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
   html {
     @apply font-sans;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-size: var(--fs-body);
+    line-height: 1.5;
+    /* 한글은 어절 단위로 줄바꿈한다("그대로"가 "그 / 대로"로 끊기지 않게). 아주 긴 한 덩어리만 강제로 자른다 */
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+  /* 순서·쿼터·시간처럼 자리가 맞아야 읽기 쉬운 숫자 */
+  .tabular {
+    font-variant-numeric: tabular-nums;
   }
 }
