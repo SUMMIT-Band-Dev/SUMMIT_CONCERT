@@ -430,6 +430,8 @@ npm run seed:admin
 
 > **2026-09-22 갱신 (work02-7b, §17)**: 이 목록의 **프론트 항목을 처리했다** — id 범위 폴백(일차·팀명·이미지) 제거와 `dayN` 기준 통일, 홈 캐러셀 노출 규칙, `open-track-video` 예외 처리·검증, 프론트 실시간 폴백(`top-video`) 제거(검색 결과 링크로 대체). 항목별로 취소선과 결과를 붙였다. **남은 항목**: 썸네일 도메인(`remotePatterns`), 관리자 UI 요건 전부(그대로 유지), `apps/api`의 낡은 참조 정리(§17 "남겨둔 결정"), 캐러셀 라벨, `setlistCards` 정적 폴백, 배포 후 사용자 작업(§17).
 
+> **2026-09-22 갱신 (work02-7c-1, §18)**: 관리자 프론트(`apps/admin`) 뼈대를 만들며 **로그인 제출 전 검증(L5)**을 처리했다(서버 DTO와 같은 규칙, 429 `Retry-After` "N분 뒤" 안내, 새로고침 뒤에도 유지되는 버튼 잠금, 남은 시도 횟수 미표시). **새로 생긴 남은 항목**: `next` 16.2.4의 `npm audit` critical(공개 사이트와 admin 모두, §18 "남겨둔 결정 1"), CSP 이미지 호스트 추가 시점(7c-2~4), `NEXT_PUBLIC_PUBLIC_SITE_ORIGIN` 실사용(7c-2), 배포 시 admin 오리진의 `CORS_ALLOWED_ORIGINS`와 Vercel Ignored Build Step(§18 "7d 내가 할 일"). §10의 나머지 관리자 UI 요건(팀·곡·앨범 커버·유튜브 화면)은 **그대로 유지**하고 7c-2~4에 매핑했다.
+
 - ~~**공개 프론트의 팀 id 범위 하드코딩**~~ **[완료 2026-09-22, §17: id 범위 추정(일차·팀명·이미지)을 제거하고 `Line Up.day`(`dayN`)만 인정. 두 페이지의 규칙을 `src/lib/line-up.ts`로 통일]** (2026-09-19, §11 조사 중 발견) — `src/app/setlist/page.tsx`와 `src/app/event-goods/page.tsx`가 `day`/`image_src`가 비었을 때 **팀 id 범위로 일자·팀명·이미지를 추정하는 폴백**을 갖고 있다. 두 파일의 구현이 서로 다른 것이 특히 문제다.
   - `setlist/page.tsx`: `id 1~7 → day1`, `id 8~14 → day2`, 그 외 `null`(= 렌더링 제외)
   - `event-goods/page.tsx`: `id 1~7 → day1`, **`id >= 8 → day2` (상한 없음)** → id 16 이상의 신규 팀이 무조건 2일차로 분류된다
@@ -455,7 +457,7 @@ npm run seed:admin
   - **iTunes URL 직접 입력 경로** — 벤치마크에서 **후보에 없음 10건 + 후보 0건 1건**이 나왔다. 즉 64곡 중 11곡은 후보 목록만으로는 해결되지 않는다. 관리자가 Apple Music에서 직접 찾은 주소를 붙여 넣을 수 있어야 한다. 서버는 이미 이 경로를 받는다(같은 `PUT` 엔드포인트, allowlist + `600x600bb.jpg` 경로 패턴 검증). **UI는 "왜 거부됐는지"를 안내해야 한다** — 100x100 주소나 다른 `isN-ssl` 호스트를 붙여 넣으면 400이 나는데, 이유를 모르면 관리자가 막힌다
   - **US 스토어프런트 영어 표기 주의 문구** — 후보 목록의 곡명·아티스트명이 **영문으로 나온다**(`빨간 피터`→`Red Peter`, `한로로`→`HANRORO`, 일본곡은 로마자). 한국어로 검색했는데 영어 결과가 뜨는 것이 정상 동작임을 화면에 알려주지 않으면 "검색이 틀렸다"고 오해한다. `country=KR`은 영어 쿼리까지 0건이라 쓸 수 없다는 것이 §13에서 실측으로 확인됐다 — 나중에 누가 "한국어로 나오게 바꾸자"고 할 때 되돌아볼 근거다
 
-- **로그인 제한과 관리자 UI의 제출 전 검증** (2026-09-21, §16 교차 리뷰 L5) — 로그인 한도(5분 5회)는 **성공한 로그인과 DTO 400(빈 값 등)도 센다.** 오타를 5번 내면 6번째에는 올바른 비밀번호여도 15분 잠긴다. 관리자 UI는 빈 값·길이를 **서버로 보내기 전에** 막고, 429의 `Retry-After`(CORS로 노출돼 있다)를 "N분 뒤 다시 시도"로 보여 주며, 남은 시도 횟수는 일부러 알려 주지 않는다(`X-RateLimit-*` 숨김)는 점을 감안해 문구를 정해야 한다
+- ~~**로그인 제한과 관리자 UI의 제출 전 검증**~~ **[완료 2026-09-22, §18: 제출 전 검증(빈 값·공백 아이디·길이)으로 실패 요청을 보내지 않고, 전송 중 재제출 차단, 429는 `Retry-After`를 "N분 뒤"로 안내하며 새로고침 뒤에도 버튼을 잠근다. 남은 시도 횟수는 표시하지 않는다]** (2026-09-21, §16 교차 리뷰 L5) — 로그인 한도(5분 5회)는 **성공한 로그인과 DTO 400(빈 값 등)도 센다.** 오타를 5번 내면 6번째에는 올바른 비밀번호여도 15분 잠긴다. 관리자 UI는 빈 값·길이를 **서버로 보내기 전에** 막고, 429의 `Retry-After`(CORS로 노출돼 있다)를 "N분 뒤 다시 시도"로 보여 주며, 남은 시도 횟수는 일부러 알려 주지 않는다(`X-RateLimit-*` 숨김)는 점을 감안해 문구를 정해야 한다
 - **`TRUST_PROXY_HOPS` 배포 체크리스트** (2026-09-21, §16 교차 리뷰 M1) — 앱 포트는 프록시에서만 접근 가능해야 하고(바인딩 호스트 제한 검토 포함), 프록시가 `X-Forwarded-For`에 실제 IP를 덧붙이며(`$proxy_add_x_forwarded_for`), 홉 수는 실제 프록시 수와 같아야 한다. **배포 서버에서 위조 XFF가 무효인지, 다른 네트워크 클라이언트가 429를 맞지 않는지 실측한다.** 틀리면 요청 제한이 우회되거나 전 사용자가 한 IP로 집계돼 관리자 로그인이 잠긴다. 상세는 §16
 - **anon/authenticated 롤의 테이블 권한 회수 검토** **[부분 완료 2026-09-21, §16: 현황 조사·SQL 초안·영향 평가(공개 프론트 영향 없음, 코드 근거)·롤백 SQL 완료. 실행 여부는 미결정(별도 게이트)]** (2026-09-20, §14 작업 중 확인) — `Setlist`·`Line Up` 두 테이블에 `anon`/`authenticated` 롤이 TRUNCATE를 포함한 **전 권한**을 갖고 있다(위 §9 7)에서 확인한 `public` 스키마 기본 ACL `arwdDxtm`과 같은 뿌리). PostgREST는 TRUNCATE를 노출하지 않아 **REST 경로로는 악용이 어렵고**, RLS가 행 단위 쓰기는 막고 있어 지금 당장의 위험은 아니다. 다만 RLS는 TRUNCATE에 적용되지 않으므로 권한 자체가 남아 있는 것은 방어 계층 하나가 비어 있다는 뜻이다. **7단계 배포 전 보안 점검에서 두 테이블의 쓰기성 권한(INSERT/UPDATE/DELETE/TRUNCATE 등) 회수 여부를 검토**한다. `src` 전체에 supabase `insert`/`update`/`upsert`/`delete` 호출이 0건이라 프론트는 SELECT만 쓴다(2026-09-20 grep). 회수해도 프론트 영향은 없을 것이나, 회수 시점에 다시 확인한다
 - ~~**anon 쓰기 차단 재확인 (`pg_policies`)**~~ **[완료 2026-09-21, §16: `Setlist`·`Line Up`에 SELECT 외 정책 0건을 직접 조회로 확인]** (2026-09-20 추가) — §8에서 "anon key로 쓰기가 거부되는 것을 확인"했으나, 이번 6단계 1/2 작업에서는 **anon 쓰기 차단을 직접 다시 확인하지 않았다**(anon 조회만 확인). 7단계 보안 점검에서 `pg_policies`로 `Setlist`·`Line Up`에 **SELECT 외 정책이 없는지**를 직접 조회해 확인한다. 위 권한 회수 항목과 한 번에 점검한다
@@ -1977,6 +1979,175 @@ GRANT USAGE, SELECT, UPDATE ON SEQUENCE public."Setlist_id_seq", public."AdminUs
 
 - 브랜치 `feature/public-frontend-fixes`, 푸시·PR 보류
 - **다음**: 7c 관리자 UI(`apps/admin`, 별도 Vercel 프로젝트) → 7d 배포 → 59곡 유튜브 배치·리뷰. 위 "남겨둔 결정"은 7c에서 함께 정리한다. **7b 배포 직후에는 59곡이 돋보기 표시로 보이고, 배치 리뷰에서 승인되는 만큼 `▶`로 바뀐다**
+
+## 18. work02-7c-1 — 관리자 프론트(apps/admin) 설계 + 뼈대: 로그인 · 인증 저장 · 레이아웃 · API 클라이언트 · CI (2026-09-22)
+
+- **날짜**: 2026-09-22
+- **브랜치**: `feature/admin-app-scaffold` (`develop`과 같은 커밋 `3a50216`에 있던 브랜치. 커밋 0개·upstream 없음·원격에 없음을 확인하고 그대로 사용. 분기 전 `develop == origin/develop`)
+- **커밋**: 프로젝트 생성 `7211cf3` / API 클라이언트 `ba1794a` / 로그인·인증 `c09a67d` / 보호 라우트·자리표시 화면 `0c21f07` / CI `53e5be8` / 문서(이 섹션)
+  - 순서가 "로그인 → 레이아웃 → API 클라이언트"가 아닌 것은 로그인이 API 클라이언트를 쓰기 때문이다. 브라우저 검증에서 나온 수정 2건(토큰 저장소, 429 남은 시간)과 스타일 1건은 해당 커밋에 fixup으로 합쳤다
+- **관련 PR**: work02-7c1, `feat: 관리자 프론트(apps/admin) 뼈대 (로그인, 인증 저장, 레이아웃, API 클라이언트)` (푸시/PR 생성은 보류)
+- **상태**: 구현·단위 테스트 114개·브라우저 검증 완료. **DB 쓰기·스키마 변경 0건, `apps/api` 무변경, 공개 프론트 무변경**(루트 `package*.json`·`src` diff 0, 루트 lint·build 결과 동일). 실계정 로그인은 하지 않았다(사용자 몫)
+- **디자인 변경으로 일부 보류 (2026-09-22, 사용자 요청)**: 공개 랜딩과 완전히 다른 **전형적인 관리자 대시보드 UI(좌측 사이드바 + 상단 바)**로 방향이 바뀌어 **레이아웃과 디자인 토큰만 보류**했다. 로그인·인증·API 클라이언트·CI·보호 라우트 로직은 그대로다. 이미 구현·커밋했던 상단 메뉴형 레이아웃과 공통 화면 패턴(`PageHeader` 등)은 **push 전이라 이 브랜치에서 제거**했고 원본은 로컬 백업 브랜치 `backup/7c1-with-layout`에 남아 있다(삭제해도 무방). 후속 단계 **7c-1b(레이아웃·토큰)**는 승인 후 구현한다. 현재 메뉴는 스타일 없는 임시 링크, 로그인 페이지는 임시 최소 스타일, `globals.css` 토큰은 임시 자리표시다
+
+### 배경
+
+7단계(관리자 UI)의 첫 단계다. 팀·곡·유튜브 화면(7c-2~4)을 올릴 **기반**을 먼저 만든다: 별도 앱, 인증 저장과 만료 UX, 보호 라우트, API 클라이언트와 오류 매핑, 최소 CSP, CI. 관리자는 1~3명(비개발자 임원진)이고 동시 편집은 드물다는 전제다.
+
+### 구현 전 조사 (실측·공식 문서)
+
+**Vercel(공식 문서 확인)**
+
+| 항목 | 사실 | 영향 |
+| --- | --- | --- |
+| 모노레포 | 같은 레포에서 프로젝트를 여러 개 만들고 각각 Root Directory 지정. 기본은 "every commit will issue a deployment for **all** connected projects" | 공개 프로젝트는 `apps/admin` 커밋에도 재빌드된다(루트 변경도 admin을 재빌드) |
+| 자동 스킵 | **workspaces가 있어야 한다**(npm/yarn/pnpm/Bun workspaces). 원문: workspace 정의 밖 변경은 "global changes and deploy all applications" | 이 레포는 루트 `workspaces`가 없어 **쓸 수 없다.** 도입하면 루트 lockfile이 재작성돼 공개 사이트 배포 위험이 생긴다 |
+| Ignored Build Step | 내장 옵션 "Only build if there are changes in a folder". 종료 코드 **0 = 빌드 취소, 1 = 빌드 진행**. 취소된 빌드도 배포 쿼터·동시 빌드 슬롯을 쓴다 | 결정: **admin 프로젝트에만** 건다. 공개 프로젝트는 그대로(커밋당 2회 빌드 감수) |
+| Hobby 한도 | 레포당 프로젝트 25, 배포 100/일, 동시 빌드 1. 조직 소유 레포는 Hobby 불가 | 레포가 `SUMMIT-Band-Dev/…`(조직)이고 이미 배포 중이라 Hobby가 아닐 것으로 **추정** — 플랜은 **확인 필요** |
+| 함수 시간 | Fluid compute(기본) 기준 Hobby 기본·최대 300초 | 이번엔 BFF를 쓰지 않아 해당 없음(아래 인증 판단) |
+
+**Next.js 16(로컬 `node_modules/next/dist/docs`)**: `middleware.ts`가 **`proxy.ts`로 이름이 바뀌었고 런타임은 `nodejs` 고정**이다. 문서 원문: proxy는 "not ... a full session management or authorization solution"이며 쿠키만 읽는 낙관적 검사용이다. Async Request API의 동기 접근은 완전히 제거됐다.
+
+**버전(레지스트리, latest가 RC/beta인 것 없음)**: Next 최신은 16.3.5(2026-09-11), 루트는 16.2.4(2026-04-15). 라이선스는 전부 MIT.
+
+> ⚠️ **`npm audit`이 Next 16.2.4에서 critical을 보고한다.** 범위 `9.3.4-canary.0 - 16.3.2`에 인증 우회(Middleware/Proxy bypass), RSC 캐시 오염, Server Actions DoS, 이미지 최적화 API 취약점(AVIF 경유 RCE 포함), Windows 호스팅 RCE 등 **약 25건**이 걸린다. 수정은 16.3.5(`postcss`·`sharp` 취약점도 함께 해소). **이 앱이 실제로 쓰는 표면과 겹치는지는 건별로 확인하지 않았다**(추정: 이 앱은 proxy·Server Actions·이미지 최적화 API를 쓰지 않는다). 다만 **공개 사이트(루트, 같은 16.2.4)도 같은 상태다.**
+> 결정 3의 "루트와 동일한 16.2.4"는 "이 레포에서 검증된 유일한 버전"이 근거였는데, **그 근거가 보안 사실 앞에서 약해졌다.** 이번 브랜치는 결정대로 16.2.4로 고정했고, **스크래치 복사본에서 `next@16.3.5` + `eslint-config-next@16.3.5`로 올려 lint·build·typecheck·test 114개가 전부 통과하고 `npm audit`이 0건임을 확인했다.** 올릴지는 사용자 결정이다(아래 남겨둔 결정 1).
+
+**인증 저장 방식**(현행 API: `Authorization` 헤더 + `credentials:false` CORS, `http:`는 루프백만 허용)
+
+| 방식 | XSS | CSRF | 2시간 만료 UX | 치명적 부작용 |
+| --- | --- | --- | --- | --- |
+| (a) localStorage + 브라우저→API 직접 | 토큰 탈취 가능 | 해당 없음 | 새로고침·새 탭 유지 | 없음 |
+| (b) 메모리만 | 가장 안전 | 해당 없음 | 새로고침마다 재로그인 | 로그인 5회/5분 한도를 갉아먹는다 |
+| (c) BFF(Next 라우트 프록시 + httpOnly 쿠키) | 토큰이 JS에 없음 | **새로 필요** | 좋음 | **모든 API 호출이 Vercel 함수 IP에서 나가 로그인 5회/5분이 관리자 전원 공유가 되고**, API가 실제 IP를 알려면 `X-Forwarded-For`를 믿어야 해 §16이 경고한 위조 위험과 만난다 |
+| (d) API를 쿠키로 변경 | — | — | — | 이번 범위 밖(API 변경 승인 필요) |
+
+**공개 프론트 재사용**: `globals.css`(361줄)는 포스터용 그라데이션이라 재사용 가치가 없다. `src/lib/line-up.ts`·`image-source.ts`도 admin이 쓸 일이 거의 없다. 패키지화는 workspaces가 필요해 위 Vercel 문제와 얽히므로 **복사**가 기본안이다. **새로 발견한 함정**: 기존 15팀의 `image_src`는 `/day1-team1.png` 같은 **공개 사이트 기준 상대경로**라 admin 오리진에서는 그대로 열리지 않는다 → `NEXT_PUBLIC_PUBLIC_SITE_ORIGIN`이 필요하다(7c-2).
+
+### 설계 결정 (사용자 승인)
+
+1. 인증 저장 **localStorage**(위 (a)). 방어는 저장소가 아니라 "서버 문자열을 텍스트로만 렌더링 + `dangerouslySetInnerHTML` 금지 + 서드파티 스크립트 0 + 최소 CSP"의 조합이다. 저장소 선택은 XSS 앞에서 큰 차이가 없다(sessionStorage도 같은 탭에서 읽힌다)
+2. Next/React는 루트와 같은 **16.2.4 / 19.2.4**로 정확 고정(위 audit 경고 참조)
+3. 의존성 승인(정확 버전): TanStack Query 5.103.2, react-hook-form 7.88.0, zod 4.6.5, @hookform/resolvers 5.9.1, vitest + vite, shadcn CLI. dnd-kit은 7c-2에서 별도 승인
+4. Vercel: 공개 프로젝트는 그대로, admin 프로젝트에만 "Only build if there are changes in a folder = `apps/admin`"
+5. 7c 분할: **1 뼈대 / 2a 팀 CRUD(재정렬 포함) / 2b 카드 업로드 / 3 곡·앨범 커버 / 4 유튜브 리뷰·배치.** 2b는 multipart·1MB·413·CDN 캐시·비율 안내로 성격이 달라 분리했고, 프로덕션 첫 쓰기가 나는 지점이라 PR을 섞지 않는다
+6. ~~라이트 단색, 다크모드 없음.~~ **[2026-09-22 보류: 디자인 방향 변경 — 사이드바 + 상단 바 대시보드, 색·radius·폰트 토큰은 한 곳에서 관리. 7c-1b 승인 대기]** 7. 곡 관리 주소는 `/songs?teamId=`. 8. `.env.example`에 `NEXT_PUBLIC_PUBLIC_SITE_ORIGIN`(빈 값+설명)
+
+### 작업 내용
+
+1. **프로젝트 생성**: `apps/admin`(Next 16.2.4 · React 19.2.4 · Tailwind 4 · shadcn radix-nova). 모든 의존성을 정확 버전으로 고정하고 독립 `package-lock.json`. `next.config.ts`에 최소 CSP·보안 헤더·`noindex`·이미지 최적화 API 비활성·Turbopack 작업 루트 명시. 개발 포트 3010
+2. **API 클라이언트**(`src/lib/api/`): `apiRequest`가 유일한 호출 통로. `Authorization` 헤더 인증(`credentials: "omit"`), 절대 URL·`//host`·`\` 경로 거부(토큰이 다른 곳으로 나가지 않게), JSON/FormData, 기본 15초 타임아웃, 외부 취소 signal(타임아웃과 취소를 구분), **재시도 없음**. 오류는 `ApiError`(network/timeout/aborted/validation/unauthorized/forbidden/not_found/conflict/payload_too_large/unsupported_media_type/rate_limited/server/unknown)로 정규화. 서버 한국어 메시지는 가공 없이 보존(배열 포함)하고, 프레임워크 영문 기본 문구와 프록시 502/504는 한국어 문구로 대체(**한글이 한 글자라도 있으면 서버가 의도한 문구**라는 규칙). 429는 `Retry-After`(초·HTTP 날짜)를 "N분 뒤"로, 409는 새로고침 안내를 덧붙인다. 계약 타입은 손으로 옮기되 **미러링하는 API 파일 경로를 주석으로 명시**해 드리프트를 관리한다
+3. **로그인·인증**: 토큰 저장은 `token-storage.ts` 한 곳(저장 실패 시 메모리로 이어 가고, **저장소가 정상이면 저장소가 유일한 진실**). JWT `exp`만 해석해(서명 검증 없음, UX 용도) 만료 시각에 재로그인을 안내한다. 로그인 폼은 RHF + Zod로 **서버 DTO와 같은 규칙·문구**의 제출 전 검증(빈 값, 공백 아이디, 아이디 ≤64, 비밀번호 ≤256 — 서버가 400도 5회/5분 한도에 세므로 실패 요청을 보내지 않는다), 전송 중 재제출 차단, 401은 서버 메시지 그대로 + 비밀번호 칸 비움, **429는 "N분 뒤에 다시 시도" + 새로고침 뒤에도 버튼 잠금(sessionStorage), 남은 시도 횟수는 표시하지 않음.** `?next=`는 같은 사이트 경로만 허용(오픈 리다이렉트 방지)
+4. **세션 만료 = 제자리 재로그인**: 401을 받거나 만료 시각이 되면 로그인 페이지로 **이동하지 않고 현재 페이지 위에** 재로그인 대화상자를 띄운다. 페이지가 언마운트되지 않으므로 작성 중이던 폼 상태가 보존된다. 열 때부터 만료돼 있던 토큰은 로그인 페이지로 보낸다(둘을 구분). 다른 탭의 로그인·로그아웃도 `storage` 이벤트로 동기화한다
+5. **보호 라우트**: `(admin)` 그룹 레이아웃이 `AuthGate`로 로그인 여부를 확인한다(미로그인 → `/login?next=…`, 직접 로그아웃 → next 없이 `/login`, 세션 만료 → 페이지 유지 + 재로그인 대화상자). 세 메뉴(팀 관리 / 곡 관리 / 유튜브 연결 관리)는 "준비 중" 자리표시 페이지이고 메뉴는 **스타일 없는 임시 링크 + 로그아웃 버튼**이다. `not-found`·`error` 경계. ~~상단 메뉴 레이아웃, `aria-current`, 본문 바로가기, 공통 화면 패턴(`PageHeader`/`LoadingState`/`EmptyState`/`ErrorState`)~~ **[보류: 7c-1b — 사이드바 + 상단 바 승인 후 구현. 백업 브랜치 `backup/7c1-with-layout`에 상단 메뉴 버전이 남아 있다]**
+6. **CI**: `admin` 잡(lint · build · typecheck · test). 아래 기술 판단 참조
+
+### 기술 판단
+
+| 쟁점 | 결정 | 이유 |
+| --- | --- | --- |
+| 보호 라우트 | **클라이언트 가드**(proxy 미사용) | 토큰이 localStorage에 있어 proxy(쿠키만 읽음)가 **구조적으로** 볼 수 없다. Next 문서도 proxy를 인가 수단으로 쓰지 말라고 한다. **UI 가드는 UX일 뿐, 실제 경계는 API의 JWT Guard**임을 `guard.ts`·README에 명시 |
+| 401 처리 | 이동이 아니라 **제자리 대화상자** | 이동하면 언마운트되어 폼 내용을 잃는다. 대화상자는 닫기 수단을 일부러 없앴다(만료된 채 계속 조작하면 요청마다 401). 나가려면 로그아웃 |
+| 서버 상태 | TanStack Query 5, 지금 도입 | 409 후 새로고침·제출 중 잠금·재조회가 4개 화면 전부에 필요하다. **조회는 일시적 오류만 1회 재시도, 변경은 자동 재시도 없음, 낙관적 업데이트 금지**(재정렬·승인은 서버가 권위) |
+| 영문 메시지 처리 | 한글 포함 여부로 구분 | Nest/Express 기본 문구("Not Found", "request entity too large")가 화면에 나가지 않게 하면서 서버가 의도한 문구는 그대로 둔다 |
+| 토큰 저장소 | 저장소가 정상이면 **저장소가 유일한 진실**, 실패할 때만 메모리 | 메모리 값을 늘 함께 들고 있으면 다른 탭의 로그아웃이 이 탭에 반영되지 않는다(브라우저 검증에서 실제로 발견, 아래) |
+| CSP | `script-src 'self' 'unsafe-inline'` (+개발에서만 `'unsafe-eval'`), `connect-src 'self'` + API 오리진, `frame-ancestors 'none'`, `object-src 'none'`, `base-uri`·`form-action 'self'` | **알려진 타협**: Next 인라인 스크립트(flight 데이터) 때문에 nonce 없이는 `'unsafe-inline'`이 필요해 **인라인 스크립트 주입 자체는 막지 못한다.** 막는 것은 외부 스크립트 로드·외부로의 데이터 전송·프레임·form 탈취·base 변조·플러그인이다. nonce 방식(proxy + 동적 렌더링)은 7d 이후 재검토 |
+| CSP 배포 오리진 | 빌드 시점의 `NEXT_PUBLIC_API_BASE_URL`에서 `connect-src`를 만든다 | 같은 값이 번들에도 박히므로 둘이 어긋나지 않는다. **값을 바꾸면 다시 빌드해야 한다.** `NEXT_PUBLIC_PUBLIC_SITE_ORIGIN`은 `img-src`에만 들어간다. Supabase·mzstatic·ytimg 이미지 호스트는 각 화면이 실제로 쓸 때 추가한다(최소 권한, `csp.ts` TODO) |
+| vitest | **4.1.11 + vite 8.3.0**(`apps/api`와 같은 라인) | 5.0.1은 peer `vite ^6.4‖^7‖^8`을 만족하지만 이 레포에서 검증되지 않았다. 필요한 기능 차이가 없어 이미 통과 중인 4.x 라인을 골랐다. vite는 vitest의 **필수 peer**라 명시 설치 |
+| shadcn의 `cn` 패키지 | 그대로 수용, 정확 고정 | CLI 4.21.0이 `clsx`+`tailwind-merge` 대신 `cn@0.3.2`를 생성한다. npm 메타데이터로 **maintainer=shadcn, repo=shadcn-ui/cn, MIT, 의존성 0, 설치 스크립트 없음**을 확인했다. 다만 게시가 **하루 전(2026-09-21)**이고 0.x다. 대안은 `clsx`+`tailwind-merge`(각각 2.1.1, 3.7.0)로 `utils.ts` 한 줄을 바꾸면 된다 |
+| 폰트 | 시스템 폰트 스택 | `next/font/google`은 빌드 시 외부 요청이 필요하고 CI·CSP에도 부담이다. shadcn init이 넣은 Geist 설정은 제거했다 |
+| workspaces | **도입하지 않음** | 루트 lockfile 재작성 = 공개 사이트 배포 위험. 대가는 Vercel 자동 스킵을 못 쓰는 것(Ignored Build Step으로 대체) |
+| CI | `admin` 잡 추가, 잡마다 자기 lockfile | 자리표시 `NEXT_PUBLIC_API_BASE_URL`(공개 값)만 사용, 비밀값·저장소 변수 미참조, `pull_request_target` 미사용, 액션은 기존과 같은 SHA 고정, 권한 `contents: read` |
+| 테스트 | 순수 함수 중심(vitest, node 환경) | 컴포넌트 테스트(jsdom·RTL 등 4개 패키지)는 폼이 실제로 생기는 7c-2에서 추가한다. 보호 라우트는 판단을 순수 함수(`decideGuard`)로 분리해 테스트하고, 화면 동작은 브라우저로 확인했다 |
+
+### 검증
+
+| 항목 | 결과 |
+| --- | --- |
+| `apps/admin` lint · typecheck · build · test | 전부 통과. 테스트 **114개**(CSP 8, 오류 매핑 44, 설정 5, 클라이언트 20, 인증 37) |
+| 깨끗한 복사본에서 CI 절차 재현 | `git ls-files`로 복사 → `npm ci` → lint → build(자리표시 env) → typecheck → test **전부 통과, 잠금 파일 해시 불변**. Node 24.12 / npm 11.6.2 — **러너의 정확한 npm 버전은 미확인** |
+| 루트 공개 프로젝트 | 루트 `package.json`·`package-lock.json`·`src` diff **0**, 루트 lint·build 결과 동일(라우트 10개), 루트 lock 해시 불변 |
+| `apps/api` | lint·typecheck·build 통과, 테스트 972개 통과. 코드 무변경. `migrate status` 최신 |
+| CORS (실제 API 3012 + admin 3010) | 허용 오리진 preflight: `Access-Control-Allow-Origin: http://localhost:3010`, `Allow-Headers: Authorization,Content-Type`, `Expose-Headers: Retry-After`. **다른 오리진은 `Allow-Origin` 헤더가 없고, 브라우저에서 실제로 차단**(`TypeError`), 허용 오리진에서는 같은 호출이 읽힘(401) |
+| 로그인 화면(개발 서버) | 빈 값 제출 → 두 필드 각각 안내, **요청 0건**. 공백 아이디 → 안내, 요청 0건. 존재하지 않는 계정으로 **실제 API 401** → 서버 메시지 그대로, 비밀번호 칸 비워지고 포커스 이동, 토큰 저장 없음. 전송 중 버튼이 "로그인 중…" |
+| 429 (응답 대역) | "로그인 시도가 너무 많습니다. 15분 뒤에 다시 시도해 주세요.", 버튼 비활성, 차단 중 재클릭해도 **추가 요청 없음**, **새로고침 뒤에도 잠금 유지**, 남은 시도 횟수 문구 없음 |
+| 보호 라우트 | `/` → `/login`, `/youtube` → `/login?next=%2Fyoutube`. 로컬 서명 토큰 주입 시 `/` → `/teams`, `/auth/me`에 `Authorization` 헤더가 실려 호출됨, 계정 이름 표시, 임시 메뉴 3개·로그아웃 버튼(재검증: 레이아웃 제거 뒤 `/auth/me`를 응답 대역으로 두고 다시 확인), 곡 관리·유튜브 연결 관리 이동. 로그인 상태에서 `/login` → `/teams`, `?next=//evil.example/x` → `/teams`(외부로 안 감), `?next=/youtube` → `/youtube` |
+| 세션 만료 | **서명이 틀린 토큰**(클라이언트는 유효로 봄)으로 실제 API 401 → **경로 유지 + 본문 그대로 마운트(마커 유지) + 재로그인 대화상자**, Esc·바깥 클릭으로 안 닫힘, 닫기 버튼 없음. 재로그인 성공(응답 대역) → 대화상자 닫힘·경로·본문 유지·토큰 교체·`/auth/me` 재조회 성공. 만료 시각이 지나면 대화상자(짧은 토큰). 열 때부터 만료된 토큰 → 로그인 페이지 + 저장소에서 제거 |
+| 다른 탭 동기화 | 한 탭에서 로그아웃하면 다른 탭이 `/login?next=…`로 이동 |
+| 로그아웃 | `/login`(next 없음), 토큰 삭제, 이후 `/teams` 접근 시 로그인으로 |
+| 반응형·스크린샷 | **보류된 상단 메뉴 레이아웃 기준으로 확인했던 항목**(390px 가로 스크롤 없음, 데스크톱·모바일 스크린샷)이라 현재 브랜치에는 해당하지 않는다. 7c-1b에서 승인된 레이아웃으로 다시 검증한다 |
+| CSP | 개발·운영 빌드 모두 **정상 사용 중 위반 0건.** 운영: `unsafe-eval` 없음, 허용 API 오리진 fetch 통과, **허용되지 않은 오리진 fetch·외부 스크립트는 브라우저가 CSP 위반으로 차단**(콘솔 메시지 확인). 응답 헤더 6종(CSP·`X-Frame-Options: DENY`·`nosniff`·`Referrer-Policy: no-referrer`·`Permissions-Policy`·`X-Robots-Tag: noindex`) 확인 |
+| Next 16.3.5 호환(스크래치 복사본) | `next`·`eslint-config-next`를 16.3.5로 올려 lint·build·typecheck·test 114개 **통과, `npm audit` 0건**, CSP 헤더 유지 |
+| 비밀값 | 이 브랜치가 추가한 파일에서 `sb_secret_`·`eyJ`·`AIza`·`postgres://…:…@`·Slack 웹훅 패턴을 파일 이름만 출력해 검사했고 **값은 0건**이다(일치한 것은 이 문서가 패턴 이름을 언급한 줄과, `apps/admin/package-lock.json`의 무결성 해시 한 줄(`eyJ`가 base64 무작위 문자열에 우연히 들어 있음)뿐이라 오탐으로 판단했다). 검증용 토큰은 스크래치패드의 초기화 스크립트 파일로만 주입했고 값을 출력하지 않았으며, 끝난 뒤 파일을 삭제했다. API·admin 로그에도 패턴 없음 |
+| 서버 정리 | 검증에 쓴 API(3012)·admin(3010) 서버를 모두 종료(리스너 0). 실제 `/auth/login` 호출은 **존재하지 않는 계정 401 두 번**뿐이다(5회/5분 한도 안) |
+
+**미확인**: **실계정 로그인**(사용자가 직접), 모바일 **실기기**, **스크린리더**가 실제로 읽는 방식(`aria-label`·`role`·`aria-current`가 붙은 것만 DOM으로 확인), **Vercel 프리뷰**, https 배포 환경에서의 CSP(`upgrade-insecure-requests`) 동작, **운영 CSP가 `eval`을 막는지**(자동화 도구가 CDP로 평가해 이 항목은 시험이 성립하지 않았다 — 헤더에 `unsafe-eval`이 없다는 것만 확인), 러너의 정확한 npm 버전, Turbopack 작업 루트 경고가 CI에서 나오는지(로컬은 명시해 없앴다), Vercel 플랜.
+
+### 트러블슈팅 기록
+
+1. **`shadcn init`이 멈춤** — 대화형 프리셋 선택 프롬프트(`-y`로도 뜬다)와 "framework not detected"(`next.config.*`가 있어야 감지) 때문. `-p nova`를 주고 `next.config.ts`를 먼저 만들어 해결. 또한 캐럿 버전(`^`)으로 설치하므로 설치 뒤 전부 정확 고정으로 바꿨다
+2. **`npm audit` critical(Next 16.2.4)** — 위 "구현 전 조사"의 경고. 결정을 뒤집지 않고 16.3.5 호환을 스크래치에서 검증해 사용자 결정 자료로 남겼다
+3. **`parseRetryAfter("-5")`가 0을 돌려줌** — 단위 테스트에서 발견. `Date.parse`가 `"-5"`를 연도로 읽는다. 요일·월 이름이 없는 값은 HTTP 날짜로 보지 않도록 고쳤다
+4. **429 남은 시간이 "16분 뒤"로 표시(900초인데)** — 브라우저에서 발견. 화면이 1초 단위(내림) 시각으로 계산하는데 저장한 종료 시각이 ms 단위라 최대 1초 남는 것이 올림되어 901초가 됐다. 종료 시각을 초 단위로 내려 저장하도록 고침
+5. **다른 탭의 로그아웃이 반영되지 않음** — 브라우저 다중 탭 검증에서 발견. `readToken`이 저장소가 비어도 메모리 보관본을 돌려줘서, 다른 탭이 저장소에서 지운 토큰을 이 탭이 계속 들고 있었다. **저장소가 정상이면 저장소가 유일한 진실**이 되도록 고치고, 쓰기만 실패한 경우(용량 초과 등)에만 메모리로 잇는다. 단위 테스트 2건 추가
+6. **재로그인 대화상자의 아이디 칸이 비어 있음** — 만료를 `/auth/me`의 401로 처음 알게 된 경우 캐시된 계정 이름이 없다. 폼 검증이 정상 동작한 것이고 사용자가 직접 입력하면 된다(테스트가 아이디를 채우지 않아 처음엔 실패로 보였다). 7c-2에서 마지막 계정 이름을 기억할지 검토
+7. **자동화 도구의 한계로 검증이 잘못 나온 사례** — `[role="alert"]`가 Next의 route announcer(`<next-route-announcer>`)까지 잡아 서버 메시지 대신 페이지 제목을 읽었다(`form [role="alert"]`로 한정해 해결). Playwright 샌드박스에는 `require`·`URL`이 없어 파일 접근·URL 파싱을 다르게 해야 했다. `page.route` 대역이 다음 측정에 남는 함정은 §17 트러블슈팅과 같다
+8. **입력칸 테두리 대비 부족** — 스크린샷에서 발견. shadcn 기본 `--input`이 흰 배경 대비 약 1.2:1이라 경계가 보이지 않았다. `--input`을 진하게 올려 WCAG 1.4.11(3:1)을 맞췄다
+9. **검증 출력에 계정 이름이 한 번 노출** — 다른 탭 동기화를 디버깅하며 페이지 본문 앞부분을 출력해 헤더의 관리자 로그인 아이디(6글자)가 세션 기록에 남았다. 비밀번호·토큰은 아니다. 이후 스크린샷은 계정 이름을 가린 뒤 캡처하고 글자 수만 확인했다
+10. **vitest 설정 CJS 경고** — `vitest.config.ts`에서 ESM 문법 경고. `.mts`로 바꿔 해결
+
+### 이 단계에서 의도적으로 하지 않은 것
+
+- **팀·곡·앨범 커버·유튜브 리뷰의 실제 화면**(7c-2~4), 드래그 재정렬(dnd-kit)·이미지 업로드·크롭
+- **`apps/api` 변경**(쿠키 인증·refresh·OpenAPI·새 엔드포인트 — 아래 요청 목록), **DB 변경**, **공개 프론트 변경**, **`apps/web` 이동**, **59곡 배치 실행**
+- **배포·DNS·Vercel 프로젝트 생성**(7d, 사용자가 한다), 대시보드 작업
+- **BFF·쿠키 인증**(로그인 제한 공유 부작용, 위 조사), **nonce 기반 CSP**, **다크모드**
+- **컴포넌트 테스트(jsdom·RTL)·E2E(Playwright 패키지)·토스트(sonner)** — 필요한 화면이 생기는 7c-2 이후
+- **공개 프로젝트의 Vercel ignored build step**(결정 4), **루트 workspaces 도입**
+- **Next 16.3.5로의 상향**(결정 2를 따랐다 — 사용자 결정 대기)
+
+### API 요청 목록 (API는 변경하지 않았다. 별도 승인 항목)
+
+1. **OpenAPI 스펙 노출** — 손으로 옮긴 계약 타입(`types.ts`)의 드리프트를 구조적으로 막는 유일한 방법
+2. **"재검토 필요" 전용 조회**(`youtube_url`이 있고 `pending`인 곡) — §10에 이미 있는 항목. 없으면 화면이 전 팀의 곡을 받아 걸러야 한다(7c-4)
+3. **팀 목록에 곡 수 포함** — 없으면 팀 15개에 대해 `GET /teams/:id/songs`를 15번 호출(N+1, 7c-2/3)
+4. (참고, 요청 아님) 로그아웃은 서버측 무효화가 없어 **클라이언트 토큰 삭제뿐**이다. 현행 유지가 §16의 결정이다
+
+### 남겨둔 결정 (7c-2로 이월)
+
+1. **Next 16.3.5로 올릴지(admin과 공개 사이트 각각)** — audit critical, 위 조사 참조. 올리면 `apps/admin`은 `next`·`eslint-config-next` 두 줄과 lockfile이 바뀌고(스크래치에서 검증됨), **공개 사이트는 루트 lockfile이 바뀌므로 별도 작업·별도 검증**이 필요하다
+2. **dnd-kit(core 6.3.1, sortable 10.0.0) 승인** — 팀 재정렬(7c-2a). 위/아래 버튼을 키보드 대체 수단으로 병행한다
+3. **CSP 이미지 호스트 추가 시점** — 7c-2 팀 카드(Supabase Storage `https://*.supabase.co`), 7c-3 앨범 커버(`https://is1-ssl.mzstatic.com`), 7c-4 유튜브 썸네일(`https://i.ytimg.com`)
+4. **`NEXT_PUBLIC_PUBLIC_SITE_ORIGIN`의 실제 사용** — 팀 카드 미리보기(7c-2). 비어 있으면 상대경로 이미지를 표시하지 못한다
+5. **폼 임시저장** — 제자리 재로그인은 "페이지가 유지되는 동안"만 폼을 보존한다. 새로고침·탭 닫힘에는 유실된다. 긴 폼(곡 여러 개 등)에서 필요하면 7c-2에서 sessionStorage 초안 훅을 검토
+6. **재로그인 후 마지막 계정 이름 기억**(트러블슈팅 6), **컴포넌트 테스트 도입 시점**(폼이 생기는 7c-2), **토스트(sonner) 필요 여부**
+7. **nonce 기반 CSP** — `'unsafe-inline'` 제거. proxy + 동적 렌더링이 필요해 7d 이후 재검토
+8. **일차 탭·메뉴가 늘어날 때의 좁은 화면 대응**, **다크모드** — 지금은 라이트 단색만
+9. §10의 관리자 UI 요건은 **그대로 유지**(팀: 4:5 안내·CDN 캐시 주의·1MB/413, 곡: 앨범 커버 후보 선택·URL 직접 입력·영문 표기 안내, 유튜브: 쿼터·`abortedBy`·승인/반려/재큐·409 새로고침·재검토 목록·썸네일 도메인). 로그인 제출 전 검증(L5)은 이번에 처리했다
+
+### 7d(배포) 때 내가 할 일 — 초안 (사용자, 대시보드 작업은 이 단계에서 하지 않았다)
+
+1. **Vercel에서 새 프로젝트 만들기**(같은 GitHub 레포): Import → **Root Directory `apps/admin`** → Framework Preset Next.js → Node.js 버전 24.x(CI와 같게). 조직 소유 레포이므로 플랜이 Hobby가 아닌지 확인(**확인 필요**)
+2. **환경변수**(Production·Preview 각각): `NEXT_PUBLIC_API_BASE_URL`(배포된 API의 **https** 주소, 경로·끝 슬래시 없이), 필요하면 `NEXT_PUBLIC_PUBLIC_SITE_ORIGIN=https://summit-concert.live`. **이 값은 빌드 시점에 번들과 CSP에 박힌다 — 바꾸면 재배포해야 한다.** 비밀값을 넣지 않는다
+3. **Ignored Build Step**: Settings → Build and Deployment → Ignored Build Step → **"Only build if there are changes in a folder"** → `apps/admin`. 종료 코드 0이면 빌드가 취소되고 1이면 진행된다(공식 문서). **공개 프로젝트에는 걸지 않는다**(결정 4) — 그래서 `apps/admin` 커밋에도 공개 사이트가 한 번 더 빌드된다. 취소된 빌드도 배포 쿼터·동시 빌드 슬롯을 쓴다
+4. **도메인** `admin.summit-concert.live`: DNS 관리 위치는 **미확인**. Vercel 프로젝트에 도메인을 추가하고, Vercel이 안내하는 레코드(보통 CNAME)를 DNS에 추가한다
+5. **API 쪽 설정**: `CORS_ALLOWED_ORIGINS=https://admin.summit-concert.live`(경로·끝 슬래시·대문자 없는 정규형. `http:`는 루프백만 허용된다). 그리고 §16의 배포 값 3가지 — `TRUST_PROXY_HOPS`(틀리면 로그인 제한이 우회되거나 전원이 한 IP로 집계된다, 배포 직후 `req.ip` 실측), `CORS_ALLOWED_ORIGINS`, 권한 회수 실행 여부
+6. **Preview 배포는 API의 CORS 허용 목록에 없다** — 프리뷰 URL에서는 API 호출이 브라우저에서 막힌다. 프리뷰로는 화면 렌더까지만 보고, 기능 검증은 프로덕션 admin에서 한다(프리뷰 오리진을 API에 넣는 것은 권장하지 않는다)
+7. **배포 뒤 확인**: 로그인 → 팀 관리 진입, 401·429 문구, 응답 헤더(CSP·`X-Frame-Options`)와 콘솔의 CSP 위반 0건, 모바일 실기기, 스크린리더. Deployment Protection(Vercel Authentication) 적용 범위와 `robots` `noindex` 확인
+8. **Next 16.3.5 상향 결정**(남겨둔 결정 1)을 배포 전에 내린다
+
+### 로컬 개발 절차 (사용자)
+
+`apps/admin/README.md` 참조. 요약: `apps/api/.env`에 `CORS_ALLOWED_ORIGINS=http://localhost:3010`을 한 줄 추가(비밀값 아님, 현재 `.env`에는 이 이름이 **없다** — 이름 존재 여부만 확인했고 값은 열지 않았다) → `apps/api`에서 `npm run start:dev`(3001) → `apps/admin`에서 `npm run dev`(3010). 같은 DB에 API 서버를 둘 이상 띄우지 않는다. `apps/admin/.env.local`에는 `NEXT_PUBLIC_API_BASE_URL=http://localhost:3001`을 넣어 두었다(공개 값, gitignore).
+
+### 롤백
+
+`apps/admin`은 신규 폴더이고 DB·스키마·다른 앱 변경이 없다. 되돌리려면 커밋을 되돌리거나 폴더를 지우면 된다. CI의 `admin` 잡은 `ci.yml`의 한 블록이다. Vercel 프로젝트는 아직 만들지 않았다.
+
+### 완료 상태 및 다음 단계
+
+- 브랜치 `feature/admin-app-scaffold`, 푸시·PR 보류
+- **다음**: 7c-2a 팀 CRUD(재정렬 포함, dnd-kit 승인 필요) → 7c-2b 카드 이미지 업로드(**프로덕션 첫 쓰기 지점**) → 7c-3 곡·앨범 커버 → 7c-4 유튜브 리뷰·배치 → 7d 배포 → 59곡 유튜브 배치·리뷰
 
 ## 부록: 원본 리포트 참조
 
