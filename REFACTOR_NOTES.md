@@ -1984,11 +1984,11 @@ GRANT USAGE, SELECT, UPDATE ON SEQUENCE public."Setlist_id_seq", public."AdminUs
 
 - **날짜**: 2026-09-22
 - **브랜치**: `feature/admin-app-scaffold` (`develop`과 같은 커밋 `3a50216`에 있던 브랜치. 커밋 0개·upstream 없음·원격에 없음을 확인하고 그대로 사용. 분기 전 `develop == origin/develop`)
-- **커밋**: 프로젝트 생성 `7211cf3` / API 클라이언트 `ba1794a` / 로그인·인증 `c09a67d` / 보호 라우트·자리표시 화면 `0c21f07` / CI `53e5be8` / 문서(이 섹션)
+- **커밋**: 프로젝트 생성 `7211cf3` / API 클라이언트 `ba1794a` / 로그인·인증 `c09a67d` / 보호 라우트·자리표시 화면 `0c21f07` / CI `53e5be8` / 문서 `669a4f8` / **의존성(next 16.3.5, cn 제거) `f6d30d7`** / **레이아웃·토큰·로그인 화면(7c-1b) `f4aa60d`** / 문서 갱신(이 커밋)
   - 순서가 "로그인 → 레이아웃 → API 클라이언트"가 아닌 것은 로그인이 API 클라이언트를 쓰기 때문이다. 브라우저 검증에서 나온 수정 2건(토큰 저장소, 429 남은 시간)과 스타일 1건은 해당 커밋에 fixup으로 합쳤다
 - **관련 PR**: work02-7c1, `feat: 관리자 프론트(apps/admin) 뼈대 (로그인, 인증 저장, 레이아웃, API 클라이언트)` (푸시/PR 생성은 보류)
 - **상태**: 구현·단위 테스트 114개·브라우저 검증 완료. **DB 쓰기·스키마 변경 0건, `apps/api` 무변경, 공개 프론트 무변경**(루트 `package*.json`·`src` diff 0, 루트 lint·build 결과 동일). 실계정 로그인은 하지 않았다(사용자 몫)
-- **디자인 변경으로 일부 보류 (2026-09-22, 사용자 요청)**: 공개 랜딩과 완전히 다른 **전형적인 관리자 대시보드 UI(좌측 사이드바 + 상단 바)**로 방향이 바뀌어 **레이아웃과 디자인 토큰만 보류**했다. 로그인·인증·API 클라이언트·CI·보호 라우트 로직은 그대로다. 이미 구현·커밋했던 상단 메뉴형 레이아웃과 공통 화면 패턴(`PageHeader` 등)은 **push 전이라 이 브랜치에서 제거**했고 원본은 로컬 백업 브랜치 `backup/7c1-with-layout`에 남아 있다(삭제해도 무방). 후속 단계 **7c-1b(레이아웃·토큰)**는 승인 후 구현한다. 현재 메뉴는 스타일 없는 임시 링크, 로그인 페이지는 임시 최소 스타일, `globals.css` 토큰은 임시 자리표시다
+- **디자인 변경(2026-09-22, 사용자 요청) → 7c-1b에서 구현, 화면 승인 대기**: 공개 랜딩과 완전히 다른 전형적인 관리자 대시보드 UI(좌측 어두운 사이드바 + 상단 바)로 방향이 바뀌어 레이아웃·토큰을 다시 정하고 구현했다(아래 "7c-1b 디자인·레이아웃"). 이전 상단 메뉴형 레이아웃은 push 전이라 브랜치에서 걷어 냈고 원본은 로컬 백업 브랜치 `backup/7c1-with-layout`에 남아 있다(**화면 승인 뒤 삭제 예정 — 삭제 전에 알린다**). 이 브랜치에는 **push·PR을 하지 않았다**
 
 ### 배경
 
@@ -2027,11 +2027,11 @@ GRANT USAGE, SELECT, UPDATE ON SEQUENCE public."Setlist_id_seq", public."AdminUs
 ### 설계 결정 (사용자 승인)
 
 1. 인증 저장 **localStorage**(위 (a)). 방어는 저장소가 아니라 "서버 문자열을 텍스트로만 렌더링 + `dangerouslySetInnerHTML` 금지 + 서드파티 스크립트 0 + 최소 CSP"의 조합이다. 저장소 선택은 XSS 앞에서 큰 차이가 없다(sessionStorage도 같은 탭에서 읽힌다)
-2. Next/React는 루트와 같은 **16.2.4 / 19.2.4**로 정확 고정(위 audit 경고 참조)
+2. Next/React는 루트와 같은 **16.2.4 / 19.2.4**로 정확 고정(위 audit 경고 참조) — ~~16.2.4~~ **[2026-09-22 변경: audit critical 때문에 `apps/admin`만 `next`·`eslint-config-next`를 16.3.5로 상향, `npm audit` 0건. 공개 사이트는 별도 PR. 아래 "7c-1b" 참조]**
 3. 의존성 승인(정확 버전): TanStack Query 5.103.2, react-hook-form 7.88.0, zod 4.6.5, @hookform/resolvers 5.9.1, vitest + vite, shadcn CLI. dnd-kit은 7c-2에서 별도 승인
 4. Vercel: 공개 프로젝트는 그대로, admin 프로젝트에만 "Only build if there are changes in a folder = `apps/admin`"
 5. 7c 분할: **1 뼈대 / 2a 팀 CRUD(재정렬 포함) / 2b 카드 업로드 / 3 곡·앨범 커버 / 4 유튜브 리뷰·배치.** 2b는 multipart·1MB·413·CDN 캐시·비율 안내로 성격이 달라 분리했고, 프로덕션 첫 쓰기가 나는 지점이라 PR을 섞지 않는다
-6. ~~라이트 단색, 다크모드 없음.~~ **[2026-09-22 보류: 디자인 방향 변경 — 사이드바 + 상단 바 대시보드, 색·radius·폰트 토큰은 한 곳에서 관리. 7c-1b 승인 대기]** 7. 곡 관리 주소는 `/songs?teamId=`. 8. `.env.example`에 `NEXT_PUBLIC_PUBLIC_SITE_ORIGIN`(빈 값+설명)
+6. 라이트 단색, 다크모드 없음. → **[2026-09-22 갱신: 어두운 사이드바 + 밝은 콘텐츠(C안), 다크모드는 여전히 없음 — 아래 "7c-1b"]** 7. 곡 관리 주소는 `/songs?teamId=`. 8. `.env.example`에 `NEXT_PUBLIC_PUBLIC_SITE_ORIGIN`(빈 값+설명)
 
 ### 작업 내용
 
@@ -2039,7 +2039,7 @@ GRANT USAGE, SELECT, UPDATE ON SEQUENCE public."Setlist_id_seq", public."AdminUs
 2. **API 클라이언트**(`src/lib/api/`): `apiRequest`가 유일한 호출 통로. `Authorization` 헤더 인증(`credentials: "omit"`), 절대 URL·`//host`·`\` 경로 거부(토큰이 다른 곳으로 나가지 않게), JSON/FormData, 기본 15초 타임아웃, 외부 취소 signal(타임아웃과 취소를 구분), **재시도 없음**. 오류는 `ApiError`(network/timeout/aborted/validation/unauthorized/forbidden/not_found/conflict/payload_too_large/unsupported_media_type/rate_limited/server/unknown)로 정규화. 서버 한국어 메시지는 가공 없이 보존(배열 포함)하고, 프레임워크 영문 기본 문구와 프록시 502/504는 한국어 문구로 대체(**한글이 한 글자라도 있으면 서버가 의도한 문구**라는 규칙). 429는 `Retry-After`(초·HTTP 날짜)를 "N분 뒤"로, 409는 새로고침 안내를 덧붙인다. 계약 타입은 손으로 옮기되 **미러링하는 API 파일 경로를 주석으로 명시**해 드리프트를 관리한다
 3. **로그인·인증**: 토큰 저장은 `token-storage.ts` 한 곳(저장 실패 시 메모리로 이어 가고, **저장소가 정상이면 저장소가 유일한 진실**). JWT `exp`만 해석해(서명 검증 없음, UX 용도) 만료 시각에 재로그인을 안내한다. 로그인 폼은 RHF + Zod로 **서버 DTO와 같은 규칙·문구**의 제출 전 검증(빈 값, 공백 아이디, 아이디 ≤64, 비밀번호 ≤256 — 서버가 400도 5회/5분 한도에 세므로 실패 요청을 보내지 않는다), 전송 중 재제출 차단, 401은 서버 메시지 그대로 + 비밀번호 칸 비움, **429는 "N분 뒤에 다시 시도" + 새로고침 뒤에도 버튼 잠금(sessionStorage), 남은 시도 횟수는 표시하지 않음.** `?next=`는 같은 사이트 경로만 허용(오픈 리다이렉트 방지)
 4. **세션 만료 = 제자리 재로그인**: 401을 받거나 만료 시각이 되면 로그인 페이지로 **이동하지 않고 현재 페이지 위에** 재로그인 대화상자를 띄운다. 페이지가 언마운트되지 않으므로 작성 중이던 폼 상태가 보존된다. 열 때부터 만료돼 있던 토큰은 로그인 페이지로 보낸다(둘을 구분). 다른 탭의 로그인·로그아웃도 `storage` 이벤트로 동기화한다
-5. **보호 라우트**: `(admin)` 그룹 레이아웃이 `AuthGate`로 로그인 여부를 확인한다(미로그인 → `/login?next=…`, 직접 로그아웃 → next 없이 `/login`, 세션 만료 → 페이지 유지 + 재로그인 대화상자). 세 메뉴(팀 관리 / 곡 관리 / 유튜브 연결 관리)는 "준비 중" 자리표시 페이지이고 메뉴는 **스타일 없는 임시 링크 + 로그아웃 버튼**이다. `not-found`·`error` 경계. ~~상단 메뉴 레이아웃, `aria-current`, 본문 바로가기, 공통 화면 패턴(`PageHeader`/`LoadingState`/`EmptyState`/`ErrorState`)~~ **[보류: 7c-1b — 사이드바 + 상단 바 승인 후 구현. 백업 브랜치 `backup/7c1-with-layout`에 상단 메뉴 버전이 남아 있다]**
+5. **보호 라우트·레이아웃**: `(admin)` 그룹 레이아웃이 `AuthGate`로 로그인 여부를 확인한다(미로그인 → `/login?next=…`, 직접 로그아웃 → next 없이 `/login`, 세션 만료 → 페이지 유지 + 재로그인 대화상자). 화면 틀은 `layout/app-shell.tsx`(어두운 사이드바 + 상단 바 + 서랍, 7c-1b)가 맡는다. 세 메뉴(팀 관리 / 곡 관리 / 유튜브 연결 관리)는 "준비 중" 자리표시 페이지(곡 관리는 목록/상세 분할 슬롯). `not-found`·`error` 경계
 6. **CI**: `admin` 잡(lint · build · typecheck · test). 아래 기술 판단 참조
 
 ### 기술 판단
@@ -2054,11 +2054,11 @@ GRANT USAGE, SELECT, UPDATE ON SEQUENCE public."Setlist_id_seq", public."AdminUs
 | CSP | `script-src 'self' 'unsafe-inline'` (+개발에서만 `'unsafe-eval'`), `connect-src 'self'` + API 오리진, `frame-ancestors 'none'`, `object-src 'none'`, `base-uri`·`form-action 'self'` | **알려진 타협**: Next 인라인 스크립트(flight 데이터) 때문에 nonce 없이는 `'unsafe-inline'`이 필요해 **인라인 스크립트 주입 자체는 막지 못한다.** 막는 것은 외부 스크립트 로드·외부로의 데이터 전송·프레임·form 탈취·base 변조·플러그인이다. nonce 방식(proxy + 동적 렌더링)은 7d 이후 재검토 |
 | CSP 배포 오리진 | 빌드 시점의 `NEXT_PUBLIC_API_BASE_URL`에서 `connect-src`를 만든다 | 같은 값이 번들에도 박히므로 둘이 어긋나지 않는다. **값을 바꾸면 다시 빌드해야 한다.** `NEXT_PUBLIC_PUBLIC_SITE_ORIGIN`은 `img-src`에만 들어간다. Supabase·mzstatic·ytimg 이미지 호스트는 각 화면이 실제로 쓸 때 추가한다(최소 권한, `csp.ts` TODO) |
 | vitest | **4.1.11 + vite 8.3.0**(`apps/api`와 같은 라인) | 5.0.1은 peer `vite ^6.4‖^7‖^8`을 만족하지만 이 레포에서 검증되지 않았다. 필요한 기능 차이가 없어 이미 통과 중인 4.x 라인을 골랐다. vite는 vitest의 **필수 peer**라 명시 설치 |
-| shadcn의 `cn` 패키지 | 그대로 수용, 정확 고정 | CLI 4.21.0이 `clsx`+`tailwind-merge` 대신 `cn@0.3.2`를 생성한다. npm 메타데이터로 **maintainer=shadcn, repo=shadcn-ui/cn, MIT, 의존성 0, 설치 스크립트 없음**을 확인했다. 다만 게시가 **하루 전(2026-09-21)**이고 0.x다. 대안은 `clsx`+`tailwind-merge`(각각 2.1.1, 3.7.0)로 `utils.ts` 한 줄을 바꾸면 된다 |
+| shadcn의 `cn` 패키지 | **제거**, `clsx` 2.1.1 + `tailwind-merge` 3.7.0으로 `utils.ts` 구성 | 처음에는 수용했으나(maintainer=shadcn, MIT, 의존성 0, 설치 스크립트 없음을 확인했다) 게시가 하루 전이고 0.x라 사용자 결정으로 표준 조합으로 교체했다. `shadcn add` 뒤에는 `cn` import가 다시 생기지 않았는지 확인한다 |
 | 폰트 | 시스템 폰트 스택 | `next/font/google`은 빌드 시 외부 요청이 필요하고 CI·CSP에도 부담이다. shadcn init이 넣은 Geist 설정은 제거했다 |
 | workspaces | **도입하지 않음** | 루트 lockfile 재작성 = 공개 사이트 배포 위험. 대가는 Vercel 자동 스킵을 못 쓰는 것(Ignored Build Step으로 대체) |
 | CI | `admin` 잡 추가, 잡마다 자기 lockfile | 자리표시 `NEXT_PUBLIC_API_BASE_URL`(공개 값)만 사용, 비밀값·저장소 변수 미참조, `pull_request_target` 미사용, 액션은 기존과 같은 SHA 고정, 권한 `contents: read` |
-| 테스트 | 순수 함수 중심(vitest, node 환경) | 컴포넌트 테스트(jsdom·RTL 등 4개 패키지)는 폼이 실제로 생기는 7c-2에서 추가한다. 보호 라우트는 판단을 순수 함수(`decideGuard`)로 분리해 테스트하고, 화면 동작은 브라우저로 확인했다 |
+| 테스트 | 순수 함수 중심(vitest, node 환경), **135개** | 컴포넌트 테스트(jsdom·RTL 등 4개 패키지)는 폼이 실제로 생기는 7c-2에서 추가한다. 보호 라우트는 판단을 순수 함수(`decideGuard`)로 분리해 테스트하고, 메뉴 정의·로그인 유지 시간 포맷·**색 하드코딩 금지(`design-tokens.test.ts`)**도 자동 검사한다. 화면 동작은 브라우저로 확인했다 |
 
 ### 검증
 
@@ -2075,7 +2075,7 @@ GRANT USAGE, SELECT, UPDATE ON SEQUENCE public."Setlist_id_seq", public."AdminUs
 | 세션 만료 | **서명이 틀린 토큰**(클라이언트는 유효로 봄)으로 실제 API 401 → **경로 유지 + 본문 그대로 마운트(마커 유지) + 재로그인 대화상자**, Esc·바깥 클릭으로 안 닫힘, 닫기 버튼 없음. 재로그인 성공(응답 대역) → 대화상자 닫힘·경로·본문 유지·토큰 교체·`/auth/me` 재조회 성공. 만료 시각이 지나면 대화상자(짧은 토큰). 열 때부터 만료된 토큰 → 로그인 페이지 + 저장소에서 제거 |
 | 다른 탭 동기화 | 한 탭에서 로그아웃하면 다른 탭이 `/login?next=…`로 이동 |
 | 로그아웃 | `/login`(next 없음), 토큰 삭제, 이후 `/teams` 접근 시 로그인으로 |
-| 반응형·스크린샷 | **보류된 상단 메뉴 레이아웃 기준으로 확인했던 항목**(390px 가로 스크롤 없음, 데스크톱·모바일 스크린샷)이라 현재 브랜치에는 해당하지 않는다. 7c-1b에서 승인된 레이아웃으로 다시 검증한다 |
+| 반응형·스크린샷 | 이전 상단 메뉴 레이아웃 기준의 검증은 폐기했다. **7c-1b의 어두운 사이드바 레이아웃으로 다시 검증**했다(아래 "7c-1b" 검증 표: 1023/1024px 경계, 390px 서랍, 캡처 6장) |
 | CSP | 개발·운영 빌드 모두 **정상 사용 중 위반 0건.** 운영: `unsafe-eval` 없음, 허용 API 오리진 fetch 통과, **허용되지 않은 오리진 fetch·외부 스크립트는 브라우저가 CSP 위반으로 차단**(콘솔 메시지 확인). 응답 헤더 6종(CSP·`X-Frame-Options: DENY`·`nosniff`·`Referrer-Policy: no-referrer`·`Permissions-Policy`·`X-Robots-Tag: noindex`) 확인 |
 | Next 16.3.5 호환(스크래치 복사본) | `next`·`eslint-config-next`를 16.3.5로 올려 lint·build·typecheck·test 114개 **통과, `npm audit` 0건**, CSP 헤더 유지 |
 | 비밀값 | 이 브랜치가 추가한 파일에서 `sb_secret_`·`eyJ`·`AIza`·`postgres://…:…@`·Slack 웹훅 패턴을 파일 이름만 출력해 검사했고 **값은 0건**이다(일치한 것은 이 문서가 패턴 이름을 언급한 줄과, `apps/admin/package-lock.json`의 무결성 해시 한 줄(`eyJ`가 base64 무작위 문자열에 우연히 들어 있음)뿐이라 오탐으로 판단했다). 검증용 토큰은 스크래치패드의 초기화 스크립트 파일로만 주입했고 값을 출력하지 않았으며, 끝난 뒤 파일을 삭제했다. API·admin 로그에도 패턴 없음 |
@@ -2096,15 +2096,61 @@ GRANT USAGE, SELECT, UPDATE ON SEQUENCE public."Setlist_id_seq", public."AdminUs
 9. **검증 출력에 계정 이름이 한 번 노출** — 다른 탭 동기화를 디버깅하며 페이지 본문 앞부분을 출력해 헤더의 관리자 로그인 아이디(6글자)가 세션 기록에 남았다. 비밀번호·토큰은 아니다. 이후 스크린샷은 계정 이름을 가린 뒤 캡처하고 글자 수만 확인했다
 10. **vitest 설정 CJS 경고** — `vitest.config.ts`에서 ESM 문법 경고. `.mts`로 바꿔 해결
 
+### 7c-1b 디자인·레이아웃 (2026-09-22, 사용자 승인 반영)
+
+공개 랜딩과 완전히 다른 **전형적인 관리자 대시보드 UI**를 원한다는 요청으로 레이아웃·디자인 토큰을 다시 정했다(레퍼런스로 언급된 CleanPay 화면은 **이미지가 전달되지 않아 텍스트로 설명된 패턴만** 반영했다: 페이지 헤더(제목 + 우측 주 동작), 표(상태 뱃지, 행 끝 동작 버튼, 44px 행), 필터 카드는 곡·리뷰 화면에서 필요할 때만). 이미 구현·커밋했던 상단 메뉴형 레이아웃은 push 전이라 브랜치에서 걷어 냈고, 원본은 로컬 백업 브랜치 `backup/7c1-with-layout`에 있다(화면 승인 뒤 삭제 예정 — 삭제 전에 알린다).
+
+**승인된 결정**
+
+1. **레이아웃 C안**: 좌측 어두운 고정 사이드바(232px, 아이콘+라벨, 접이식 없음) + 밝은 콘텐츠. 1024px 미만은 서랍형. 하단에 계정명 · 로그인 유지 시간 · 로그아웃
+2. **패턴**: 페이지 헤더(제목 + 설명 + 우측 주 동작), 표(상태 뱃지, 행 끝 동작, 44px 행). **페이징·"더 보기"는 두지 않는다**(팀 15, 곡 64). 필터 카드는 곡·리뷰 화면에서 필요할 때만
+3. **정체성 색**: 블랙 + 파랑(VS Code 계열). 사이드바는 순검정 대신 진한 남색-차콜. 색은 `:root` 변수에만 두고 컴포넌트에 하드코딩 금지
+4. **밀도**: 표준-조밀(본문 14 / 입력·버튼 36 / 표 행 44), 시스템 폰트 스택, 다크모드 없음, 데스크톱 위주(모바일은 서랍 동작만 보장)
+5. **로그인 유지 시간 표시** 포함, **곡 관리의 팀 목록(좌) + 곡 패널(우) 분할**은 구조 슬롯만(실제 화면은 7c-3)
+6. **로그인 페이지**: 카드형 중앙 정렬, 블랙/파랑 브랜드 요소
+
+**토큰(전부 `apps/admin/src/app/globals.css`의 `:root` 한 곳)** — 대비율은 WCAG로 직접 계산했다
+
+| 역할 | 값 | 대비 |
+| --- | --- | --- |
+| 주색 | `#0072c0`(hover `#005fa3`) | 흰 글자 **5.04:1** / 6.63:1. `#007acc`는 4.51:1로 통과는 하지만 여유가 없어 5:1 이상이 되도록 살짝 진하게 했다 |
+| 본문 · 보조 글자 | `#1b2430` · `#4f5b6b` | 카드 위 15.65:1 · 페이지 배경 위 6.32:1 |
+| 페이지 배경 · 카드 | `#f3f5f8` · `#ffffff` | — |
+| 입력칸 테두리 | `#7d8899` | 카드 위 3.59:1(WCAG 1.4.11 3:1 이상) |
+| 위험 · 성공 · 경고 글자 | `#c62828` · `#1b7a3a` · `#8a5a00` | 5.62 · 5.40 · 5.93:1 |
+| 뱃지(글자/배경) | 중립·성공·경고·위험·정보 각 5쌍 | 6.7~7.9:1 |
+| 사이드바 | 배경 `#141a24`, 글자 `#d3dae6`, 보조 `#8f9bb0`, 활성 배경 `#0b3a63`+흰 글자, 인디케이터 `#3b9eff`, 경고 `#ffb454` | 12.42 · 6.22 · 11.67 · 6.25 · 9.9:1 |
+| 로그인 배경 | `#0d1117` | — |
+| 형태·글꼴 | radius 8px(작은 요소 ≈5px, 대화상자 ≈11px), 시스템 폰트 스택, 글자 20/16/14/13/12 | — |
+| 밀도·치수 | 컨트롤 36px, 표 행 44px, 사이드바 항목 40px, 페이지 여백 24px, 사이드바 232px, 상단 바 56px, 콘텐츠 최대 1200px, 목록 패널 272px | 브라우저에서 계산값으로 확인 |
+
+**구조** — 교체 지점은 두 곳이다: `globals.css`의 `:root`(색·radius·글꼴·밀도·치수)와 `components/layout/`(`app-shell`, `sidebar`, `mobile-drawer`, `topbar`, `page-header`, `page-states`, `split-panel`). 메뉴 정의는 `lib/nav.ts` 한 곳. **컴포넌트에 색 하드코딩을 금지하는 규칙은 자동 검사**한다(`lib/design-tokens.test.ts`: `#hex`, `rgb()/hsl()/oklch()`, 팔레트 클래스 `bg-blue-500` 등, `bg-white`/`text-black` 같은 고정 흑백, 임의값 색상 클래스). 실제로 위반을 심어 검사가 잡는지 확인했다(그 과정에서 팔레트 규칙의 정규식이 `\b`를 이스케이프하지 않아 동작하지 않던 것을 발견해 고쳤다). 상단 바는 현재 위치(브레드크럼)를, 페이지 헤더는 제목·설명·주 동작을 맡아 같은 내용을 두 번 그리지 않는다.
+
+**검증(승인용 화면 캡처 포함, 브라우저 자동화 + API 응답 대역 — 실서버·실계정 없음)**
+
+| 항목 | 결과 |
+| --- | --- |
+| 치수·밀도 실측 | 사이드바 232px, 상단 바 56px, 본문 14px, 입력·버튼 36px, 표 행 44px, 분할 패널 272px + 나머지 |
+| 1024px 경계 | 1023px: 사이드바 숨김·메뉴 버튼 표시 / 1024px: 사이드바 표시·메뉴 버튼 숨김 |
+| 서랍(390px) | 가로 스크롤 없음, 메뉴 3개, Esc로 닫힘, **닫은 뒤 포커스가 메뉴 버튼으로 복귀**(수정 후 확인), 메뉴 선택 시 이동 후 닫힘, 서랍의 로그아웃 → `/login` |
+| 로그인 유지 시간 | 정상: "로그인 유지 1시간 43분" 형식, **10분 이하 → 경고색**(계산값 `rgb(255, 180, 84)`) |
+| 세션 만료 | 새 레이아웃에서도 경로·뒤 화면(사이드바·본문) 유지 + 재로그인 대화상자 |
+| 캡처 6장 | 로그인 / 레이아웃(팀 관리 빈 페이지) / 곡 관리 분할 슬롯 / 표·뱃지·버튼 샘플(임시 페이지, 커밋하지 않고 삭제) / 모바일 서랍 / 세션 만료 대화상자 |
+| `apps/admin` | lint · typecheck · build · test **135개** 통과, `npm audit` **0건** |
+
+**Next 16.3.5 상향과 audit 결과(결정 A)**: `apps/admin`의 `next`·`eslint-config-next`를 **16.3.5로 정확 고정**했다. `npm audit` 결과 **0 vulnerabilities**(16.2.4에서는 critical 1 + high 2), lint·build·typecheck·테스트 135개 통과. **공개 사이트(루트)는 이번 브랜치에서 건드리지 않았고 루트 lockfile 변경은 0**(해시 불변)이다. 공개 사이트도 같은 16.2.4의 audit critical 상태이므로 **별도 PR로 분리**했다(7d 목록 참조). **이 앱이 실제로 쓰는 기능(proxy·Server Actions·이미지 최적화)과 취약점 범위의 겹침은 건별로 확인하지 못했다 — 미확인.** 추정으로는 `apps/admin`은 proxy·Server Actions를 쓰지 않고 이미지 최적화 API는 `images.unoptimized: true`로 꺼 두었지만, 16.3.5로 올렸으므로 겹침 여부와 무관하게 해소됐다.
+
+**`cn` 제거(결정 B)**: `cn@0.3.2`를 제거하고 `clsx` 2.1.1 + `tailwind-merge` 3.7.0(정확 고정)으로 `src/lib/utils.ts`를 구성했다. shadcn CLI가 앞으로 `add`로 컴포넌트를 만들면 `from "cn"` import를 다시 생성할 수 있으므로, **`shadcn add` 뒤에는 import를 `@/lib/utils`로 바꾸고 `cn` 패키지가 다시 들어오지 않았는지 확인**한다(`package.json` 확인).
+
 ### 이 단계에서 의도적으로 하지 않은 것
 
 - **팀·곡·앨범 커버·유튜브 리뷰의 실제 화면**(7c-2~4), 드래그 재정렬(dnd-kit)·이미지 업로드·크롭
 - **`apps/api` 변경**(쿠키 인증·refresh·OpenAPI·새 엔드포인트 — 아래 요청 목록), **DB 변경**, **공개 프론트 변경**, **`apps/web` 이동**, **59곡 배치 실행**
 - **배포·DNS·Vercel 프로젝트 생성**(7d, 사용자가 한다), 대시보드 작업
-- **BFF·쿠키 인증**(로그인 제한 공유 부작용, 위 조사), **nonce 기반 CSP**, **다크모드**
+- **BFF·쿠키 인증**(로그인 제한 공유 부작용, 위 조사), **nonce 기반 CSP**, **다크모드**, **접이식 사이드바**
 - **컴포넌트 테스트(jsdom·RTL)·E2E(Playwright 패키지)·토스트(sonner)** — 필요한 화면이 생기는 7c-2 이후
 - **공개 프로젝트의 Vercel ignored build step**(결정 4), **루트 workspaces 도입**
-- **Next 16.3.5로의 상향**(결정 2를 따랐다 — 사용자 결정 대기)
+- ~~**Next 16.3.5로의 상향**~~ **[2026-09-22: `apps/admin`은 상향 완료(audit 0건). 공개 사이트(루트)는 이번 브랜치에서 건드리지 않고 별도 PR로 분리]**
 
 ### API 요청 목록 (API는 변경하지 않았다. 별도 승인 항목)
 
@@ -2115,14 +2161,14 @@ GRANT USAGE, SELECT, UPDATE ON SEQUENCE public."Setlist_id_seq", public."AdminUs
 
 ### 남겨둔 결정 (7c-2로 이월)
 
-1. **Next 16.3.5로 올릴지(admin과 공개 사이트 각각)** — audit critical, 위 조사 참조. 올리면 `apps/admin`은 `next`·`eslint-config-next` 두 줄과 lockfile이 바뀌고(스크래치에서 검증됨), **공개 사이트는 루트 lockfile이 바뀌므로 별도 작업·별도 검증**이 필요하다
+1. ~~**Next 16.3.5로 올릴지(admin과 공개 사이트 각각)**~~ **[2026-09-22: admin은 상향 완료. 남은 것은 공개 사이트(루트) — 루트 lockfile이 바뀌므로 별도 PR·Vercel 프리뷰 확인(7d 목록)]**
 2. **dnd-kit(core 6.3.1, sortable 10.0.0) 승인** — 팀 재정렬(7c-2a). 위/아래 버튼을 키보드 대체 수단으로 병행한다
 3. **CSP 이미지 호스트 추가 시점** — 7c-2 팀 카드(Supabase Storage `https://*.supabase.co`), 7c-3 앨범 커버(`https://is1-ssl.mzstatic.com`), 7c-4 유튜브 썸네일(`https://i.ytimg.com`)
 4. **`NEXT_PUBLIC_PUBLIC_SITE_ORIGIN`의 실제 사용** — 팀 카드 미리보기(7c-2). 비어 있으면 상대경로 이미지를 표시하지 못한다
 5. **폼 임시저장** — 제자리 재로그인은 "페이지가 유지되는 동안"만 폼을 보존한다. 새로고침·탭 닫힘에는 유실된다. 긴 폼(곡 여러 개 등)에서 필요하면 7c-2에서 sessionStorage 초안 훅을 검토
 6. **재로그인 후 마지막 계정 이름 기억**(트러블슈팅 6), **컴포넌트 테스트 도입 시점**(폼이 생기는 7c-2), **토스트(sonner) 필요 여부**
 7. **nonce 기반 CSP** — `'unsafe-inline'` 제거. proxy + 동적 렌더링이 필요해 7d 이후 재검토
-8. **일차 탭·메뉴가 늘어날 때의 좁은 화면 대응**, **다크모드** — 지금은 라이트 단색만
+8. **메뉴가 늘어날 때의 사이드바 스크롤 대응**, **다크모드**(만들지 않기로 결정) — 사이드바 메뉴 영역은 `overflow-y-auto`라 항목이 늘어도 깨지지 않는다
 9. §10의 관리자 UI 요건은 **그대로 유지**(팀: 4:5 안내·CDN 캐시 주의·1MB/413, 곡: 앨범 커버 후보 선택·URL 직접 입력·영문 표기 안내, 유튜브: 쿼터·`abortedBy`·승인/반려/재큐·409 새로고침·재검토 목록·썸네일 도메인). 로그인 제출 전 검증(L5)은 이번에 처리했다
 
 ### 7d(배포) 때 내가 할 일 — 초안 (사용자, 대시보드 작업은 이 단계에서 하지 않았다)
@@ -2134,7 +2180,7 @@ GRANT USAGE, SELECT, UPDATE ON SEQUENCE public."Setlist_id_seq", public."AdminUs
 5. **API 쪽 설정**: `CORS_ALLOWED_ORIGINS=https://admin.summit-concert.live`(경로·끝 슬래시·대문자 없는 정규형. `http:`는 루프백만 허용된다). 그리고 §16의 배포 값 3가지 — `TRUST_PROXY_HOPS`(틀리면 로그인 제한이 우회되거나 전원이 한 IP로 집계된다, 배포 직후 `req.ip` 실측), `CORS_ALLOWED_ORIGINS`, 권한 회수 실행 여부
 6. **Preview 배포는 API의 CORS 허용 목록에 없다** — 프리뷰 URL에서는 API 호출이 브라우저에서 막힌다. 프리뷰로는 화면 렌더까지만 보고, 기능 검증은 프로덕션 admin에서 한다(프리뷰 오리진을 API에 넣는 것은 권장하지 않는다)
 7. **배포 뒤 확인**: 로그인 → 팀 관리 진입, 401·429 문구, 응답 헤더(CSP·`X-Frame-Options`)와 콘솔의 CSP 위반 0건, 모바일 실기기, 스크린리더. Deployment Protection(Vercel Authentication) 적용 범위와 `robots` `noindex` 확인
-8. **Next 16.3.5 상향 결정**(남겨둔 결정 1)을 배포 전에 내린다
+8. **공개 사이트(루트) Next 상향 — 별도 PR**: `next`·`eslint-config-next`를 16.3.5로 올리는 루트 lockfile 변경이라 `apps/admin` 작업과 분리한다. **Vercel 프리뷰 배포로 공개 페이지(홈·`/setlist`·`/event-goods`, 이미지·동적 렌더링)를 확인한 뒤** 머지한다. 공개 사이트도 현재 audit critical(16.2.4) 상태다. `apps/admin`은 이미 16.3.5다
 
 ### 로컬 개발 절차 (사용자)
 
