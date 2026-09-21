@@ -15,7 +15,8 @@
 #
 # 트리거: pull_request 와 develop·main 으로의 push. main 은 배포 브랜치라 직접 푸시(규칙상 금지지만 막는 장치는 없다)도 검증한다.
 #
-# 범위: apps/api 는 lint·build·test·타입 검사(스펙 포함)를, 루트 Next.js 앱은 lint만 검사한다.
+# 범위: apps/api 는 lint·build·test·타입 검사(스펙 포함)를, apps/admin(관리자 프론트)은 lint·build·타입 검사·test를,
+# 루트 Next.js 앱은 lint만 검사한다. 잠금 파일은 세 곳(루트·apps/api·apps/admin)이 각각 독립이라 잡마다 자기 것으로 npm ci 한다.
 # 루트 `next build`는 `NEXT_PUBLIC_SUPABASE_*` 없이는 실패한다(`supabaseUrl is required`, 2026-09-21 실측).
 # 그 값들은 브라우저에 노출되는 공개 값이지만, 어떤 값을 CI에 둘지는 별도로 정한다.
 name: CI
@@ -101,3 +102,44 @@ jobs:
 
       - name: 린트
         run: npm run lint
+
+  admin:
+    name: apps/admin (lint · build · typecheck · test)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/admin
+    steps:
+      - name: 체크아웃
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Node 설정
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.x
+          cache: npm
+          cache-dependency-path: apps/admin/package-lock.json
+
+      - name: 의존성 설치
+        run: npm ci
+
+      - name: 린트
+        run: npm run lint
+
+      # NEXT_PUBLIC_API_BASE_URL은 브라우저 번들에 그대로 박히는 공개 값이라 비밀이 아니다. 비밀값·저장소 변수는 참조하지 않는다.
+      # 여기 값은 자리표시일 뿐이다(빌드가 CSP 헤더와 번들에 이 값을 쓰므로 유효한 http(s) 주소여야 한다).
+      # 배포 값은 Vercel 프로젝트의 환경변수에 따로 있다.
+      - name: 빌드
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_BASE_URL: http://localhost:3001
+
+      # 빌드가 next-env.d.ts와 .next/types를 만든 뒤에 실행해야 타입 검사가 통과한다
+      - name: 타입 검사
+        run: npm run typecheck
+
+      - name: 테스트
+        run: npm test
