@@ -2,8 +2,7 @@ import { supabase } from "@/lib/supabase";
 
 export type LineUpRow = Record<string, unknown> & {
   id?: number;
-  day?: string | number;
-  team?: string;
+  day?: string;
   team_name?: string;
   image_src?: string;
 };

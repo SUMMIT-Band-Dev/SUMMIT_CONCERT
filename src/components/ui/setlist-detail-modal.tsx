@@ -149,11 +149,11 @@ export default function SetlistDetailModal({
                           {String(index + 1).padStart(2, "0")}
                         </div>
                         <div className="h-14 w-14 shrink-0 overflow-hidden rounded-[8px]">
-                          {track.coverShape === "square" ? (
+                          {track.coverShape === "square" || !track.coverSrc ? (
                             <SquareGrayArtwork />
                           ) : (
                             <TrackCoverImage
-                              src={track.coverSrc ?? selectedCard.imageSrc}
+                              src={track.coverSrc}
                               alt={`${track.title} cover`}
                               size={56}
                             />
@@ -308,11 +308,11 @@ export default function SetlistDetailModal({
                           {String(index + 1).padStart(2, "0")}
                         </div>
                         <div className="h-14 w-14 shrink-0 overflow-hidden rounded-[8px]">
-                          {track.coverShape === "square" ? (
+                          {track.coverShape === "square" || !track.coverSrc ? (
                             <SquareGrayArtwork />
                           ) : (
                             <TrackCoverImage
-                              src={track.coverSrc ?? selectedCard.imageSrc}
+                              src={track.coverSrc}
                               alt={`${track.title} cover`}
                               size={56}
                             />

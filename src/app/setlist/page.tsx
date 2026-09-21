@@ -1,13 +1,8 @@
-import {
-  fetchLineUpRows,
-  fetchSetlistRows,
-  type LineUpRow,
-  type SetlistRow,
-} from "@/lib/fetch-line-up-and-setlist";
-import { shrinkAlbumCoverUrl } from "@/lib/mzstatic";
+import { fetchLineUpRows, fetchSetlistRows } from "@/lib/fetch-line-up-and-setlist";
+import { buildLineUpCards, buildTracksByTeamId } from "@/lib/line-up";
 import FadeInUp from "@/components/common/fade-in-up";
 import SetlistView from "@/components/sections/setlist-view";
-import type { DayType, SetlistCard, TrackItem } from "@/types/setlist";
+import type { SetlistCard, TrackItem } from "@/types/setlist";
 
 const setlistCards: SetlistCard[] = [
   {
@@ -124,89 +119,6 @@ const setlistCards: SetlistCard[] = [
   },
 ];
 
-function getDayFromRow(row: LineUpRow): DayType | null {
-  const dayValue =
-    typeof row.day === "string" ? row.day.toLowerCase().trim() : row.day;
-
-  if (
-    dayValue === 1 ||
-    dayValue === "1" ||
-    dayValue === "1일차" ||
-    dayValue === "1일차 공연" ||
-    dayValue === "day1"
-  )
-    return 1;
-  if (
-    dayValue === 2 ||
-    dayValue === "2" ||
-    dayValue === "2일차" ||
-    dayValue === "2일차 공연" ||
-    dayValue === "day2"
-  )
-    return 2;
-  if (typeof row.id === "number") {
-    if (row.id >= 1 && row.id <= 7) return 1;
-    if (row.id >= 8 && row.id <= 14) return 2;
-  }
-  return null;
-}
-
-function getTeamFallbackName(id: number) {
-  const day1Names = [
-    "8C8",
-    "뉴비",
-    "즐겜굴비",
-    "써밋 음악도둑",
-    "26살과 26학번",
-    "하로로는노는게제일좋아",
-    "숙취의 미학",
-  ];
-  const day2Names = [
-    "오미자",
-    "낭만치사랑",
-    "쉬었음밴드",
-    "머리위 쥑쥑이",
-    "컴학 늙크크와 공주들",
-    "모스붕어",
-    "도레미파솔라석희",
-  ];
-
-  if (id >= 1 && id <= 7) return day1Names[id - 1];
-  if (id >= 8 && id <= 14) return day2Names[id - 8];
-  return `Team ${id}`;
-}
-
-function getImageFallbackPath(id: number) {
-  if (id >= 1 && id <= 7) return `/day1-team${id}.png`;
-  if (id >= 8 && id <= 14) return `/day2-team${id - 7}.png`;
-  return "/day1-team1.png";
-}
-
-function normalizeImageSource(value: unknown) {
-  if (typeof value !== "string") return "";
-  const trimmed = value.trim().replaceAll("\\", "/");
-  if (!trimmed) return "";
-  const withoutAssetPrefix = trimmed.replace(/^(public|dist)\//i, "");
-  const normalized = withoutAssetPrefix;
-  if (normalized.startsWith("http://") || normalized.startsWith("https://"))
-    return normalized;
-  return normalized.startsWith("/") ? normalized : `/${normalized}`;
-}
-
-function getTeamFromSetlistRow(row: SetlistRow, id: number) {
-  const team = typeof row.team === "string" ? row.team.trim() : "";
-  if (team) return team;
-  const teamName =
-    typeof row.team_name === "string" ? row.team_name.trim() : "";
-  if (teamName) return teamName;
-  return getTeamFallbackName(id);
-}
-
-function shouldUseDummyPoster(teamName: string) {
-  void teamName;
-  return false;
-}
-
 async function buildSetlistData(): Promise<{
   cardsData: SetlistCard[];
   trackItemsByTeamId: Record<number, TrackItem[]>;
@@ -216,96 +128,14 @@ async function buildSetlistData(): Promise<{
     fetchSetlistRows(),
   ]);
 
-  // 1) 카드/팀명/포스터는 Line Up(team_name) 기준
-  let cardsData: SetlistCard[] = setlistCards;
-
-  if (lineUpRows.length > 0) {
-    const parsedCards = lineUpRows
-      .filter((row) => typeof row.id === "number" && row.id >= 1)
-      .map((row) => {
-        const id = row.id as number;
-        const day = getDayFromRow(row);
-        if (!day) return null;
-        const teamName = getTeamFromSetlistRow(row as SetlistRow, id);
-        const useDummyPoster = shouldUseDummyPoster(teamName);
-
-        const imageSrc =
-          normalizeImageSource(row.image_src) ||
-          (useDummyPoster ? "" : getImageFallbackPath(id));
-
-        return {
-          id,
-          day,
-          title: teamName,
-          artist: "SUMMIT SUMMER CONCERT",
-          imageSrc,
-          isPosterDummy: useDummyPoster,
-        } satisfies SetlistCard;
-      })
-      .filter((card): card is SetlistCard => card !== null);
-
-    if (parsedCards.length > 0) {
-      cardsData = parsedCards;
-    }
-  }
+  // 1) 카드/팀명/포스터는 Line Up 기준. 일차·팀명·이미지가 모두 있는 팀만 노출한다.
+  const lineUpCards = buildLineUpCards(lineUpRows);
+  const cardsData = lineUpCards.length > 0 ? lineUpCards : setlistCards;
 
   // 2) 곡 목록은 Setlist(title/singer/teamId) 기준, Line Up.id 로 매칭
-  const tracksByTeamId: Record<number, TrackItem[]> = {};
+  const trackItemsByTeamId = buildTracksByTeamId(setlistRows, lineUpRows);
 
-  if (setlistRows.length > 0) {
-    const lineUpIds = new Set(
-      lineUpRows
-        .map((row) => (typeof row.id === "number" ? row.id : null))
-        .filter((id): id is number => id !== null),
-    );
-
-    setlistRows.forEach((row, index) => {
-      const id = typeof row.id === "number" ? row.id : index + 1;
-      const teamId = typeof row.teamId === "number" ? row.teamId : null;
-      if (teamId === null) return;
-
-      // Setlist.teamId 와 Line Up.id 가 일치하는 팀만 반영
-      if (lineUpIds.size > 0 && !lineUpIds.has(teamId)) return;
-
-      const title = typeof row.title === "string" ? row.title.trim() : "";
-      if (!title) return;
-
-      const artist =
-        typeof row.singer === "string" && row.singer.trim()
-          ? row.singer.trim()
-          : "SUMMIT Band";
-      const rawAlbumCoverSrc = normalizeImageSource(row.album);
-      const albumCoverSrc = rawAlbumCoverSrc.startsWith("http")
-        ? shrinkAlbumCoverUrl(rawAlbumCoverSrc)
-        : rawAlbumCoverSrc;
-      const hasRealAlbumCover = Boolean(
-        albumCoverSrc && albumCoverSrc !== "/default-album.png",
-      );
-      const youtubeUrl =
-        typeof row.youtube_url === "string" && row.youtube_url.trim()
-          ? row.youtube_url.trim()
-          : undefined;
-      const nextTrack: TrackItem = {
-        id: id * 1000 + index + 1,
-        title,
-        artist,
-        coverShape: hasRealAlbumCover ? "image" : "square",
-        coverSrc: hasRealAlbumCover ? albumCoverSrc : undefined,
-        youtubeUrl,
-      };
-
-      const prev = tracksByTeamId[teamId] ?? [];
-      const hasSameTrack = prev.some(
-        (item) =>
-          item.title === nextTrack.title && item.artist === nextTrack.artist,
-      );
-      if (!hasSameTrack) {
-        tracksByTeamId[teamId] = [...prev, nextTrack];
-      }
-    });
-  }
-
-  return { cardsData, trackItemsByTeamId: tracksByTeamId };
+  return { cardsData, trackItemsByTeamId };
 }
 
 export default async function SetlistPage() {
