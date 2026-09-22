@@ -21,3 +21,13 @@ export interface LoginCredentials {
   username: string;
   password: string;
 }
+
+/** 미러링: apps/api/src/teams/dto/team-response.ts `TeamResponse`. id는 DB가 int8이라 문자열이다 */
+export interface Team {
+  id: string;
+  teamName: string;
+  day: string | null;
+  performanceOrder: number | null;
+  /** work02-7c-2b(카드뉴스 사진 업로드)부터 화면에서 갱신한다. 이번 단계는 읽기만 한다 */
+  cardImageUrl: string | null;
+}

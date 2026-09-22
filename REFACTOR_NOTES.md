@@ -2226,6 +2226,55 @@ GRANT USAGE, SELECT, UPDATE ON SEQUENCE public."Setlist_id_seq", public."AdminUs
 - 브랜치 `feature/admin-app-scaffold`, 푸시·PR 보류
 - **다음**: 7c-2a 팀 CRUD(재정렬 포함, dnd-kit 승인 필요) → 7c-2b 카드 이미지 업로드(**프로덕션 첫 쓰기 지점**) → 7c-3 곡·앨범 커버 → 7c-4 유튜브 리뷰·배치 → 7d 배포 → 59곡 유튜브 배치·리뷰
 
+## 19. work02-7c-2a — 관리자 팀 CRUD UI (2026-09-22)
+
+### 배경
+
+7c-1(관리자 프론트 뼈대: 로그인·인증·레이아웃·API 클라이언트) 머지 완료 뒤, 관리자가 실제로 쓰는 첫 기능인 팀(Line Up) CRUD를 `apps/admin`에 구현했다. 백엔드 팀 API는 work02-3에서 이미 구현·검증됐고(PR #33), 이번 작업은 기존 API를 붙이는 화면 작업이다.
+
+### 구현 전 조사
+
+`apps/api/src/teams/teams.controller.ts`·`teams.service.ts`·DTO를 먼저 읽고 두 가지를 확정했다:
+
+1. **삭제 엔드포인트가 없다.** 컨트롤러 주석에 "삭제는 MVP 스코프 밖이라 만들지 않는다(오입력은 수정으로 대응)"고 명시돼 있다. 작업 지시에는 "팀 삭제(확인 다이얼로그 필수)"가 포함돼 있었지만, 추측으로 만들지 않고 사용자에게 확인해 **이번 범위에서 삭제 UI를 제외**했다.
+2. **재정렬은 day 단위 배치 엔드포인트**(`PATCH /teams/reorder`)다. `{ day, teamIds }`(해당 day 전체 팀 id를 원하는 순서로)를 받아 배열 인덱스로 서버가 1..N을 부여한다. 부분 목록은 400. 수정 엔드포인트(`PATCH /teams/:id`)에는 `performanceOrder`가 없다 — day가 바뀌면 서버가 순서를 대상 day의 맨 뒤로 재배치한다.
+
+### 설계 결정 (사용자 승인)
+
+- **드래그 정렬 후 반영 시점**: `src/lib/query-client.ts`에 이미 "낙관적 업데이트는 쓰지 않는다: 순서 재정렬·승인처럼 서버가 권위인 변경은 서버 응답을 받은 뒤 화면을 바꾼다"는 기존 방침이 재정렬을 예시로 명시돼 있었다. 처음에 사용자가 낙관적 업데이트를 골랐으나, 이 기존 방침을 다시 확인시켜드리자 **기존 방침대로 서버 응답 후 반영**으로 정정했다. 드래그 중에는 "순서 적용 중…" 표시만 하고, `PATCH /teams/reorder` 응답이 온 뒤에만 줄 순서를 바꾼다.
+- **dnd-kit 의존성**: `@dnd-kit/core@6.3.1`, `@dnd-kit/sortable@10.0.0`, `@dnd-kit/utilities@3.2.2`(useSortable의 `CSS.Transform` 변환에 필요해 추가) — 다른 의존성과 같은 관례로 버전을 정확히 고정(캐럿 없음)했다.
+
+### 작업 내용
+
+- `src/lib/api/types.ts`: `Team` 타입 추가(서버 `TeamResponse` 미러링)
+- `src/lib/api/teams.ts`(신규): `listTeams`/`createTeam`/`updateTeam`/`reorderTeams` — API 클라이언트 래퍼
+- `src/lib/teams/team-schema.ts`(신규): 서버 DTO와 같은 규칙의 zod 스키마(`teamName`·`day`·`performanceOrder`, `day` 정규식 `^day[1-9]\d*$`은 서버와 동일)
+- `src/lib/teams/group-by-day.ts`(신규): 목록을 day별로 묶는 순수 함수. day가 없는 팀(API 계약상 nullable)은 별도 그룹으로 두고 재정렬 대상에서 제외
+- `src/components/teams/`(신규): `team-create-dialog.tsx`(등록, 3필드), `team-edit-dialog.tsx`(수정, 2필드 — 순서는 재정렬 전용), `team-day-table.tsx`(dnd-kit 드래그 정렬 표), `teams-page-client.tsx`(목록 조회 + 다이얼로그 연결)
+- `src/app/(admin)/teams/page.tsx`: 자리표시 화면을 `TeamsPageClient`로 교체(서버 컴포넌트는 메타데이터만 유지)
+- `package.json`: dnd-kit 3종 추가
+
+### 검증
+
+- **정적 검증**: `npm run typecheck`(무오류) · `npm run lint`(무오류) · `npm run build`(성공) · `npm run test`(8개 파일 135개 테스트 통과, `design-tokens.test.ts` 포함 — 새 하드코딩 색상 없음)
+- **로컬 실동작 검증(프로덕션 Supabase DB 연결)**: 검증 전 `Line Up` 테이블 스냅샷(15행) 확보 → 사용자가 직접 로그인해 목록 조회·등록(유효성 검사·409 충돌 포함)·수정(day 변경 시 안내 문구·맨 뒤 재배치)·드래그 정렬(로딩 표시 → 응답 후 반영)을 체크리스트로 확인 → 테스트 레코드(id=25) 삭제는 API에 없어 사용자 승인 하에 `mcp__supabase__execute_sql`로 직접 DELETE(조건에 id·team_name·day 3중 명시) → 정리 후 스냅샷 diff=0 확인(행 수·모든 값 원복)
+
+### 트러블슈팅 기록
+
+1. **CORS fail-closed**: `apps/api/.env`에 `CORS_ALLOWED_ORIGINS`가 없어 로컬 admin(3010)의 모든 API 호출이 막혔다(§10 CORS 하드닝이 fail-closed로 설계된 그대로 동작한 것). `.env`(gitignore)에 `CORS_ALLOWED_ORIGINS=http://localhost:3010` 추가로 해결.
+2. **재시작 후에도 CORS 미반영**: 원인은 배경 프로세스 관리 실수였다 — 첫 API 서버를 `(npm run start:dev &)` 형태의 셸 서브프로세스로 띄워서 작업 트래커가 잡고 있는 프로세스와 실제 리스닝 프로세스가 분리됐다. `.env` 수정 후 "재시작"한 새 프로세스는 `EADDRINUSE:3001`로 기동에 실패했고, CORS 설정이 없던 **구 프로세스가 계속 3001에서 응답**하고 있어 몇 차례 확인에도 CORS가 반영되지 않은 것처럼 보였다. `netstat`로 포트를 쥔 실제 PID를 찾아 강제 종료한 뒤에야 새 설정으로 재기동됐다. 이후 배경 프로세스는 셸 서브프로세스로 감싸지 않고 도구의 백그라운드 실행 기능에 직접 맡기는 방식으로만 띄웠다.
+3. **검증 레코드 이름 불일치**: 사용자가 실제로 만든 테스트 레코드가 `__verify__` 접두사 대신 `새로운 팀`(입력 폼 기본값으로 추정)이라는 이름으로 남아 있었다. 정리 SQL을 실행하기 전, 이 레코드가 정말 테스트용이 맞는지 사용자에게 먼저 확인받았다.
+
+### API 요청 목록
+
+없음. 기존 팀 API(work02-3, PR #33)를 그대로 사용했다.
+
+### 완료 상태 및 다음 단계
+
+- 브랜치 `feature/admin-team-crud`(`develop`에서 분기), 푸시·PR 보류
+- 팀 삭제 UI는 이번 범위에서 제외했다. 필요해지면 별도 work로 백엔드 `DELETE /teams/:id`(연관 `Setlist.teamId` FK 처리 방식 결정 포함) 설계부터 시작한다
+- **다음**: 7c-2b 카드 이미지 업로드(**프로덕션 첫 쓰기 지점**, Supabase Storage 연동) → 7c-3 곡·앨범 커버 → 7c-4 유튜브 리뷰·배치
+
 ## 부록: 원본 리포트 참조
 
 - `lighthouse-before-home-0831.html` / `.json`
