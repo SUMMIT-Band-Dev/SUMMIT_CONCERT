@@ -22,6 +22,32 @@ export interface LoginCredentials {
   password: string;
 }
 
+/** 미러링: apps/api/src/songs/dto/song-response.ts `YoutubeReviewStatus`(Prisma enum) */
+export type YoutubeReviewStatus = "pending" | "approved" | "rejected";
+
+/** 미러링: apps/api/src/songs/dto/song-response.ts `SongResponse` */
+export interface Song {
+  id: string;
+  /** 컬럼이 nullable이라 응답도 null을 허용한다 */
+  teamId: string | null;
+  title: string;
+  singer: string | null;
+  /** `album`. `PUT /songs/:id/album-cover`로만 갱신된다(곡 수정 DTO에는 없다) */
+  albumCoverUrl: string | null;
+  youtubeUrl: string | null;
+  /** **읽기 전용.** 제목·가수가 실제로 바뀌면 서버가 `pending`으로 되돌린다 */
+  youtubeReviewStatus: YoutubeReviewStatus;
+}
+
+/** 미러링: apps/api/src/album-cover/dto/album-cover-candidate.ts `AlbumCoverCandidate` */
+export interface AlbumCoverCandidate {
+  trackName: string;
+  artistName: string;
+  collectionName: string;
+  /** 이미 `600x600bb.jpg`로 정규화된 주소. 그대로 `PUT`의 `url`로 되돌려 보내면 된다 */
+  artworkUrl: string;
+}
+
 /** 미러링: apps/api/src/teams/dto/team-response.ts `TeamResponse`. id는 DB가 int8이라 문자열이다 */
 export interface Team {
   id: string;

@@ -2,4 +2,6 @@
 export const queryKeys = {
   me: ["auth", "me"] as const,
   teams: ["teams"] as const,
+  /** 팀별 곡 목록. 팀을 바꿔 가며 보므로 teamId까지 키에 넣는다 */
+  teamSongs: (teamId: string) => ["teams", teamId, "songs"] as const,
 };

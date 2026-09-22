@@ -2329,8 +2329,65 @@ Storage 객체를 지워도 `purgeCache`가 비활성이라 CDN 엣지에 남은
 
 ### 완료 상태 및 다음 단계
 
-- 브랜치 `feature/admin-team-image-upload`(`develop`에서 분기), 푸시·PR 보류
+- 브랜치 `feature/admin-team-image-upload`(`develop`에서 분기) → PR #42 → **CI 통과 후 `develop`에 머지 완료**
 - **다음**: 7c-3 곡·앨범 커버 → 7c-4 유튜브 리뷰·배치
+
+## 21. work02-7c-3 — 관리자 곡/앨범 커버 UI (2026-09-22)
+
+### 배경
+
+7c-2b(카드 이미지 업로드) 머지 완료 뒤, 곡(Setlist) CRUD + 앨범 커버 자동 매칭 UI를 apps/admin에 구현했다. 백엔드는 work02-4(곡 CRUD)와 work02-5(§13, F010 앨범 커버, PR #35)에서 이미 구현·검증됨 — 새 API를 만드는 게 아니라 기존 API를 붙이는 작업이다.
+
+### 구현 전 조사
+
+7c-2a에서 팀 삭제 API가 없다는 것을 뒤늦게(구현 중) 발견했던 전례가 있어, 이번엔 **시작 전에** `apps/api/src/songs/*`·`album-cover/*`를 먼저 읽고 확정한 계약:
+
+- **곡 조회**: `GET /teams/:teamId/songs` — 없는 팀은 빈 배열이 아니라 **404**(잘못된 id와 "곡 0건"을 구분)
+- **곡 등록**: `POST /teams/:teamId/songs` — 본문은 `{title, singer}`만, `teamId`는 경로로만 정해짐(곡의 팀 이동이 구조적으로 불가능). 같은 팀 안 (제목+가수) 중복이면 409(NFC 정규화 비교)
+- **곡 수정**: `PATCH /songs/:id`(평탄한 경로, 팀 하위 아님) — `teamId`를 건드릴 수 없음. **부작용**: 제목·가수가 실제로 바뀌면 서버가 `youtubeReviewStatus`를 `pending`으로 되돌린다(URL은 유지) — 화면이 안내해야 하는 항목
+- **곡 삭제**: **없음**(`team-songs.controller.ts`에 "MVP 스코프 밖" 명시, 팀과 동일 방침) → 이번에도 삭제 UI 제외
+- **순서**: `Setlist`에 순서 컬럼이 없어 서버가 `id` 오름차순으로 고정 → 곡 재정렬 기능 없음
+- **앨범 커버(F010)**: `GET /songs/:id/album-cover/candidates`(최대 5개, **DB 미기록**, 0건도 정상) + `PUT /songs/:id/album-cover`(명시 반영). iTunes 호출은 **프로세스 전체 분당 15회** 공유(429), 타임아웃 5초(504). URL은 호스트(`is1-ssl.mzstatic.com`)+경로(`…/600x600bb.jpg`)+길이(255자) allowlist로 검증
+
+### 설계 결정 (사용자 승인)
+
+- **화면 구조**: 7c-1에서 만들어 둔 `SplitPanel`을 처음 사용 — 좌측 팀 목록(선택) / 우측 선택 팀의 곡 표. PRD의 "팀 선택 → 해당 팀 곡 패널" 그대로
+- **앨범 커버 UI**: 모달 안에서 "후보에서 고르기" / "URL 직접 입력" **두 경로를 버튼 토글**로 전환(라이브러리 추가 없이 구현). §10이 남긴 필수 요건 3가지(후보 선택, URL 직접 입력 + 거부 이유 안내, 영문 표기 주의 문구)를 모두 반영
+- **후보 검색 트리거**: 모달을 열어도 자동 검색하지 않고 **버튼을 눌렀을 때만** iTunes를 호출 — 분당 15회 예산을 대화상자 여닫기만으로 소모하지 않기 위함
+- **CSP img-src의 앨범 커버 호스트**: 환경변수가 아니라 **코드 상수**(`ALBUM_COVER_IMAGE_ORIGIN = https://is1-ssl.mzstatic.com`)로 고정. 서버의 저장 허용 호스트(`ALBUM_COVER_ALLOWED_HOSTS`)와 반드시 같은 값이어야 하는데, 환경변수로 빼면 두 값이 배포 환경마다 갈릴 위험이 생긴다(팀 카드 Storage 오리진은 프로젝트마다 다른 값이라 env가 맞지만, 이건 전역 고정값이라 다름)
+
+### 작업 내용
+
+- `src/lib/api/types.ts`: `Song`·`AlbumCoverCandidate`·`YoutubeReviewStatus` 타입 추가
+- `src/lib/api/songs.ts`(신규): `listTeamSongs`/`createSong`/`updateSong`/`fetchAlbumCoverCandidates`/`updateAlbumCover`
+- `src/lib/songs/song-schema.ts`(신규): 서버와 같은 규칙(제목 200자·가수 100자, 가수 필수)의 zod 스키마
+- `src/lib/songs/album-cover-url.ts`(신규): 서버와 같은 판정을 하되 **거부 사유를 구체적으로 반환**(서버는 공통 400 메시지만 줌). 100x100 같은 다른 크기 꼬리표는 "주소 끝이 600x600bb.jpg 여야 합니다"로 특정해 안내(§10 요건) + 공개 사이트의 `shrinkAlbumCoverUrl`과 같은 규칙의 썸네일 축소 함수
+- `src/lib/csp.ts`: `ALBUM_COVER_IMAGE_ORIGIN` 상수 추가, img-src에 항상 포함
+- `src/components/songs/`(신규): `song-form-dialog.tsx`(등록·수정 통합, 수정 시 검토상태 되돌림 안내), `song-table.tsx`(커버 썸네일 + 유튜브 검토상태 배지), `album-cover-dialog.tsx`(후보/URL 토글), `songs-page-client.tsx`(SplitPanel 연결)
+- `src/app/(admin)/songs/page.tsx`: 자리표시 화면을 `SongsPageClient`로 교체
+
+### 검증
+
+- **정적 검증**: typecheck·lint·test(162개, 앨범 커버 URL 판정·CSP 오리진 테스트 포함)·build 전부 통과
+- **프로덕션 실동작 검증 — 최소 노출 시간 원칙 적용**: 임시 팀(`__verify__곡테스트`) 생성 → 곡 등록·중복 시도·수정 → 앨범 커버 후보 선택 → URL 직접 입력 거부 케이스 → 정리를 연속 진행, 전 단계 타임스탬프(UTC) 기록
+
+  | 단계 | 시각 |
+  | --- | --- |
+  | 기준선(`Line Up` 15행, `Setlist` 64행) | 14:50:03 |
+  | 사용자 작업 완료 보고 | 14:56:36 |
+  | 정리 SQL 실행(곡 → 팀 순서) | 14:58:33 |
+  | 정리 완료 확인(diff=0) | 14:58:37 |
+
+  노출 시간 약 8분(등록·수정·커버 반영·거부 케이스까지 전부 수행한 시간 포함). 정리 후 `Line Up` 15행·`Setlist` 64행으로 기준선과 diff=0 확인
+
+- **뜻밖의 관찰 — 중복 등록 케이스가 의도대로 재현되지 않음**: 사용자가 3단계(중복 등록 확인)에서 제목·가수 입력 칸을 바꿔 넣어(`title="이승윤", singer="폭포"` vs 원래 `title="폭포", singer="이승윤"`), 서버 입장에서는 (title, singer) 쌍이 달라 **중복이 아닌 별개 곡 2건**이 생성됐다(409 미발생). 409 자체는 §12 서버 단위 테스트에서 이미 검증돼 있어 재검증 필요성은 낮다고 판단해 추가 시도는 하지 않았다. 두 사용자가 정확히 같은 (제목, 가수) 쌍을 입력해야 발생하는 흔치 않은 경합이라 UI가 별도로 막을 필요는 없다고 본다
+- **URL 직접 입력 거부 케이스 확인**: 100x100 크기 주소를 붙여 넣었을 때 화면에 정확히 "주소 끝이 600x600bb.jpg 여야 합니다. 크기 부분만 바꿔서 다시 시도해 주세요."가 떴다(사용자 확인). 앨범 커버 후보 선택 → 반영도 정상 동작(사용자 확인, `album` 컬럼에 실제로 URL이 채워진 것을 DB로도 확인)
+
+### 완료 상태 및 다음 단계
+
+- 브랜치 `feature/admin-song-crud`(`develop`에서 분기), 푸시·PR 보류
+- 곡 삭제 UI는 이번 범위에서 제외했다(팀과 동일 이유 — 백엔드 API 부재)
+- **다음**: 7c-4 유튜브 연결 관리(F011~F013, 배치 추천 검색·리뷰) → 7d 배포
 
 ## 부록: 원본 리포트 참조
 
