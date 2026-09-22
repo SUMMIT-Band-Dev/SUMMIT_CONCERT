@@ -37,6 +37,15 @@ export interface CspOptions {
  */
 export const ALBUM_COVER_IMAGE_ORIGIN = "https://is1-ssl.mzstatic.com";
 
+/**
+ * 유튜브 썸네일(work02-7c-4) 오리진.
+ *
+ * `ALBUM_COVER_IMAGE_ORIGIN`과 같은 이유로 상수로 고정한다 — 서버의 저장 허용 호스트
+ * (`YOUTUBE_THUMBNAIL_ALLOWED_HOSTS`, apps/api/src/youtube/youtube-search.constants.ts)와
+ * **정확히 같은 값**이어야 한다. 서버 allowlist를 넓히는 날 이 상수도 함께 넓힌다.
+ */
+export const YOUTUBE_THUMBNAIL_ORIGIN = "https://i.ytimg.com";
+
 /** http(s) URL이면 오리진만 돌려주고, 아니면 undefined. 잘못된 값이 CSP를 깨뜨리거나 넓히지 못하게 한다 */
 export function toOrigin(value: string | undefined): string | undefined {
   if (!value) return undefined;
@@ -55,13 +64,14 @@ export function buildContentSecurityPolicy(options: CspOptions): string {
 
   // 이미지 호스트는 화면이 실제로 쓰게 될 때만 추가한다(미리 열어 두지 않는다 — 최소 권한).
   //   7c-2: 팀 카드 — Supabase Storage 오리진. 선택 전 로컬 미리보기가 blob:을 쓴다
-  //   7c-3(지금): 앨범 커버 — 아래 ALBUM_COVER_IMAGE_ORIGIN
-  //   TODO(7c-4): 유튜브 썸네일 https://i.ytimg.com
+  //   7c-3: 앨범 커버 — ALBUM_COVER_IMAGE_ORIGIN
+  //   7c-4: 유튜브 썸네일 — YOUTUBE_THUMBNAIL_ORIGIN
   const imgSrc = [
     "'self'",
     "data:",
     "blob:",
     ALBUM_COVER_IMAGE_ORIGIN,
+    YOUTUBE_THUMBNAIL_ORIGIN,
     ...(siteOrigin ? [siteOrigin] : []),
     ...(storageOrigin ? [storageOrigin] : []),
   ];
