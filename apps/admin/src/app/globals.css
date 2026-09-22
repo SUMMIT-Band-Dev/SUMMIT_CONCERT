@@ -19,7 +19,7 @@
   color-scheme: light;
 
   /* ── 표면·글자(밝은 콘텐츠 영역) ── */
-  --background: #f3f5f8; /* 페이지 배경 */
+  --background: #f2f5fa; /* 페이지 배경 (2026-09-22 CleanPay 비교 반영) */
   --foreground: #1b2430; /* 본문 글자 — 카드 위 15.65:1 */
   --card: #ffffff;
   --card-foreground: #1b2430;
@@ -33,40 +33,40 @@
   --accent-foreground: #1b2430;
   --border: #dbe1e9; /* 카드·구분선(장식용) */
   --input: #7d8899; /* 입력칸 테두리 — 카드 위 3.59:1 (WCAG 1.4.11 3:1 이상) */
-  --ring: #0072c0; /* 포커스 링 */
+  --ring: #0155ff; /* 포커스 링 — 주색과 동일 */
   --overlay: rgb(13 17 23 / 0.55); /* 대화상자·서랍 뒤 어둡게 */
 
-  /* ── 주색(파랑): #007acc 계열에서 흰 글자 대비 5:1 이상이 되도록 살짝 진하게 ── */
-  --primary: #0072c0; /* 흰 글자 5.04:1 */
+  /* ── 주색(파랑, 2026-09-22 CleanPay 비교 반영): 흰 글자 대비 5:1 이상 ── */
+  --primary: #0155ff; /* 흰 글자 5.61:1 */
   --primary-foreground: #ffffff;
-  --primary-hover: #005fa3; /* 흰 글자 6.63:1 */
+  --primary-hover: #0040c4; /* 흰 글자 8.30:1 */
 
   /* ── 상태색: 글자/아이콘용 진한 값 + 뱃지 배경용 옅은 값 ── */
   --destructive: #c62828; /* 흰 배경 5.62:1 */
   --destructive-foreground: #ffffff;
   --success: #1b7a3a;
   --warning: #8a5a00;
-  --info: #0072c0;
+  --info: #0155ff; /* 주색과 동일 */
   --badge-neutral-bg: #e8ecf1;
   --badge-neutral-fg: #3d4756;
   --badge-success-bg: #dcf5e3;
-  --badge-success-fg: #0f5a29;
+  --badge-success-fg: #0f5a29; /* 배경 위 7.24:1 */
   --badge-warning-bg: #fdf0c8;
-  --badge-warning-fg: #6f4700;
+  --badge-warning-fg: #7a4b00; /* 배경 위 6.52:1 (2026-09-22 갱신) */
   --badge-danger-bg: #fde4e4;
   --badge-danger-fg: #9c1c1c;
   --badge-info-bg: #dcefff;
-  --badge-info-fg: #00507f;
+  --badge-info-fg: #0040c4; /* 새 주색(#0155ff) 기준 재계산 — 배경 위 7.05:1, 흰 배경 8.30:1 (2026-09-22) */
 
-  /* ── 사이드바(어두운 남색-차콜, 순검정 아님) ── */
-  --sidebar: #141a24;
-  --sidebar-foreground: #d3dae6; /* 12.42:1 */
-  --sidebar-muted: #8f9bb0; /* 6.22:1 */
-  --sidebar-border: #252d3b;
-  --sidebar-hover: #1e2634;
-  --sidebar-active: #0b3a63; /* 활성 메뉴 배경 — 흰 글자 11.67:1 */
+  /* ── 사이드바(남색, 2026-09-22 CleanPay 비교 반영 — 순검정 아님) ── */
+  --sidebar: #181f47;
+  --sidebar-foreground: #d3dae6; /* 11.27:1 */
+  --sidebar-muted: #8f9bb0; /* 5.64:1 */
+  --sidebar-border: #2a3363;
+  --sidebar-hover: #232b57;
+  --sidebar-active: #10142f; /* 활성 메뉴 배경 — 사이드바 기본색보다 어두운 톤(2026-09-22 변경), 흰 글자 18.05:1 */
   --sidebar-active-foreground: #ffffff;
-  --sidebar-indicator: #3b9eff; /* 활성 메뉴 왼쪽 막대, 브랜드 표시 — 사이드바 위 6.25:1 */
+  --sidebar-indicator: #5b8fff; /* 활성 메뉴 왼쪽 막대 — 새 주색 계열, 사이드바 위 5.14:1 */
   --sidebar-warning: #ffb454; /* 로그인 유지 시간이 얼마 안 남았을 때 — 9.9:1 */
 
   /* ── 로그인 화면 ── */
@@ -75,11 +75,12 @@
   --auth-muted: #8f9bb0; /* 배경 위 6.4:1 이상 */
 
   /* ── 형태 ── */
-  --radius: 0.5rem; /* 8px. 작은 요소는 아래 @theme 에서 0.6배(≈5px), 대화상자는 1.4배(≈11px) */
+  --radius: 0.25rem; /* 4px(2026-09-22 변경, 각진 형태). 작은 요소는 아래 @theme 에서 0.6배(=2.4px), 대화상자는 1.4배(=5.6px) */
 
   /* ── 글꼴: 시스템 폰트 스택(웹폰트 없음 — 외부 요청·CSP 부담 없음). 나중에 교체하기 쉽게 여기서만 정의 ── */
   --font-family-sans: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --fs-title: 1.25rem; /* 20px 페이지 제목 */
+  --fs-page-title: 1.5rem; /* 24px 페이지 헤더 제목(2026-09-22 추가, PageHeader 전용) */
+  --fs-title: 1.25rem; /* 20px 로그인 화면 등 브랜드 제목 */
   --fs-section: 1rem; /* 16px 섹션 제목 */
   --fs-body: 0.875rem; /* 14px 본문 */
   --fs-small: 0.8125rem; /* 13px 표·보조 */
@@ -103,6 +104,7 @@
   --font-sans: var(--font-family-sans);
   --font-heading: var(--font-family-sans);
 
+  --text-page-title: var(--fs-page-title);
   --text-title: var(--fs-title);
   --text-section: var(--fs-section);
   --text-body: var(--fs-body);

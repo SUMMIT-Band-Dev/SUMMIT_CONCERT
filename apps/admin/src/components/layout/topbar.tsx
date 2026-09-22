@@ -1,9 +1,7 @@
 "use client";
 
 import type { ReactNode, RefObject } from "react";
-import { usePathname } from "next/navigation";
-import { ChevronRight, Menu } from "lucide-react";
-import { BRAND_NAME, findNavItem } from "@/lib/nav";
+import { Menu } from "lucide-react";
 
 interface TopbarProps {
   onOpenMenu: () => void;
@@ -13,11 +11,12 @@ interface TopbarProps {
   children?: ReactNode;
 }
 
-/** 상단 바: 모바일 메뉴 버튼 + 현재 위치(브레드크럼) */
+/**
+ * 상단 바: 모바일 메뉴 버튼 중심.
+ * 2026-09-22: 현재 위치(브레드크럼)는 PageHeader(제목 위)로 옮겼다 — 데스크톱(1024px 이상)에서는
+ * 메뉴 버튼이 숨어(lg:hidden) 이 바가 사실상 비어 있고, 모바일에서만 서랍을 여는 역할을 한다.
+ */
 export function Topbar({ onOpenMenu, menuButtonRef, children }: TopbarProps) {
-  const pathname = usePathname();
-  const section = findNavItem(pathname);
-
   return (
     <header className="sticky top-0 z-30 flex h-(--topbar-height) items-center gap-3 border-b bg-card px-(--page-padding)">
       <button
@@ -29,22 +28,6 @@ export function Topbar({ onOpenMenu, menuButtonRef, children }: TopbarProps) {
       >
         <Menu aria-hidden="true" className="size-5" />
       </button>
-
-      <nav aria-label="현재 위치">
-        <ol className="flex items-center gap-1.5 text-small text-muted-foreground">
-          <li>{BRAND_NAME}</li>
-          {section ? (
-            <>
-              <li aria-hidden="true">
-                <ChevronRight className="size-3.5" />
-              </li>
-              <li aria-current="page" className="font-medium text-foreground">
-                {section.label}
-              </li>
-            </>
-          ) : null}
-        </ol>
-      </nav>
 
       {children ? <div className="ml-auto flex items-center gap-2">{children}</div> : null}
     </header>
