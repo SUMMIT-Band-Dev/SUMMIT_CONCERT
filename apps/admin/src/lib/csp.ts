@@ -27,6 +27,16 @@ export interface CspOptions {
   isDev: boolean;
 }
 
+/**
+ * 앨범 커버(Apple/iTunes CDN) 오리진.
+ *
+ * 환경변수로 빼지 않고 상수로 두는 이유는 **서버의 저장 허용 호스트와 같은 값이어야 하기 때문**이다
+ * (apps/api의 `ALBUM_COVER_ALLOWED_HOSTS`). 서버가 이 호스트의 주소만 저장하므로 화면이 다른 값을
+ * 열어 둘 이유가 없고, 배포 환경마다 달라질 값도 아니다 — 환경변수로 두면 두 값이 갈릴 위험만 생긴다.
+ * 서버 allowlist를 넓히는 날 이 상수도 함께 넓힌다.
+ */
+export const ALBUM_COVER_IMAGE_ORIGIN = "https://is1-ssl.mzstatic.com";
+
 /** http(s) URL이면 오리진만 돌려주고, 아니면 undefined. 잘못된 값이 CSP를 깨뜨리거나 넓히지 못하게 한다 */
 export function toOrigin(value: string | undefined): string | undefined {
   if (!value) return undefined;
@@ -44,12 +54,14 @@ export function buildContentSecurityPolicy(options: CspOptions): string {
   const storageOrigin = toOrigin(options.supabaseStorageOrigin);
 
   // 이미지 호스트는 화면이 실제로 쓰게 될 때만 추가한다(미리 열어 두지 않는다 — 최소 권한).
-  //   7c-2(지금): 팀 카드 — Supabase Storage 오리진. 선택 전 로컬 미리보기가 blob:을 쓴다
-  //   TODO(7c-3): 앨범 커버 https://is1-ssl.mzstatic.com, TODO(7c-4): 유튜브 썸네일 https://i.ytimg.com
+  //   7c-2: 팀 카드 — Supabase Storage 오리진. 선택 전 로컬 미리보기가 blob:을 쓴다
+  //   7c-3(지금): 앨범 커버 — 아래 ALBUM_COVER_IMAGE_ORIGIN
+  //   TODO(7c-4): 유튜브 썸네일 https://i.ytimg.com
   const imgSrc = [
     "'self'",
     "data:",
     "blob:",
+    ALBUM_COVER_IMAGE_ORIGIN,
     ...(siteOrigin ? [siteOrigin] : []),
     ...(storageOrigin ? [storageOrigin] : []),
   ];
