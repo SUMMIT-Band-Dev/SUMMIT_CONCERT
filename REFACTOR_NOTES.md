@@ -2389,6 +2389,71 @@ Storage 객체를 지워도 `purgeCache`가 비활성이라 CDN 엣지에 남은
 - 곡 삭제 UI는 이번 범위에서 제외했다(팀과 동일 이유 — 백엔드 API 부재)
 - **다음**: 7c-4 유튜브 연결 관리(F011~F013, 배치 추천 검색·리뷰) → 7d 배포
 
+## 22. work02-7c-4 — 관리자 유튜브 리뷰/배치 UI (2026-09-22~23)
+
+### 배경
+
+7c-3(곡/앨범 커버 UI) develop 머지 완료 뒤, 마지막 관리자 UI 기능인 유튜브 연결 관리(F011~F013)를 구현했다. 백엔드는 work02-6단계에서 이미 구현됨(PR #36 URL 수동 수정, PR #37 배치 추천 검색·리뷰). 이 UI가 완성되면 그동안 보류해온 59곡 실제 유튜브 배치 실행을 사용자가 별도로 판단해 진행할 수 있다 — 이번 작업 범위에는 포함하지 않는다.
+
+### 구현 전 조사
+
+`apps/api/src/youtube/*` 전체(컨트롤러·서비스·DTO·상수)를 먼저 읽고 확정한 계약은 사전 확인 보고서(대화 로그)로 남겼다. 핵심만 요약:
+
+- 배치(`POST /youtube/recommendations/batch`)는 **곡을 지정할 수 없다** — 대상은 서버가 자동 선정(미시도 곡 우선), 1회 최대 10곡, 재시도는 누적(덮어쓰기 아님)
+- `YoutubeReviewState`의 DB 기본값이 `closed`다 — "닫힌 리뷰"가 아니라 "리뷰할 것이 없었던 시도"(결과 0건·검색 실패·예약 잔재) 뭉치
+- 승인은 등수가 아니라 **영상 ID**로 지목(목록 새로고침 사이 등수 이동 방지)
+- 재큐 자격은 서버가 곡 단위로 판단(`rejected` 곡 또는 `no_results`가 있는 `pending` 곡, URL 없음)
+- **갭 2가지 발견**: (1) 전역 곡 목록 API가 없어 "남은 대상 곡" 목록을 미리 보여줄 수 없음 → `BatchSummary.remainingTargets`(마지막 배치 응답)만 신뢰하고 추측하지 않기로 함 (2) `YoutubeBatchService.searchForSong()`(단일 곡 검증용으로 설계된 메서드)에 라우트가 없어 `__verify__` 곡 하나만 배치 트리거하는 것이 불가능 — 검증 전용 스크립트를 새로 만들기로 함(아래)
+
+### 설계 결정 (사용자 승인)
+
+- **화면 구조**: `SplitPanel`을 쓰지 않는다 — 좌측에 둘 "선택 대상" 목록이 없다(갭 1). 상태 탭(주 3개: 리뷰 대기/승인됨/반려됨 + "그 외" 드롭다운: 무효화됨/보관기간 만료/결과 없음·오류) + 카드 목록(표가 아님 — 후보 3개의 썸네일+제목+채널이 한 행에 안 들어감) 구조로 새로 설계
+- **배치 트리거 UX**: 곡 수 선택(1~10, 기본 5) + **항상 거치는 확인 다이얼로그**(건너뛰기 옵션 없음, 실행 버튼 라벨에 곡 수 명시) — 서버가 실수 클릭을 막지 않으므로 이게 유일한 방어선
+- **검증 방법**: 실제 배치를 `__verify__` 곡에 실행하는 대신, (C) DB에 시도·후보 행을 SQL로 직접 삽입(쿼터 0 소모) + (A) 검증 전용 스크립트로 실제 API 응답 형식 1회만 확인. (B) 실제 59곡 중 하나를 배치로 앞당겨 처리하는 안은 채택하지 않음
+- CSP img-src의 유튜브 썸네일 호스트는 앨범 커버와 같은 이유로 **코드 상수**(`YOUTUBE_THUMBNAIL_ORIGIN`)로 고정, 서버의 `YOUTUBE_THUMBNAIL_ALLOWED_HOSTS`와 정확히 같은 값
+
+### 작업 내용
+
+- **`apps/api`(신규 파일 1개, 공개 라우트 없음)**: `src/scripts/youtube-search-one.ts` — `YoutubeBatchService.searchForSong()`을 노출하는 검증 전용 스크립트(`npm run youtube:search-one -- <songId>`). 실제 YouTube API 쿼터를 소모하므로 `__verify__` 곡 1회로만 쓴다
+- **`apps/admin`**: `lib/api/types.ts`(유튜브 응답 타입 6종), `lib/api/youtube.ts`(엔드포인트 7개 래퍼), `lib/youtube/`(`youtube.constants.ts`, `youtube-url.ts` — F013 서버 검증 미러, `review-state.ts` — 상태 라벨/톤 객체 매핑, `decode-html-entities.ts` — 아래 참조), `lib/query-keys.ts`·`lib/csp.ts` 갱신, `components/youtube/`(신규 8개: `batch-bar`, `batch-confirm-dialog`, `attempt-card`, `candidate-card`, `reject-dialog`, `manual-url-dialog`, `requeue-button`, `youtube-page-client`), `app/(admin)/youtube/page.tsx` 교체
+
+### 실동작 검증 중 발견한 결함 — YouTube 제목의 HTML 엔티티
+
+`youtube:search-one`으로 `__verify__` 곡에 **실제** 배치 검색을 1회 실행했더니, 실제 API 응답에 이런 값이 왔다:
+
+```
+"&quot;나는 AI..당신은 당연히 사람&quot; 할리우드 &#39;발칵&#39; 뒤집혔다 / SBS 8뉴스"
+```
+
+서버는 이걸 가공 없이 저장·전달한다 — `recommendation-response.ts` 주석이 "이스케이프는 렌더링 계층(7단계 관리자 UI)의 몫"이라고 이미 명시해 뒀는데, 설계 단계에서는 반영하지 못했다. `dangerouslySetInnerHTML`을 쓰지 않는 순수 문자열 치환 디코더(`decode-html-entities.ts`, DOM 미사용)를 추가해 후보 카드의 제목·채널명에 적용했다. 실측 문자열 기반 단위 테스트 5개로 고정.
+
+### 검증
+
+- **정적 검증**: typecheck·lint·test(어드민 168개, API 972개— 전부 통과)·양쪽 build 전부 통과
+- **API 레벨 실동작 검증**: `npm run youtube:search-one -- <songId>`로 `__verify__` 곡에 실제 배치 검색 1회 실행 → 성공(처리 1, 쿼터 실사용 1회 소모, 응답 형식이 `RecommendationResponse` 계약과 일치 확인). 위 엔티티 결함을 이 단계에서 발견
+- **프로덕션 브라우저 검증(사용자 수행)**: 관리자 로그인 자격증명은 대화형 터미널 전용이라 Claude가 알 수 없으므로, DB에 SQL로 시나리오별 검증 데이터를 미리 심어(쿼터 0 소모) 사용자가 브라우저에서 직접 클릭 확인 — 최소 노출 시간 원칙 적용
+
+  | 곡 | 시나리오 | 결과(DB로 재확인) |
+  | --- | --- | --- |
+  | `__verify__유튜브테스트` | 반려(사유 입력) → 남은 시도로 승인 시도 시 409 | 반려 사유 "원곡 아님" 저장 확인 |
+  | `__verify__B_승인테스트` | 후보 선택 → 승인 | `youtube_url` 저장, `approvedRank=1` 확인 |
+  | `__verify__C_직접입력테스트` | 후보 무시, URL 직접 입력(F013) | 입력한 URL로 저장 + 열려 있던 추천이 `superseded`로 자동 전환 확인(공존하던 열린 추천 무효화 로직 실동작 확인) |
+  | `__verify__D_결과없음테스트` | "그 외 → 결과 없음·오류" 탭 + 재큐 버튼 표시 | 사용자 확인 |
+  | `__verify__E_만료테스트` | "그 외 → 보관기간 만료" 탭(버튼 없이 표시만) | 사용자 확인 |
+
+  기준선(`Line Up` 15행·`Setlist` 64행·시도/후보 0행) → 검증 데이터 삽입(곡 5개, 시도 6개) → 사용자 클릭 확인 → 정리 SQL 실행(후보 → 시도 → 곡 순) → 정리 완료 확인(diff=0, `Setlist` 64행으로 원복)
+- **⚠️ 실제 쿼터 소모 — 되돌릴 수 없음**: 이번 검증에서 `youtube:search-one` 스크립트가 **실제 YouTube Data API를 1회 호출**했다. 삽입한 시도·후보 행은 정리 SQL로 지웠지만, **이미 소모된 일일 검색 쿼터 자체는 복구되지 않는다**(하루 80회 상한 중 1회, 태평양 시간 자정에 리셋). SQL로 직접 삽입한 나머지 시도 행(5개)은 실제 API를 부르지 않아 쿼터에 영향이 없다
+
+### 이 단계에서 의도적으로 하지 않은 것
+
+- **실제 59곡 배치 실행**: UI 완성 후 사용자가 별도로 판단해 진행할 프로덕션 작업이며, 이번 검증의 일부가 아니다
+- **재큐 후 목록 즉시 반영**: 목록 API가 `invalidatedAt`을 노출하지 않아, 재큐해도 새로고침하면 항목이 여전히 이전 상태 탭에 남는다(같은 버튼을 다시 누르면 서버가 400). 근본 해결은 API 변경이 필요해 이번 스코프 밖으로 남긴다(`requeue-button.tsx` 주석에 기록)
+
+### 완료 상태 및 다음 단계
+
+- 브랜치 `feature/admin-youtube-review`(`develop`에서 분기), 푸시·PR 보류
+- **다음**: 7d 배포(누적 TODO: `apps/admin` 팀원 온보딩 문서, Vercel Analytics 설치 등 REFACTOR_NOTES 기존 항목 참조)
+
 ## 부록: 원본 리포트 참조
 
 - `lighthouse-before-home-0831.html` / `.json`

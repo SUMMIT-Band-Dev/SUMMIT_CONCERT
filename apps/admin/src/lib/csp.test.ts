@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ALBUM_COVER_IMAGE_ORIGIN, buildContentSecurityPolicy, toOrigin } from "./csp";
+import { ALBUM_COVER_IMAGE_ORIGIN, YOUTUBE_THUMBNAIL_ORIGIN, buildContentSecurityPolicy, toOrigin } from "./csp";
 
 function directive(csp: string, name: string): string[] {
   const found = csp.split("; ").find((d) => d.startsWith(`${name} `) || d === name);
@@ -66,6 +66,12 @@ describe("buildContentSecurityPolicy", () => {
     expect(directive(csp, "connect-src")).not.toContain(ALBUM_COVER_IMAGE_ORIGIN);
   });
 
+  it("유튜브 썸네일 호스트도 설정과 무관하게 img-src에 항상 있다 (서버 allowlist와 묶인 고정값)", () => {
+    const csp = buildContentSecurityPolicy({ apiBaseUrl: "garbage", isDev: false });
+    expect(directive(csp, "img-src")).toContain(YOUTUBE_THUMBNAIL_ORIGIN);
+    expect(directive(csp, "connect-src")).not.toContain(YOUTUBE_THUMBNAIL_ORIGIN);
+  });
+
   it("값이 없거나 잘못되면 그 오리진을 넣지 않는다", () => {
     const csp = buildContentSecurityPolicy({
       apiBaseUrl: "garbage",
@@ -74,7 +80,13 @@ describe("buildContentSecurityPolicy", () => {
       isDev: false,
     });
     expect(directive(csp, "connect-src")).toEqual(["'self'"]);
-    expect(directive(csp, "img-src")).toEqual(["'self'", "data:", "blob:", ALBUM_COVER_IMAGE_ORIGIN]);
+    expect(directive(csp, "img-src")).toEqual([
+      "'self'",
+      "data:",
+      "blob:",
+      ALBUM_COVER_IMAGE_ORIGIN,
+      YOUTUBE_THUMBNAIL_ORIGIN,
+    ]);
   });
 
   it("프레임·플러그인·base·form을 막는다", () => {
