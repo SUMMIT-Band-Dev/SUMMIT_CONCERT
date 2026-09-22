@@ -123,6 +123,12 @@ jobs:
           cache: npm
           cache-dependency-path: apps/admin/package-lock.json
 
+      # apps/admin/package.json의 packageManager와 맞춘다. node-version이 가리키는 24.x 패치가 바뀌면
+      # 번들 npm 버전도 조용히 달라질 수 있어(2026-09-22 실측: 로컬 11.6.2 vs 이 값), 로컬/CI 드리프트로
+      # lockfile 재현성이 깨지는 것을 막기 위해 명시적으로 고정한다(REFACTOR_NOTES.md §18 참조).
+      - name: npm 버전 고정
+        run: npm install -g npm@11.19.0
+
       - name: 의존성 설치
         run: npm ci
 

@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "SUMMIT 관리자 프론트 (work02-7c)",
+  "packageManager": "npm@11.19.0",
   "scripts": {
     "dev": "next dev -p 3010",
     "build": "next build",
