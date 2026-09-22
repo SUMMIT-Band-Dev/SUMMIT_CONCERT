@@ -1,15 +1,10 @@
 import type { Metadata } from "next";
-import { PageHeader } from "@/components/layout/page-header";
-import { EmptyState } from "@/components/layout/page-states";
+import { TeamsPageClient } from "@/components/teams/teams-page-client";
 
 export const metadata: Metadata = { title: "팀 관리 · SUMMIT 관리자" };
 
-// 자리표시 화면: 7c-2에서 표(팀 목록) + 우측 주 동작("팀 등록")으로 교체한다
+// 서버 컴포넌트는 메타데이터만 맡는다. 실제 데이터 조회는 토큰이 브라우저(localStorage)에만
+// 있어 서버에서 낼 수 없으므로, 클라이언트 컴포넌트(TanStack Query)가 담당한다(use-me.ts와 동일한 이유).
 export default function TeamsPage() {
-  return (
-    <>
-      <PageHeader title="팀 관리" description="공연 팀을 등록하고 순서를 바꾸며 카드뉴스 이미지를 올립니다." />
-      <EmptyState title="준비 중입니다" description="팀 등록·수정·순서 변경 화면은 다음 단계에서 제공됩니다." />
-    </>
-  );
+  return <TeamsPageClient />;
 }
