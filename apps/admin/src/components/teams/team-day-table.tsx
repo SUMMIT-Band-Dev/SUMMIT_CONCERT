@@ -13,7 +13,9 @@ import type { Team } from "@/lib/api/types";
 import type { ApiError } from "@/lib/api/errors";
 import { queryKeys } from "@/lib/query-keys";
 import { formatDayLabel, UNASSIGNED_DAY_KEY } from "@/lib/teams/group-by-day";
+import { toDisplayUrl } from "@/lib/teams/card-image";
 import { cn } from "@/lib/utils";
+import { CardImageThumb } from "./card-image-thumb";
 
 interface TeamDayTableProps {
   day: string;
@@ -87,6 +89,7 @@ export function TeamDayTable({ day, teams, onEdit }: TeamDayTableProps) {
             <TableRow>
               <TableHead className="w-10" aria-hidden="true" />
               <TableHead className="w-14 text-center">순서</TableHead>
+              <TableHead className="w-16 text-center">이미지</TableHead>
               <TableHead>팀명</TableHead>
               <TableHead className="w-24 text-center">동작</TableHead>
             </TableRow>
@@ -139,6 +142,14 @@ function SortableTeamRow({ team, order, disabled, onEdit }: SortableTeamRowProps
         </button>
       </TableCell>
       <TableCell className="text-center tabular">{order}</TableCell>
+      <TableCell>
+        <CardImageThumb
+          url={toDisplayUrl(team.cardImageUrl)}
+          alt={`${team.teamName} 카드뉴스 이미지`}
+          className="mx-auto size-8"
+          iconClassName="size-4"
+        />
+      </TableCell>
       <TableCell className="font-medium">{team.teamName}</TableCell>
       <TableCell className="text-center">
         <Button type="button" variant="subtle" size="sm" onClick={() => onEdit(team)}>

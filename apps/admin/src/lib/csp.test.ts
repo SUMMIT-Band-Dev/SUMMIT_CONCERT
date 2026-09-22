@@ -48,8 +48,25 @@ describe("buildContentSecurityPolicy", () => {
     expect(directive(csp, "connect-src")).not.toContain("https://site.example.com");
   });
 
+  it("Supabase Storage 오리진도 img-src에만 들어간다 (업로드한 팀 카드 표시용)", () => {
+    const csp = buildContentSecurityPolicy({ ...prod, supabaseStorageOrigin: "https://ref.supabase.co" });
+    expect(directive(csp, "img-src")).toContain("https://ref.supabase.co");
+    expect(directive(csp, "connect-src")).not.toContain("https://ref.supabase.co");
+  });
+
+  it("Storage 오리진은 와일드카드가 아니라 주어진 오리진 하나만 연다", () => {
+    // *.supabase.co는 누구나 프로젝트를 만들 수 있어 img-src 유출 통로가 된다(csp.ts 주석 참조)
+    const csp = buildContentSecurityPolicy({ ...prod, supabaseStorageOrigin: "https://ref.supabase.co" });
+    expect(csp).not.toContain("*.supabase.co");
+  });
+
   it("값이 없거나 잘못되면 그 오리진을 넣지 않는다", () => {
-    const csp = buildContentSecurityPolicy({ apiBaseUrl: "garbage", publicSiteOrigin: undefined, isDev: false });
+    const csp = buildContentSecurityPolicy({
+      apiBaseUrl: "garbage",
+      publicSiteOrigin: undefined,
+      supabaseStorageOrigin: "javascript:alert(1)",
+      isDev: false,
+    });
     expect(directive(csp, "connect-src")).toEqual(["'self'"]);
     expect(directive(csp, "img-src")).toEqual(["'self'", "data:", "blob:"]);
   });

@@ -42,3 +42,26 @@ export interface ReorderTeamsInput {
 export function reorderTeams(input: ReorderTeamsInput, options: Pick<ApiRequestOptions, "signal"> = {}): Promise<Team[]> {
   return apiRequest<Team[]>("/teams/reorder", { method: "PATCH", body: input, ...options });
 }
+
+/** 업로드 파일의 필드명. 서버 multer가 이 이름만 받는다(다르면 400) */
+export const CARD_IMAGE_FIELD_NAME = "file";
+
+/**
+ * PUT /teams/:id/card-image. 카드뉴스 이미지 교체 (multipart/form-data).
+ *
+ * 서버는 업로드마다 **새 경로**에 저장하고 이전 객체는 지우지 않는다(CDN 캐시를 비울 수단이 없어서).
+ * 즉 이 호출은 되돌릴 수 없는 저장소 쓰기다 — 화면에서 확인 없이 자동으로 부르지 않는다.
+ *
+ * 파일 하나만, 다른 필드 없이 보낸다(서버 multer `parts: 1`). Content-Type은 붙이지 않는다 —
+ * FormData면 브라우저가 multipart 경계를 포함해 직접 설정한다(client.ts 참조).
+ */
+export function uploadTeamCardImage(
+  id: string,
+  file: File,
+  options: Pick<ApiRequestOptions, "signal" | "timeoutMs"> = {},
+): Promise<Team> {
+  const body = new FormData();
+  body.append(CARD_IMAGE_FIELD_NAME, file);
+
+  return apiRequest<Team>(`/teams/${encodeURIComponent(id)}/card-image`, { method: "PUT", body, ...options });
+}

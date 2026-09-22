@@ -7,6 +7,7 @@ const isDev = process.env.NODE_ENV !== "production";
 const contentSecurityPolicy = buildContentSecurityPolicy({
   apiBaseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
   publicSiteOrigin: process.env.NEXT_PUBLIC_PUBLIC_SITE_ORIGIN,
+  supabaseStorageOrigin: process.env.NEXT_PUBLIC_SUPABASE_STORAGE_ORIGIN,
   isDev,
 });
 

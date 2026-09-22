@@ -14,6 +14,7 @@ import type { Team } from "@/lib/api/types";
 import { type ApiError } from "@/lib/api/errors";
 import { queryKeys } from "@/lib/query-keys";
 import { DAY_MAX_LENGTH, TEAM_NAME_MAX_LENGTH, updateTeamSchema, type UpdateTeamFormValues } from "@/lib/teams/team-schema";
+import { TeamCardImageField } from "./team-card-image-field";
 
 interface TeamEditDialogProps {
   /** null이면 닫힘. 값이 있으면 그 팀을 수정 대상으로 연다 */
@@ -69,7 +70,8 @@ export function TeamEditDialog({ team, onOpenChange }: TeamEditDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      {/* 기본 너비(sm)로는 이미지 미리보기 + 파일 선택이 좁아 한 단계 넓힌다 */}
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>팀 수정</DialogTitle>
           <DialogDescription>
@@ -116,6 +118,14 @@ export function TeamEditDialog({ team, onOpenChange }: TeamEditDialogProps) {
             />
             {errors.day ? <p className="text-sm text-destructive">{errors.day.message}</p> : null}
           </div>
+
+          {/* 이미지 업로드는 위 텍스트 저장(PATCH)과 별개의 엔드포인트·별개의 동작이라 선으로 구분한다 */}
+          {team ? (
+            <div className="border-t pt-4">
+              {/* key: 다른 팀을 열면 새로 마운트되어 이전 팀의 선택·미리보기가 남지 않는다 */}
+              <TeamCardImageField key={team.id} team={team} />
+            </div>
+          ) : null}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
