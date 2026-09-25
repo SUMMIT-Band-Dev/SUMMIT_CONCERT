@@ -25,7 +25,7 @@ const channelCards: ChannelCard[] = [
 
 // 모든 채널 아이콘 SVG가 공유하는 크기/색상/hover 트랜지션 클래스
 const channelIconClassName =
-  "h-[50px] w-[50px] text-white transition-colors duration-300 group-hover:text-[#3b82f6] md:h-[58px] md:w-[58px]";
+  "h-12.5 w-12.5 text-white transition-colors duration-300 group-hover:text-[#3b82f6] md:h-14.5 md:w-14.5";
 
 function InstagramIcon() {
   return (
@@ -58,7 +58,7 @@ export default function OfficialChannelSection() {
       <div className="pointer-events-none absolute inset-0 bg-black/18 md:hidden" />
       <div className="relative z-10">
         <FadeInUp delay={0.06}>
-          <h2 className="text-[32px] font-semibold leading-[38px] md:text-[44px] md:leading-[52px]">
+          <h2 className="text-[32px] font-semibold leading-9.5 md:text-[44px] md:leading-13">
             Official Channels
           </h2>
         </FadeInUp>
@@ -73,7 +73,7 @@ export default function OfficialChannelSection() {
                 href={card.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex min-h-[148px] flex-col justify-center gap-2 rounded-[24px] border border-white/12 bg-[#131929]/95 px-6 py-5 transition-all duration-300 md:min-h-[228px] md:gap-3 md:px-8 md:py-6 md:hover:-translate-y-1 md:hover:border-white/65 md:hover:shadow-[0_20px_36px_rgba(0,0,0,0.36)]"
+                className="group flex min-h-37 flex-col justify-center gap-2 rounded-[24px] border border-white/12 bg-[#131929]/95 px-6 py-5 transition-all duration-300 md:min-h-57 md:gap-3 md:px-8 md:py-6 md:hover:-translate-y-1 md:hover:border-white/65 md:hover:shadow-[0_20px_36px_rgba(0,0,0,0.36)]"
               >
                 <div>
                   <ChannelIcon />

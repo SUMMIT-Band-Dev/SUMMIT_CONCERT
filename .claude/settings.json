@@ -4,5 +4,25 @@
     "deny": [],
     "ask": [],
     "defaultMode": "plan"
+  },
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [{ "type": "command", "command": "node .claude/hooks/notify-slack-notification.js" }]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [{ "type": "command", "command": "node .claude/hooks/notify-slack-stop.js" }]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [{ "type": "command", "command": "node .claude/hooks/cleanup-playwright-mcp.js" }]
+      }
+    ]
   }
 }

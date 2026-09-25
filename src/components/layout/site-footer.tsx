@@ -4,7 +4,7 @@ export default function SummitFooterSection() {
   return (
     <FadeInUp delay={0.22}>
       <footer className="border-t border-white/30 pt-9 md:pt-12">
-        <h3 className="text-[32px] font-semibold leading-[38px] md:text-[44px] md:leading-[52px]">
+        <h3 className="text-[32px] font-semibold leading-9.5 md:text-[44px] md:leading-13">
           SUMMIT
         </h3>
         <div className="mt-6 space-y-2 text-[clamp(13px,3.4vw,19px)] font-medium leading-[1.32] text-white/90 md:mt-7">

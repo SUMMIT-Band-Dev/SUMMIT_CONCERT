@@ -7,7 +7,7 @@ export default function TicketInfoPage() {
     <div className="min-h-screen bg-black text-white">
       <SiteHeader />
 
-      <main className="relative isolate min-h-screen overflow-hidden pt-16 md:pt-[84px] lg:pt-[102px]">
+      <main className="relative isolate min-h-screen overflow-hidden pt-16 md:pt-21 lg:pt-25.5">
         <div className="pointer-events-none absolute inset-0 z-0">
           <Image
             src="/concert-poster-latest.png"
@@ -20,7 +20,7 @@ export default function TicketInfoPage() {
           <div className="absolute inset-0 bg-[#0a0d1f]/74" />
         </div>
 
-        <section className="relative z-10 mx-auto w-full max-w-[1220px] px-5 pb-16 pt-12 md:px-8 lg:px-12">
+        <section className="relative z-10 mx-auto w-full max-w-305 px-5 pb-16 pt-12 md:px-8 lg:px-12">
           <FadeInUp delay={0.04}>
             <h1 className="text-center text-[24px] font-semibold leading-[1.24] md:text-[34px] lg:text-[40px]">
               티켓 안내

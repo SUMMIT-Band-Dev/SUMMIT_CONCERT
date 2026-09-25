@@ -1,0 +1,42 @@
+{
+  "mcpServers": {
+    "context7": {
+      "type": "http",
+      "url": "https://mcp.context7.com/mcp",
+      "headers": {
+        "CONTEXT7_API_KEY": "ctx7sk-b93f49d8-a7af-4177-9d8f-1c043b68df68"
+      }
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["@playwright/mcp@latest"],
+      "env": {}
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+    },
+    "shadcn": {
+      "command": "npx",
+      "args": ["shadcn@latest", "mcp"]
+    },
+    "supabase": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=uhefeuskanwfzalykvex&features=docs%2Caccount%2Cdatabase%2Cdebugging%2Cdevelopment%2Cfunctions%2Cbranching%2Cstorage"
+    },
+    "posthog": {
+      "type": "http",
+      "url": "https://mcp.posthog.com/mcp"
+    },
+    "shrimp-task-manager": {
+      "command": "node",
+      "args": ["C:\\Users\\PC\\tools\\mcp-shrimp-task-manager\\dist\\index.js"],
+      "env": {
+        "DATA_DIR": "C:\\Users\\PC\\OneDrive\\Dokumen\\Summit-Web\\summit_concert\\.shrimp-data",
+        "TEMPLATES_USE": "en",
+        "ENABLE_GUI": "true"
+      }
+    }
+  }
+}

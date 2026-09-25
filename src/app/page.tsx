@@ -25,7 +25,7 @@ export default function Home() {
         <div className="relative z-10">
           <SiteHeader />
           <div>
-            <section className="relative h-[100svh] min-h-[728px] overflow-visible bg-black md:min-h-[760px] lg:min-h-[820px]">
+            <section className="relative h-[100svh] min-h-182 overflow-visible bg-black md:min-h-190 lg:min-h-205">
               <div className="hero-poster-media pointer-events-none absolute inset-x-0 top-0 z-0 w-full">
                 <Image
                   src="/concert-poster-latest.png"
@@ -36,7 +36,7 @@ export default function Home() {
                   sizes="100vw"
                   className="h-[100svh] w-full object-cover object-top md:h-auto md:object-contain"
                 />
-                <div className="absolute inset-x-0 bottom-0 h-[56svh] bg-gradient-to-b from-transparent via-black/70 to-black md:h-[62svh] lg:h-[68svh]" />
+                <div className="absolute inset-x-0 bottom-0 h-[56svh] bg-linear-to-b from-transparent via-black/70 to-black md:h-[62svh] lg:h-[68svh]" />
               </div>
               <div className="pointer-events-none absolute inset-x-0 top-[31svh] z-20 flex flex-col items-center justify-center gap-3 md:top-[15svh] md:gap-4 lg:top-[24svh] lg:gap-8">
                 <FadeInUp delay={0.06}>
@@ -45,7 +45,7 @@ export default function Home() {
                     alt="황혼 타이틀"
                     width={512}
                     height={200}
-                    className="h-auto w-[220px] md:w-[300px] lg:w-[400px]"
+                    className="h-auto w-55 md:w-75 lg:w-100"
                   />
                 </FadeInUp>
                 <FadeInUp delay={0.12}>
@@ -54,16 +54,16 @@ export default function Home() {
                     alt="황혼에 물드는, 우리의 여름"
                     width={434}
                     height={45}
-                    className="h-auto w-[210px] md:w-[290px] lg:w-[360px]"
+                    className="h-auto w-52.5 md:w-72.5 lg:w-90"
                   />
                 </FadeInUp>
               </div>
 
-              <div className="absolute z-20 inset-x-0 bottom-[10svh] w-full px-5 pb-8 text-white md:bottom-0 md:px-8 md:pb-10 lg:px-12 lg:pb-[120px]">
-                <article className="mx-auto flex w-full max-w-[705px] flex-col items-center text-center">
+              <div className="absolute z-20 inset-x-0 bottom-[10svh] w-full px-5 pb-8 text-white md:bottom-0 md:px-8 md:pb-10 lg:px-12 lg:pb-30">
+                <article className="mx-auto flex w-full max-w-176.25 flex-col items-center text-center">
                   <FadeInUp delay={0.18}>
                     <h1
-                      className="whitespace-nowrap text-center text-[24px] font-semibold leading-[28.64px] md:text-[30px] md:leading-[35px] lg:text-[36px] lg:leading-[42.96px]"
+                      className="whitespace-nowrap text-center text-[24px] font-semibold leading-[28.64px] md:text-[30px] md:leading-8.75 lg:text-[36px] lg:leading-[42.96px]"
                       style={{
                         fontFamily: "Pretendard, system-ui, sans-serif",
                       }}
@@ -74,12 +74,12 @@ export default function Home() {
 
                   <FadeInUp delay={0.24}>
                     <div
-                      className="mt-2 w-full text-[14px] font-normal leading-[16.71px] md:mt-3 md:text-[18px] md:leading-[22px] lg:text-[24px] lg:leading-[28.64px]"
+                      className="mt-2 w-full text-[14px] font-normal leading-[16.71px] md:mt-3 md:text-[18px] md:leading-5.5 lg:text-[24px] lg:leading-[28.64px]"
                       style={{
                         fontFamily: "Pretendard, system-ui, sans-serif",
                       }}
                     >
-                      <p className="mx-auto max-w-[560px] text-center">
+                      <p className="mx-auto max-w-140 text-center">
                         플렉스라운지 (서울특별시 마포구 양화로 100-10)
                       </p>
                       <p className="mt-1 whitespace-nowrap text-center md:mt-2">
@@ -91,7 +91,7 @@ export default function Home() {
                   <FadeInUp delay={0.3}>
                     <Link
                       href="/book"
-                      className="mt-5 inline-flex h-[48px] w-[200px] items-center justify-center rounded-[12px] border border-white/20 bg-black/25 text-[20px] font-medium leading-none text-white backdrop-blur-[1px] transition-all duration-300 hover:-translate-y-1 hover:border-white hover:shadow-[0_14px_28px_rgba(0,0,0,0.38)] md:mt-6 md:h-[48px] md:w-[152px] md:rounded-[14px] md:text-[22px] lg:h-[64px] lg:w-[180px] lg:rounded-[16px] lg:text-[28px]"
+                      className="mt-5 inline-flex h-12 w-50 items-center justify-center rounded-[12px] border border-white/20 bg-black/25 text-[20px] font-medium leading-none text-white backdrop-blur-[1px] transition-all duration-300 hover:-translate-y-1 hover:border-white hover:shadow-[0_14px_28px_rgba(0,0,0,0.38)] md:mt-6 md:h-12 md:w-38 md:rounded-[14px] md:text-[22px] lg:h-16 lg:w-45 lg:rounded-[16px] lg:text-[28px]"
                       style={{
                         fontFamily: "Pretendard, system-ui, sans-serif",
                       }}
@@ -107,7 +107,7 @@ export default function Home() {
               <div className="pointer-events-none absolute inset-0 z-10 md:hidden overflow-hidden">
                 <div className="blue-flow-gradient" />
                 <div className="blue-flow-gradient blue-flow-gradient-secondary" />
-                <div className="absolute inset-x-0 bottom-0 h-[36svh] bg-gradient-to-b from-transparent via-black/60 to-black" />
+                <div className="absolute inset-x-0 bottom-0 h-[36svh] bg-linear-to-b from-transparent via-black/60 to-black" />
               </div>
               <div className="relative z-20">
                 <CardCarousel />

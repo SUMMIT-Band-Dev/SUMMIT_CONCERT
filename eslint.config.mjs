@@ -14,6 +14,10 @@ const eslintConfig = defineConfig([
     // Build output from other toolchains (e.g. Vite bundles)
     "dist/**",
     "next-env.d.ts",
+    // Claude Code 훅 스크립트 — 앱 코드가 아닌 독립 Node CLI 스크립트
+    ".claude/hooks/**",
+    // NestJS 백엔드 — 자체 린터(oxlint)를 사용하므로 웹 ESLint 대상에서 제외
+    "apps/**",
   ]),
 ]);
 

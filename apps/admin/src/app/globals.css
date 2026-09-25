@@ -1,0 +1,189 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   디자인 토큰 — 색·radius·글꼴·밀도·레이아웃 치수는 **이 파일의 :root 한 곳에만** 둔다.
+   컴포넌트(.tsx)에는 색상 값(#hex, rgb(), 팔레트 클래스 bg-blue-500 등)을 직접 쓰지 않고 아래 토큰을
+   Tailwind 유틸리티(bg-primary, text-muted-foreground, w-(--sidebar-width) …)로만 참조한다.
+   (src/lib/design-tokens.test.ts 가 이를 검사한다.) 디자인을 바꿀 때는 :root 블록과 layout/ 컴포넌트만 손보면 된다.
+
+   방향(7c-1b, 사용자 승인): 공개 랜딩과 다른 전형적인 관리자 대시보드. 블랙 + 파랑(VS Code 계열),
+   어두운 고정 사이드바 + 밝은 콘텐츠, 표준-조밀 밀도, 시스템 폰트, 다크모드 없음.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* shadcn 컴포넌트의 dark: 변형이 OS 다크 설정에 반응하지 않도록 클래스 기반으로 두고 .dark 는 어디에도 붙이지 않는다 */
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  color-scheme: light;
+
+  /* ── 표면·글자(밝은 콘텐츠 영역) ── */
+  --background: #f2f5fa; /* 페이지 배경 (2026-09-22 CleanPay 비교 반영) */
+  --foreground: #1b2430; /* 본문 글자 — 카드 위 15.65:1 */
+  --card: #ffffff;
+  --card-foreground: #1b2430;
+  --popover: #ffffff;
+  --popover-foreground: #1b2430;
+  --muted: #eaeef3; /* 옅은 면(표 머리글, 비활성 영역) */
+  --muted-foreground: #4f5b6b; /* 보조 글자 — 페이지 배경 위 6.32:1 */
+  --secondary: #eaeef3;
+  --secondary-foreground: #1b2430;
+  --accent: #e3eaf3; /* hover 배경 */
+  --accent-foreground: #1b2430;
+  --border: #dbe1e9; /* 카드·구분선(장식용) */
+  --input: #7d8899; /* 입력칸 테두리 — 카드 위 3.59:1 (WCAG 1.4.11 3:1 이상) */
+  --ring: #0155ff; /* 포커스 링 — 주색과 동일 */
+  --overlay: rgb(13 17 23 / 0.55); /* 대화상자·서랍 뒤 어둡게 */
+
+  /* ── 주색(파랑, 2026-09-22 CleanPay 비교 반영): 흰 글자 대비 5:1 이상 ── */
+  --primary: #0155ff; /* 흰 글자 5.61:1 */
+  --primary-foreground: #ffffff;
+  --primary-hover: #0040c4; /* 흰 글자 8.30:1 */
+
+  /* ── 상태색: 글자/아이콘용 진한 값 + 뱃지 배경용 옅은 값 ── */
+  --destructive: #c62828; /* 흰 배경 5.62:1 */
+  --destructive-foreground: #ffffff;
+  --success: #1b7a3a;
+  --warning: #8a5a00;
+  --info: #0155ff; /* 주색과 동일 */
+  --badge-neutral-bg: #e8ecf1;
+  --badge-neutral-fg: #3d4756;
+  --badge-success-bg: #dcf5e3;
+  --badge-success-fg: #0f5a29; /* 배경 위 7.24:1 */
+  --badge-warning-bg: #fdf0c8;
+  --badge-warning-fg: #7a4b00; /* 배경 위 6.52:1 (2026-09-22 갱신) */
+  --badge-danger-bg: #fde4e4;
+  --badge-danger-fg: #9c1c1c;
+  --badge-info-bg: #dcefff;
+  --badge-info-fg: #0040c4; /* 새 주색(#0155ff) 기준 재계산 — 배경 위 7.05:1, 흰 배경 8.30:1 (2026-09-22) */
+
+  /* ── 사이드바(남색, 2026-09-22 CleanPay 비교 반영 — 순검정 아님) ── */
+  --sidebar: #181f47;
+  --sidebar-foreground: #d3dae6; /* 11.27:1 */
+  --sidebar-muted: #8f9bb0; /* 5.64:1 */
+  --sidebar-border: #2a3363;
+  --sidebar-hover: #232b57;
+  --sidebar-active: #10142f; /* 활성 메뉴 배경 — 사이드바 기본색보다 어두운 톤(2026-09-22 변경), 흰 글자 18.05:1 */
+  --sidebar-active-foreground: #ffffff;
+  --sidebar-indicator: #5b8fff; /* 활성 메뉴 왼쪽 막대 — 새 주색 계열, 사이드바 위 5.14:1 */
+  --sidebar-warning: #ffb454; /* 로그인 유지 시간이 얼마 안 남았을 때 — 9.9:1 */
+
+  /* ── 로그인 화면 ── */
+  --auth-background: #0d1117;
+  --auth-foreground: #ffffff;
+  --auth-muted: #8f9bb0; /* 배경 위 6.4:1 이상 */
+
+  /* ── 형태 ── */
+  --radius: 0.25rem; /* 4px(2026-09-22 변경, 각진 형태). 작은 요소는 아래 @theme 에서 0.6배(=2.4px), 대화상자는 1.4배(=5.6px) */
+
+  /* ── 글꼴: 시스템 폰트 스택(웹폰트 없음 — 외부 요청·CSP 부담 없음). 나중에 교체하기 쉽게 여기서만 정의 ── */
+  --font-family-sans: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --fs-page-title: 1.5rem; /* 24px 페이지 헤더 제목(2026-09-22 추가, PageHeader 전용) */
+  --fs-title: 1.25rem; /* 20px 로그인 화면 등 브랜드 제목 */
+  --fs-section: 1rem; /* 16px 섹션 제목 */
+  --fs-body: 0.875rem; /* 14px 본문 */
+  --fs-small: 0.8125rem; /* 13px 표·보조 */
+  --fs-caption: 0.75rem; /* 12px 캡션 */
+
+  /* ── 밀도(표준-조밀) ── */
+  --control-height: 2.25rem; /* 36px 입력·버튼 */
+  --row-height: 2.75rem; /* 44px 표 행 */
+  --nav-item-height: 2.5rem; /* 40px 사이드바 항목 */
+  --page-padding: 1.5rem; /* 24px 페이지 여백 */
+  --card-padding: 1.25rem; /* 20px 카드 안 여백 */
+
+  /* ── 레이아웃 치수 ── */
+  --sidebar-width: 14.5rem; /* 232px */
+  --topbar-height: 3.5rem; /* 56px */
+  --content-max-width: 75rem; /* 1200px */
+  --list-panel-width: 17rem; /* 272px 곡 관리의 팀 목록 패널 */
+}
+
+@theme inline {
+  --font-sans: var(--font-family-sans);
+  --font-heading: var(--font-family-sans);
+
+  --text-page-title: var(--fs-page-title);
+  --text-title: var(--fs-title);
+  --text-section: var(--fs-section);
+  --text-body: var(--fs-body);
+  --text-small: var(--fs-small);
+  --text-caption: var(--fs-caption);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-overlay: var(--overlay);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-badge-neutral-bg: var(--badge-neutral-bg);
+  --color-badge-neutral-fg: var(--badge-neutral-fg);
+  --color-badge-success-bg: var(--badge-success-bg);
+  --color-badge-success-fg: var(--badge-success-fg);
+  --color-badge-warning-bg: var(--badge-warning-bg);
+  --color-badge-warning-fg: var(--badge-warning-fg);
+  --color-badge-danger-bg: var(--badge-danger-bg);
+  --color-badge-danger-fg: var(--badge-danger-fg);
+  --color-badge-info-bg: var(--badge-info-bg);
+  --color-badge-info-fg: var(--badge-info-fg);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-active-foreground: var(--sidebar-active-foreground);
+  --color-sidebar-indicator: var(--sidebar-indicator);
+  --color-sidebar-warning: var(--sidebar-warning);
+  --color-auth: var(--auth-background);
+  --color-auth-foreground: var(--auth-foreground);
+  --color-auth-muted: var(--auth-muted);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-size: var(--fs-body);
+    line-height: 1.5;
+    /* 한글은 어절 단위로 줄바꿈한다("그대로"가 "그 / 대로"로 끊기지 않게). 아주 긴 한 덩어리만 강제로 자른다 */
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+  /* 순서·쿼터·시간처럼 자리가 맞아야 읽기 쉬운 숫자 */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
