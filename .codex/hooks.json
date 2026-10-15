@@ -1,0 +1,25 @@
+{
+  "hooks": {
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node 'C:\\Users\\PC\\OneDrive\\Dokumen\\Summit-Web\\summit_concert\\.codex\\hooks\\cleanup-playwright-mcp.js'"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node 'C:\\Users\\PC\\OneDrive\\Dokumen\\Summit-Web\\summit_concert\\.codex\\hooks\\notify-slack-stop.js'"
+          }
+        ]
+      }
+    ]
+  }
+}
