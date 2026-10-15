@@ -22,19 +22,17 @@
 
 ## 작업 로드맵
 
-세 개의 작업 단위(work01~03)로 진행합니다. **해당 work 작업을 시작하기 전에 아래 표의 경로에 있는 문서를 먼저 읽으세요** — 지금 하는 작업과 무관한 work 문서까지 매번 읽을 필요는 없습니다.
+작업 단위(workNN)로 진행합니다. **해당 work 작업을 시작하기 전에 아래 표의 경로에 있는 문서를 먼저 읽으세요** — 지금 하는 작업과 무관한 work 문서까지 매번 읽을 필요는 없습니다. 종료된 work 문서는 `.claude/rules/history/`에 보관합니다.
 
-| 단계   | 작업                                              | 상태/시기                                                                      | 상세 문서                              |
-| ------ | ------------------------------------------------- | ------------------------------------------------------------------------------- | -------------------------------------- |
-| work01 | 리팩토링 (웹 성능 지표 개선)                      | 진행 중 — 추석 전 완료 목표. 착수 조건 충족으로 work02와 병행 진입             | `.claude/rules/work-01-refactoring.md` |
-| work02 | Nest.js 백엔드 추가 (로그인 + 팀/곡 CRUD 어드민)  | **착수 (2026-09-19)** — 11월 서류 시점 전 완성 목표                            | `.claude/rules/work-02-nest.js.md`     |
-| work03 | 데이터 업데이트(콘텐츠 마이그레이션) + 어드민 페이지 | 콘텐츠 마이그레이션은 work02와 병렬/독립 트랙, 11월 내 완료 목표. 어드민 페이지는 12월 정기공연 시기 착수, 2027년까지 확장 예정 | `.claude/rules/work-03-update.md`      |
+| 단계   | 작업                                                       | 상태                                                                                   | 상세 문서                                       |
+| ------ | ---------------------------------------------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| work05 | 공연 콘텐츠 관리 확장 + 유튜브 연결 관리 단순화 (어드민)  | **진행 중 (2026-10-15 착수)** — PRD: `.claude/docs/prd-construction.md`               | `.claude/rules/work-05-construction.md`         |
+| work01 | 리팩토링 (웹 성능 지표 개선)                               | 우선순위 1~4 완료, 5~7(정리 작업 · `@vercel/analytics` · 라우트 리네이밍) 잔여         | `.claude/rules/history/work-01-refactoring.md`  |
+| work04 | 어드민 페이지 기능 수정                                    | 종료 — 범위를 work05로 이관                                                            | `.claude/rules/history/work-04-admin.md`        |
+| work03 | 데이터 업데이트 + 어드민 페이지                            | 종료 — B(어드민)는 work02와 함께 구축 완료, A(데이터 업데이트)는 폐기                 | `.claude/rules/history/work-03-update.md`       |
+| work02 | Nest.js 백엔드 (로그인 + 팀/곡 CRUD 어드민)                | 종료 — 배포 완료. 이전 어드민 PRD: `.claude/docs/prd-admin.md`                         | `.claude/rules/history/work-02-nest.js.md`      |
 
-**2026-09-19 우선순위 갱신**: 기존 "성능개선 → 콘텐츠 마이그레이션 → 백엔드" 순서를 "성능개선(work01) → 백엔드(work02, 1학기 기존 데이터 기반) → 콘텐츠 마이그레이션(work03-A, 병렬/독립 트랙)"으로 변경. 백엔드 완성이 임원진 데이터 도착 일정에 더 이상 종속되지 않음. 이유와 상세는 `.claude/rules/work-02-nest.js.md`, `.claude/rules/work-03-update.md` 참조.
-
-**2026-09-19 work02 착수**: 관리자 페이지에서 팀명을 직접 수정할 수 있게 하려면 문자열 매칭 대신 FK 기반 구조가 필요해, Setlist/Line Up 스키마를 정규화하고(`teamId` FK, `performanceOrder` 추가) RLS를 활성화함(상세: `REFACTOR_NOTES.md` §8). 이로써 work02 착수 조건이 충족되어 백엔드 작업을 시작함. 목표는 단순 CRUD 이관이 아니라 로그인(JWT) + 팀/곡 관리자 기능을 갖춘 풀스택 구조 전환이며, 7단계 빌드 순서는 `.claude/rules/work-02-nest.js.md` 참조.
-
-**work03 참고**: 단순 데이터 갱신을 넘어, DB를 다루는 관리자(어드민) 페이지 구축까지 포함합니다. 어드민 기능은 로그인 + 텍스트/이미지 CRUD로 최소 스코프를 유지합니다.
+**이력 요약**: 2026-09-19에 Setlist/Line Up 스키마를 FK 구조로 정규화하고 RLS를 활성화한 뒤(`REFACTOR_NOTES.md` §8) work02(백엔드)를 착수해 배포까지 완료함. 이후 어드민 기능 수정을 work04로 신설했으나, 2026-10-15 공연 콘텐츠 전체 관리 + 유튜브 관리 단순화로 범위를 넓혀 work05로 새로 시작함.
 
 다음 두 문서는 작업 종류와 무관하게 항상 적용되는 공통 규칙이므로 항상 로드합니다:
 
@@ -57,6 +55,8 @@ npm run lint   # ESLint 검사
 ```
 
 **경로 별칭**: `@/*` → `src/*`
+
+> 위 커맨드는 루트(공개 사이트) 기준. 관리자 프론트는 `apps/admin`에서 `npm run dev`(포트 3010), 백엔드는 `apps/api`에서 `npm run start:dev`로 각각 실행 (각 앱은 독립 `package.json`).
 
 ## 환경설정
 
@@ -81,7 +81,11 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<익명-키>
 
 ⚠️ **중요**: Next.js 16은 API와 컨벤션의 주요 변경사항이 있습니다. 코드 작성 전에 `node_modules/next/dist/docs/` 또는 [v16 릴리스 노트](https://github.com/vercel/next.js/releases)를 확인하세요.
 
-> 백엔드(Nest.js) 스택 상세는 work02 착수 시 `.claude/rules/backend/`에 별도 정리 예정.
+**관리자 앱 (모노레포 `apps/`)**
+
+- **`apps/admin`**: 관리자 프론트 — Next.js 16.3.5, TanStack Query 5, shadcn/ui, React Hook Form + Zod (별도 Vercel 프로젝트)
+- **`apps/api`**: 관리자 API — NestJS 12 + Prisma 7, Supabase Postgres 직접 연결, JWT 인증, Supabase Storage 이미지 업로드
+- 구성 결정과 근거는 `REFACTOR_NOTES.md` §9 이후, 기능 명세는 `.claude/docs/prd-admin.md`(기존) · `.claude/docs/prd-construction.md`(work05) 참조
 
 ## 아키텍처
 
@@ -91,8 +95,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<익명-키>
 src/
   app/                    # App Router (기본 Server Components)
     page.tsx              # 홈페이지
-    setlist/page.tsx      # 세트리스트 (654줄 — 크기 큼, 분할 필요)
-    event-goods/page.tsx  # 세트리스트 상세 (539줄 — 크기 큼, 분할 필요)
+    setlist/page.tsx      # 세트리스트 (work01-4에서 Server/Client 분할 완료)
+    event-goods/page.tsx  # 세트리스트 상세 (work01-4에서 Server/Client 분할 완료)
     location/page.tsx     # 장소 정보 (권장 패턴: Server + Client)
     [other routes]/       # time-table, ticket-info, notice 등
     layout.tsx
@@ -106,16 +110,19 @@ src/
     supabase.ts           # 커스텀 캐시 헤더로 클라이언트 초기화
   types/
     setlist.ts            # 데이터 타입 정의
+apps/
+  admin/                  # 관리자 프론트 (Next.js)
+  api/                    # 관리자 API (NestJS + Prisma)
 ```
 
 ### 주요 패턴 & 이슈
 
 **1. Server/Client 분할** (`location/page.tsx` 참고)
 
-- **문제**: `setlist/page.tsx`와 `event-goods/page.tsx`는 전부 `"use client"`로 설정되어 있고 `useEffect` 데이터 페칭을 수행 중이라 SSR 이점 상실
-- **해결**: 데이터 페칭을 Server Component로 이동하고, Client Component에 props로 데이터 전달
-- **효과**: 중복 방지 및 Next.js 캐시 재사용 가능
-- 상세 작업 계획은 `.claude/rules/work-01-refactoring.md` 참조
+- **문제(해결됨)**: `setlist/page.tsx`와 `event-goods/page.tsx`가 전부 `"use client"` + `useEffect` 데이터 페칭이라 SSR 이점 상실
+- **해결**: 데이터 페칭을 Server Component로 이동하고, Client Component(`components/sections/*-view.tsx`)에 props로 데이터 전달 (work01-4, `PERFORMANCE_LOG.md` 2026-09-13 항목)
+- 새 페이지·work05 콘텐츠 조회도 이 패턴을 따른다
+- 상세는 `.claude/rules/history/work-01-refactoring.md` 참조
 
 **2. 이미지 최적화** (성능 병목)
 
@@ -146,10 +153,11 @@ src/
 
 | 이슈                        | 원인                                                    | 우선순위 | 상태                    |
 | --------------------------- | ------------------------------------------------------- | -------- | ----------------------- |
-| `/event-goods` LCP 9.8s     | 600×600px 앨범 커버 18개 (원본 크기)                    | 1        | 진단됨                  |
+| `/event-goods` LCP 9.8s     | 600×600px 앨범 커버 18개 (원본 크기)                    | 1        | 개선됨 (112×112 리사이징, `PERFORMANCE_LOG.md`) |
 | 홈/세트리스트 LCP 4–5s      | `public` 폴더의 이미지가 `next/image`로 최적화되지 않음 | 2        | 진단됨                  |
 | 로드 중 스크롤 끊김         | 이미지 디코딩 또는 메인 스레드 JS 실행                  | 3        | DevTools 성능 기록 필요 |
-| 큰 클라이언트 컴포넌트      | `setlist/` & `event-goods/`는 654 & 539줄로 과도하게 큼 | 4        | 아키텍처 기술부채       |
+| 큰 클라이언트 컴포넌트      | `setlist/` & `event-goods/`는 654 & 539줄로 과도하게 큼 | 4        | 해결됨 (work01-4 Server/Client 분할) |
+| 공연 정보 하드코딩          | 포스터·장소·날짜·티켓·유의사항·예매 링크가 코드에 고정, 주소 불일치 발생 | -        | work05에서 DB 관리로 전환 예정 |
 | 중복 파일                   | `lib/src/lib/supabase.ts` (삭제 필요)                   | 5        | 정리 작업               |
 | 저장소의 `dist/` 폴더       | 빌드 산물이 커밋됨; 저장소 크기 비대화                  | 5        | 정리 작업               |
 | Supabase Free Tier 일시중지 | 비활성 기간 경과 시 데이터 접근 중단                    | 4        | 운영 위험 요소          |
@@ -202,6 +210,7 @@ src/
 - **PERFORMANCE_LOG.md**: 성능 개선 작업 단위별 Before/After 지표와 원리 설명·개념 노트 누적 기록. 신규 측정은 `/perf-check`로만 진행 (자동 트리거 없음)
 - **.claude/rules/code-style.md**: 코드 스타일 규칙
 - **.claude/rules/git-rules.md**: Git 브랜치/커밋 규칙
-- **.claude/rules/work-01-refactoring.md**: work01 상세 범위
-- **.claude/rules/work-02-nest.js.md**: work02 상세 범위
-- **.claude/rules/work-03-update.md**: work03 상세 범위 (어드민 페이지 포함)
+- **.claude/rules/work-05-construction.md**: work05 상세 범위 (진행 중)
+- **.claude/docs/prd-construction.md**: work05 PRD (공연 콘텐츠 관리 + 유튜브 연결 관리 개편)
+- **.claude/docs/prd-admin.md**: 이전 어드민 PRD (work02, 기존 기능 참고용)
+- **.claude/rules/history/**: 종료된 work 문서 보관 (work01 잔여 항목 포함 — `work-01-refactoring.md`)
