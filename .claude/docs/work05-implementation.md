@@ -169,19 +169,32 @@
 
 ### T1. 유튜브 연결 관리 단순화 — `feature/youtube-url-simplify`
 
-- **범위 (API)**:
-  - `youtube.module.ts`에서 배치·쿼터·스코어링·리뷰·유지보수 서비스와 `YoutubeRecommendationsController`를 제거하고, 관련 파일과 테스트를 삭제한다. `YOUTUBE_BATCH_API_KEY` 필수 검사도 제거하고 `.env.example`에서 해당 섹션을 지운다
+- **범위 (API)** — 파일 단위 유지·삭제 범위는 아래 표가 기준이다 (2026-10-17 Codex 보완 요청 반영):
+
+| 처리 | 대상 (`apps/api/` 기준) | 비고 |
+| --- | --- | --- |
+| **유지** | `src/scripts/youtube-cleanup.ts`, `src/youtube/youtube-maintenance.service.ts`, `src/youtube/youtube-maintenance.service.spec.ts`, `package.json`의 `youtube:cleanup` 스크립트 | 남은 추천 후보(30일 보관 제한 대상) 정리용. 정리 서비스는 Prisma와 상수 2개에만 의존한다. **`YoutubeModule`에는 등록하지 않는다** — 스크립트가 띄우는 축소 모듈에서만 쓴다. 스크립트는 **실행하지 않는다** (사용자 확인 후 사용자가 실행, T7 전) |
+| **이동** | `YOUTUBE_RESERVATION_STALE_MINUTES`, `YOUTUBE_RETENTION_DAYS` (현재 `src/youtube/youtube-search.constants.ts`) | 신규 `src/youtube/youtube-maintenance.constants.ts`로 옮긴다. 값과 근거 주석은 그대로 유지. 정리 서비스의 import 경로만 바꾼다 |
+| **삭제** | `src/scripts/youtube-search-one.ts`, `package.json`의 `youtube:search-one` 스크립트 | 배치 검색·쿼터·검색 클라이언트·`YOUTUBE_BATCH_API_KEY`에 의존하므로 함께 제거 |
+| **삭제** | `src/youtube/` 중 배치·쿼터·스코어링·검색 클라이언트·리뷰·추천 컨트롤러 관련 파일과 그 테스트, `src/youtube/dto/` 중 리뷰·배치 DTO와 그 테스트, `src/youtube/youtube-search.constants.ts`(상수 2개 이동 후) | 대상: `youtube-batch.service`, `youtube-quota.service`, `youtube-quota-exhausted.exception`, `youtube-score`, `youtube-search.client`, `youtube-review.service`, `youtube-recommendations.controller` (각 `.ts` + `.spec.ts`), `dto/review-recommendation.dto.ts`, `dto/run-batch.dto.ts`, `dto/youtube-recommendations.dto.spec.ts` 등 리뷰·배치 전용 DTO |
+| **삭제** | `src/youtube/youtube-attempt.ts` | `supersedeOpenAttempts`·`invalidateAttempts`는 리뷰 이력 테이블(`YoutubeSearchAttempt`)에 쓰는 함수다. 테이블을 미사용으로 두므로 호출처와 함께 제거한다 |
+| **유지·정리** | `src/youtube/youtube-url.*`, `youtube-video-id.*`, `youtube-url.controller.*`, `youtube-url.service.*`, `youtube.constants.ts`, `dto/update-youtube-url.dto.*`, `youtube.module.ts` | URL 저장 기능만 남긴다. `youtube.constants.ts`에서 **삭제한 코드만 쓰던 상수**는 함께 제거한다. `youtube.module.ts`는 `YoutubeUrlController`·`YoutubeUrlService`만 남기고 `YOUTUBE_BATCH_API_KEY` 필수 검사를 제거한다 |
+
+  - `.env.example`에서 `YOUTUBE_BATCH_API_KEY` 섹션을 지운다
   - `youtube-url.service.ts`: `youtubeReviewStatus` 쓰기와 `supersedeOpenAttempts` 호출을 제거한다
-  - `songs.service.ts`: 곡명·가수 변경 시 `youtubeReviewStatus = 'pending'` 리셋을 제거한다
+  - `songs.service.ts`: 곡명·가수 변경 시 `youtubeReviewStatus = 'pending'` 리셋과 **`invalidateAttempts` 호출을 모두 제거**한다 (관련 주석·테스트도 함께 정리)
   - `song-response.ts`: 응답에서 `youtubeReviewStatus` 필드를 제거한다
   - **연결 해제 API 추가**: `DELETE /songs/:id/youtube-url` → `youtubeUrl = null`. (기존 `PUT`은 빈 값을 거부하므로 F025 "빈 값 저장 = 연결 해제"는 프론트가 빈 값일 때 DELETE를 호출하는 방식으로 구현한다)
-  - `schema.prisma`의 유튜브 모델·enum·컬럼 정의는 **그대로 둔다** (DB와 일치 유지)
-  - `scripts/youtube-cleanup.ts`는 **삭제하지 않는다** — 남은 추천 후보 정리에 쓴다. 실행하지 않는다 (사용자 확인 후 사용자가 실행)
+  - `schema.prisma`의 유튜브 모델·enum·컬럼 정의는 **그대로 둔다** (DB와 일치 유지, 정리 서비스도 이 모델을 쓴다)
+  - 표에 없는 `src/youtube/` 파일이 남아 있으면, 삭제한 코드에서만 쓰였는지 확인해 같은 기준으로 처리하고 결과 보고에 목록을 적는다. 판단이 애매하면 멈추고 보고한다
 - **범위 (Admin)**: `youtube` 페이지를 PRD F024·F025대로 다시 만든다 — 팀별로 묶인 곡 목록, 팀 필터, "미연결 곡만 보기", 현재 URL 새 탭 열기, 수정하기 → URL 입력 → 저장. 리뷰·배치 컴포넌트(`attempt-card`, `batch-*`, `candidate-card`, `reject-dialog`, `requeue-button`, `lib/youtube/review-state.ts`)와 `song-table.tsx`의 상태 배지, `csp.ts`의 `YOUTUBE_THUMBNAIL_ORIGIN`(더 이상 쓰지 않으면)을 제거
 - **완료 기준**:
   - `apps/api`: `npm run build` · `npm run lint` · `npm test` 통과
   - `apps/admin`: `npm run build` · `npm run lint` · `npm test` 통과
-  - `grep -rn "youtubeReviewStatus\|YOUTUBE_BATCH_API_KEY" apps/api/src apps/admin/src` 결과가 생성 코드(`generated/`)와 `scripts/youtube-cleanup.ts` 외에 없음
+  - `grep -rn "youtubeReviewStatus\|YOUTUBE_BATCH_API_KEY" apps/api/src apps/admin/src` 결과가 생성 코드(`generated/`)와 `scripts/youtube-cleanup.ts`(주석) 외에 없음
+  - `grep -rn "youtube-search-one\|youtube-search.constants\|youtube-attempt\|invalidateAttempts\|supersedeOpenAttempts" apps/api/src apps/api/package.json` 결과가 없음
+  - `npm run build`가 `dist/scripts/youtube-cleanup.js`를 생성함 (정리 스크립트가 컴파일되는지 확인 — **실행하지 않는다**)
+  - `youtube-maintenance.service.spec.ts`가 `npm test`에 포함되어 통과함
   - `YOUTUBE_BATCH_API_KEY` 없이 API 서버가 기동함
 
 ### T2. 공연 콘텐츠 스키마 — `feature/concert-content-schema`
