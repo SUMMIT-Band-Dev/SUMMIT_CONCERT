@@ -65,6 +65,7 @@
 ## 관련 문서
 
 - `.claude/docs/prd-construction.md` — work05 PRD (상세 기능 명세)
+- `.claude/docs/work05-implementation.md` — work05 구현 명세 (설계 결정·작업 단위·완료 기준, Codex 구현 기준)
 - `.claude/docs/prd-admin.md` — 종료된 이전 어드민 PRD (기존 기능 참고용)
 - `.claude/rules/history/work-04-admin.md` — 종료된 work04
 - `REFACTOR_NOTES.md` §13(이미지 업로드), §14·§15(유튜브 검토 상태·배치 추천)

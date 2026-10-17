@@ -26,7 +26,7 @@
 
 | 단계   | 작업                                                       | 상태                                                                                   | 상세 문서                                       |
 | ------ | ---------------------------------------------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| work05 | 공연 콘텐츠 관리 확장 + 유튜브 연결 관리 단순화 (어드민)  | **진행 중 (2026-10-15 착수)** — PRD: `.claude/docs/prd-construction.md`               | `.claude/rules/work-05-construction.md`         |
+| work05 | 공연 콘텐츠 관리 확장 + 유튜브 연결 관리 단순화 (어드민)  | **진행 중 (2026-10-15 착수)** — PRD: `.claude/docs/prd-construction.md` · 구현 명세: `.claude/docs/work05-implementation.md` | `.claude/rules/work-05-construction.md`         |
 | work01 | 리팩토링 (웹 성능 지표 개선)                               | 우선순위 1~4 완료, 5~7(정리 작업 · `@vercel/analytics` · 라우트 리네이밍) 잔여         | `.claude/rules/history/work-01-refactoring.md`  |
 | work04 | 어드민 페이지 기능 수정                                    | 종료 — 범위를 work05로 이관                                                            | `.claude/rules/history/work-04-admin.md`        |
 | work03 | 데이터 업데이트 + 어드민 페이지                            | 종료 — B(어드민)는 work02와 함께 구축 완료, A(데이터 업데이트)는 폐기                 | `.claude/rules/history/work-03-update.md`       |
@@ -42,6 +42,49 @@
 ```
 
 > `frontend/`, `backend/` 하위 규칙 폴더는 기술 스택 정리 후 별도로 작성 예정 (현재는 비어있음/무시)
+
+---
+
+## Claude–Codex 협업 흐름 (work05부터)
+
+**설계·리뷰는 Claude Code(터미널), 구현은 Codex(패널)**가 맡는다. Codex의 규칙은 루트 `AGENTS.md`에 있으며, 이 섹션과 같은 흐름을 Codex 관점으로 적어 두었다. 흐름을 바꿀 때는 두 파일을 함께 고친다.
+
+### 한 작업 단위(Tn)의 흐름 — 항상 직렬로 진행
+
+1. **Claude — 명세 작성·수정 → 커밋**: 명세(`.claude/docs/work05-implementation.md`)를 고치면 `docs/*` 브랜치에서 커밋 → PR → `develop` 머지까지 끝낸 뒤 Codex에 넘긴다. Codex는 `develop`에서 분기하므로 머지되지 않은 명세는 Codex에 보이지 않는다
+2. **Codex — 구현 → 커밋**: 명세의 작업 단위 순서대로, 명세에 적힌 `feature/*` 브랜치에서 구현한다. 커밋은 사용자 확인 후 `source-command-git-commit` 규칙대로 한다. 커밋하고 나면 **멈추고 리뷰를 기다린다** (push·PR은 아직 안 함)
+3. **Claude — 리뷰**: 아래 "리뷰 절차"대로 `code-reviewer` 에이전트로 리뷰한다
+   - 문제가 없으면 → 4로
+   - 구현이 명세와 어긋나면 → "Codex 전달용 수정 요청"을 작성하고, 사용자가 Codex에 전달한다. Codex는 같은 브랜치에 **추가 커밋**으로 고치고(amend·force push 금지), 다시 3으로
+   - 명세 자체가 틀렸으면 → Claude가 명세를 고친다. 이때는 **현재 feature 브랜치에 별도 `📝 docs` 커밋**으로 넣어 구현과 같은 PR로 묶는다. 그다음 수정 요청을 Codex에 전달한다
+4. **push·PR → 머지**: 리뷰를 통과하면 사용자가 `git:push`(Claude) 또는 `source-command-git-push`(Codex)로 PR을 연다. 머지는 사용자가 직접 한다
+5. 머지가 끝난 뒤에 다음 작업 단위로 넘어간다. **이전 PR이 머지되기 전에 다음 Tn을 시작하지 않는다**
+
+### 같은 작업 폴더를 공유하므로 지킬 것
+
+- Claude와 Codex는 같은 체크아웃을 쓴다. **Codex가 작업 중일 때 Claude는 파일 수정·브랜치 전환·커밋을 하지 않는다** (읽기 전용 확인만 한다)
+- Claude가 명세를 고치거나 커밋할 때는 Codex가 멈춰 있는 상태(커밋 후 리뷰 대기, 또는 작업 단위 사이)여야 한다
+- 브랜치 전환 전에는 `git status`로 미커밋 변경이 없는지 확인한다. 다른 쪽이 남긴 변경이 보이면 손대지 말고 사용자에게 알린다
+
+### 리뷰 절차 (Claude)
+
+1. 대상 범위 확인: `git log --oneline develop..HEAD`, `git diff --stat develop...HEAD`
+2. diff 전문을 스크래치패드에 저장한다 (`git diff develop...HEAD > <스크래치패드>/review-Tn.diff`). `code-reviewer`는 읽기 전용 도구(Read·Grep·Glob)만 있어 git을 직접 실행하지 못하기 때문이다
+3. `code-reviewer` 에이전트에 넘길 것: 작업 단위 번호(Tn), diff 파일 경로, 변경 파일 목록, 해당 Tn의 범위·완료 기준이 있는 명세 위치
+4. 에이전트 결과를 Claude가 직접 검증한다. 실제 코드를 확인해 사실인 항목만 남긴다. 완료 기준 중 실행이 필요한 것(build·lint·test)은 Codex 보고의 출력을 확인하고, 의심스러우면 Claude가 직접 실행한다
+5. 결과를 사용자에게 보고한다: 통과 여부, 명세 불일치, 버그, 그리고 수정이 필요하면 "Codex 전달용 수정 요청"
+
+### "Codex 전달용 수정 요청" 형식
+
+사용자가 Codex 패널에 그대로 붙여넣을 수 있게, 하나의 코드 블록으로 작성한다.
+
+```
+[work05 Tn 리뷰 수정 요청]
+기준: .claude/docs/work05-implementation.md (Dn / Tn 완료 기준)
+1. <파일:줄> — <문제> → <명세가 요구하는 것>
+2. ...
+수정 후: 같은 브랜치에 추가 커밋(amend 금지), 완료 기준 재검증 출력 첨부, 커밋 후 멈춤
+```
 
 ---
 
@@ -212,5 +255,7 @@ apps/
 - **.claude/rules/git-rules.md**: Git 브랜치/커밋 규칙
 - **.claude/rules/work-05-construction.md**: work05 상세 범위 (진행 중)
 - **.claude/docs/prd-construction.md**: work05 PRD (공연 콘텐츠 관리 + 유튜브 연결 관리 개편)
+- **.claude/docs/work05-implementation.md**: work05 구현 명세 (설계 결정 D1~D10, 작업 단위 T1~T7, 완료 기준) — Codex 구현 기준 문서
+- **AGENTS.md**: Codex용 진입점 (역할 분담: 설계 Claude Code / 구현 Codex). 이 파일과 규칙을 맞춰 유지한다
 - **.claude/docs/prd-admin.md**: 이전 어드민 PRD (work02, 기존 기능 참고용)
 - **.claude/rules/history/**: 종료된 work 문서 보관 (work01 잔여 항목 포함 — `work-01-refactoring.md`)
