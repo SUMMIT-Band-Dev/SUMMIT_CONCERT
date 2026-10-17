@@ -12,7 +12,6 @@ import type { Request } from 'express';
 import { describe, expect, it, vi } from 'vitest';
 import { OutboundRateLimitException } from '../album-cover/outbound-rate-limiter.js';
 import { CARD_IMAGE_TOO_LARGE_MESSAGE } from '../storage/storage.constants.js';
-import { YoutubeQuotaExhaustedException } from '../youtube/youtube-quota-exhausted.exception.js';
 import { AllExceptionsFilter } from './all-exceptions.filter.js';
 import {
   BODY_TOO_LARGE_MESSAGE,
@@ -193,8 +192,8 @@ describe('AllExceptionsFilter — HttpException은 message/statusCode를 바꾸�
     });
   });
 
-  it('기존 429 예외(앨범 커버·유튜브 쿼터)의 응답 본문이 그대로다', () => {
-    for (const exception of [new OutboundRateLimitException(3), new YoutubeQuotaExhaustedException(10)]) {
+  it('기존 앨범 커버 429 예외의 응답 본문이 그대로다', () => {
+    for (const exception of [new OutboundRateLimitException(3)]) {
       const { run, response } = setup();
 
       run(exception);

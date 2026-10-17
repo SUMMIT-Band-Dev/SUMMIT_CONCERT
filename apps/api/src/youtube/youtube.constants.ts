@@ -31,7 +31,7 @@ export const YOUTUBE_VIDEO_ID_PATTERN = /^[A-Za-z0-9_-]{11}$/;
  * - `/embed/videoseries?list=PL…` — 재생목록 임베드 → `PLAYLIST`
  * - `/embed/live_stream?channel=UC…` — 채널의 현재 라이브 임베드 → `NOT_A_VIDEO`
  *
- * 막지 않으면 `watch?v=videoseries`가 **사람이 확정한 링크(approved)** 로 저장되지만
+ * 막지 않으면 `watch?v=videoseries`가 **영상 링크** 로 저장되지만
  * 그런 영상은 없다. 형식이 맞는다고 영상이 존재하는 것은 아니라는 점이 이 목록이 필요한 이유다.
  *
  * 정확히 일치(대소문자 구분)만 본다. 영상 ID는 대소문자를 구분하고, 유튜브가 쓰는 예약어는
@@ -84,7 +84,7 @@ export type YoutubeUrlRejection =
   | 'INVALID_VIDEO_ID';
 
 /**
- * 거부 사유별 안내 문구. **7단계 관리자 UI가 그대로 띄우는 문장이다.**
+ * 거부 사유별 안내 문구. 관리자 UI와 같은 안내 문구를 사용한다.
  *
  * 앨범 커버(F010)는 공통 문구 하나로 내보냈는데 여기서는 사유를 나눈다. 두 기능의
  * 입력 경로가 다르기 때문이다 — 앨범 커버는 후보 목록에서 받은 값을 되돌려 보내는 게

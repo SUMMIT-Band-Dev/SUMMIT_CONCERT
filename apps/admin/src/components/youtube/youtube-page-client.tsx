@@ -1,156 +1,124 @@
 "use client";
 
-import { useState, type ButtonHTMLAttributes, type ReactNode } from "react";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useId, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/layout/page-header";
 import { EmptyState, ErrorState, LoadingState } from "@/components/layout/page-states";
 import { Button } from "@/components/ui/button";
-import { listYoutubeRecommendations } from "@/lib/api/youtube";
-import type { RecommendationListState } from "@/lib/api/types";
+import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { listTeamSongs } from "@/lib/api/songs";
+import { listTeams } from "@/lib/api/teams";
+import type { Song, Team } from "@/lib/api/types";
 import { queryKeys } from "@/lib/query-keys";
-import { REVIEW_STATE_OTHER, REVIEW_STATE_TABS } from "@/lib/youtube/review-state";
-import { cn } from "@/lib/utils";
-import { AttemptCard } from "./attempt-card";
-import { BatchBar } from "./batch-bar";
+import { checkYoutubeUrl } from "@/lib/youtube/youtube-url";
 import { ManualUrlDialog } from "./manual-url-dialog";
-import { RejectDialog } from "./reject-dialog";
 
-/**
- * 유튜브 연결 관리 화면 (PRD F011~F013, work02-7c-4).
- *
- * `SplitPanel`(7c-1)을 쓰지 않는다 — 좌측에 놓을 "선택 대상" 목록이 없다(전역 곡 목록
- * 엔드포인트가 없어 곡 관리처럼 팀→곡 구조를 재사용할 수 없다). 대신 상태 탭 + 카드 목록
- * 구조로, 배치가 대상을 자동 선정하는 이 기능의 실제 동선(검색 → 훑어보기 → 하나씩 처리)에
- * 맞춘다.
- */
+/** 팀별 기존 곡 조회를 재사용한다. URL 저장 후 곡 관리 화면과 같은 캐시를 갱신한다. */
 export function YoutubePageClient() {
-  const [activeTab, setActiveTab] = useState<RecommendationListState>("open");
-  const [otherOpen, setOtherOpen] = useState(false);
-  const [rejectTarget, setRejectTarget] = useState<{ attemptId: string; songTitle: string } | null>(null);
-  const [manualUrlTarget, setManualUrlTarget] = useState<{ songId: string; songTitle: string } | null>(null);
-
-  const query = useInfiniteQuery({
-    queryKey: queryKeys.youtubeRecommendations(activeTab),
-    queryFn: ({ pageParam, signal }) =>
-      listYoutubeRecommendations({ state: activeTab, cursor: pageParam }, { signal }),
-    initialPageParam: undefined as string | undefined,
-    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
-  });
-
-  const items = query.data?.pages.flatMap((page) => page.items) ?? [];
+  const [teamId, setTeamId] = useState("");
+  const [onlyUnlinked, setOnlyUnlinked] = useState(false);
+  const [editingSong, setEditingSong] = useState<Song | null>(null);
+  const filterId = useId();
+  const teams = useQuery({ queryKey: queryKeys.teams, queryFn: ({ signal }) => listTeams({ signal }) });
+  const visibleTeams = teams.data?.filter((team) => !teamId || team.id === teamId) ?? [];
 
   return (
     <>
-      <PageHeader title="유튜브 연결 관리" description="영상 링크가 없는 곡의 추천 영상을 검토하고 확정합니다." />
-
+      <PageHeader title="유튜브 연결 관리" description="팀별 영상 연결 현황을 확인하고 유튜브 주소를 등록·수정합니다." />
       <div className="grid gap-4">
-        <BatchBar />
-
-        <div className="flex flex-wrap items-center gap-1.5">
-          {REVIEW_STATE_TABS.map((tab) => (
-            <TabButton key={tab.value} active={activeTab === tab.value} onClick={() => setActiveTab(tab.value)}>
-              {tab.label}
-            </TabButton>
-          ))}
-
-          <div className="relative">
-            <TabButton
-              active={REVIEW_STATE_OTHER.some((tab) => tab.value === activeTab)}
-              onClick={() => setOtherOpen((prev) => !prev)}
-              aria-expanded={otherOpen}
-              aria-haspopup="menu"
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Label htmlFor={filterId}>팀 선택</Label>
+            <select
+              id={filterId}
+              value={teamId}
+              onChange={(event) => setTeamId(event.target.value)}
+              className="h-(--control-height) max-w-full rounded-md border bg-background px-3 text-body"
             >
-              그 외 ▾
-            </TabButton>
-            {otherOpen ? (
-              <ul role="menu" className="absolute top-full left-0 z-10 mt-1 grid min-w-32 gap-0.5 rounded-lg border bg-popover p-1 shadow-md">
-                {REVIEW_STATE_OTHER.map((tab) => (
-                  <li key={tab.value} role="none">
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => {
-                        setActiveTab(tab.value);
-                        setOtherOpen(false);
-                      }}
-                      className={cn(
-                        "block w-full rounded px-2 py-1.5 text-left text-body hover:bg-muted",
-                        activeTab === tab.value && "bg-accent font-medium",
-                      )}
-                    >
-                      {tab.label}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </div>
-        </div>
-
-        {query.isPending ? <LoadingState /> : null}
-        {query.isError ? <ErrorState error={query.error} onRetry={() => query.refetch()} /> : null}
-
-        {query.isSuccess ? (
-          items.length === 0 ? (
-            <EmptyState
-              title="해당 상태의 추천이 없습니다"
-              description={
-                activeTab === "open"
-                  ? "위 배치 실행 버튼으로 유튜브 검색을 실행하면 리뷰할 추천이 여기 나타납니다."
-                  : undefined
-              }
-            />
-          ) : (
-            <div className="grid gap-3">
-              {items.map((attempt) => (
-                <AttemptCard
-                  key={attempt.attemptId}
-                  attempt={attempt}
-                  onReject={setRejectTarget}
-                  onManualUrl={setManualUrlTarget}
-                />
+              <option value="">전체 팀</option>
+              {teams.data?.map((team) => (
+                <option key={team.id} value={team.id}>
+                  {team.teamName}
+                </option>
               ))}
-            </div>
-          )
-        ) : null}
-
-        {query.hasNextPage ? (
-          <div>
-            <Button type="button" variant="outline" size="sm" disabled={query.isFetchingNextPage} onClick={() => query.fetchNextPage()}>
-              {query.isFetchingNextPage ? "불러오는 중…" : "더 보기"}
-            </Button>
+            </select>
           </div>
-        ) : null}
+          <label className="flex items-center gap-2 text-body">
+            <input type="checkbox" checked={onlyUnlinked} onChange={(event) => setOnlyUnlinked(event.target.checked)} />
+            미연결 곡만 보기
+          </label>
+        </div>
+        {teams.isPending ? <LoadingState /> : null}
+        {teams.isError ? <ErrorState error={teams.error} onRetry={() => teams.refetch()} /> : null}
+        {teams.isSuccess && visibleTeams.length === 0 ? <EmptyState title="등록된 팀이 없습니다" /> : null}
+        {visibleTeams.map((team) => (
+          <TeamYoutubeSongs key={team.id} team={team} onlyUnlinked={onlyUnlinked} onEdit={setEditingSong} />
+        ))}
       </div>
-
-      <RejectDialog attempt={rejectTarget} onOpenChange={(open) => !open && setRejectTarget(null)} />
-      <ManualUrlDialog song={manualUrlTarget} onOpenChange={(open) => !open && setManualUrlTarget(null)} />
+      {editingSong ? (
+        <ManualUrlDialog key={editingSong.id} song={editingSong} onOpenChange={(open) => !open && setEditingSong(null)} />
+      ) : null}
     </>
   );
 }
 
-function TabButton({
-  active,
-  onClick,
-  children,
-  ...props
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: ReactNode;
-} & ButtonHTMLAttributes<HTMLButtonElement>) {
+function TeamYoutubeSongs({ team, onlyUnlinked, onEdit }: { team: Team; onlyUnlinked: boolean; onEdit: (song: Song) => void }) {
+  const query = useQuery({ queryKey: queryKeys.teamSongs(team.id), queryFn: ({ signal }) => listTeamSongs(team.id, { signal }) });
+  const songs = query.data?.filter((song) => !onlyUnlinked || !song.youtubeUrl) ?? [];
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={cn(
-        "h-(--control-height) rounded-lg px-3 text-body font-medium transition-colors",
-        active ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground",
-      )}
-      {...props}
-    >
-      {children}
-    </button>
+    <section className="grid gap-3 rounded-lg border bg-card p-4">
+      <h2 className="text-section font-medium">{team.teamName}</h2>
+      {query.isPending ? <LoadingState /> : null}
+      {query.isError ? <ErrorState error={query.error} onRetry={() => query.refetch()} /> : null}
+      {query.isSuccess ? (
+        songs.length === 0 ? (
+          <EmptyState title={onlyUnlinked ? "미연결 곡이 없습니다" : "등록된 곡이 없습니다"} bare />
+        ) : (
+          <Table totalCount={songs.length}>
+            <TableHeader>
+              <TableRow>
+                <TableHead>곡 제목</TableHead>
+                <TableHead>가수</TableHead>
+                <TableHead>현재 영상 주소</TableHead>
+                <TableHead className="w-24">동작</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {songs.map((song) => (
+                <TableRow key={song.id}>
+                  <TableCell className="font-medium">{song.title}</TableCell>
+                  <TableCell>{song.singer ?? "—"}</TableCell>
+                  <TableCell className="max-w-80 whitespace-normal break-all">
+                    {song.youtubeUrl ? (
+                      checkYoutubeUrl(song.youtubeUrl) === null ? (
+                        <a
+                          href={song.youtubeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary underline underline-offset-4"
+                          aria-label={`${song.title} 영상 새 탭에서 열기`}
+                        >
+                          {song.youtubeUrl}
+                        </a>
+                      ) : (
+                        <span>{song.youtubeUrl}</span>
+                      )
+                    ) : (
+                      <span className="text-muted-foreground">미연결</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Button type="button" variant="subtle" size="sm" onClick={() => onEdit(song)}>
+                      수정하기
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )
+      ) : null}
+    </section>
   );
 }

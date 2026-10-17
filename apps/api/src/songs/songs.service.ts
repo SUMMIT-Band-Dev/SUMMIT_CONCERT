@@ -15,9 +15,7 @@ import {
   SONG_ID_CONFLICT_MESSAGE,
   SONG_NOT_FOUND_MESSAGE,
 } from './songs.constants.js';
-import { invalidateAttempts } from '../youtube/youtube-attempt.js';
 import { toSongResponse, type SongResponse } from './dto/song-response.js';
-import type { YoutubeReviewStatus } from '../generated/prisma/enums.js';
 import type { CreateSongDto } from './dto/create-song.dto.js';
 import type { UpdateSongDto } from './dto/update-song.dto.js';
 
@@ -26,10 +24,7 @@ import type { UpdateSongDto } from './dto/update-song.dto.js';
  * 트랜잭션 클라이언트는 `$transaction`/`$connect` 등만 빠진 같은 객체라
  * `setlist` 델리게이트와 `$queryRaw`의 타입은 동일하다.
  */
-type SongClient = Pick<
-  PrismaService,
-  'setlist' | '$queryRaw' | 'youtubeSearchAttempt' | 'youtubeRecommendation'
->;
+type SongClient = Pick<PrismaService, 'setlist' | '$queryRaw'>;
 
 /** 중복 판정에 쓰는 최소 형태. 전체 행을 끌어올 필요가 없다. */
 interface SongIdentity {
@@ -42,8 +37,6 @@ interface SongIdentity {
 interface SongUpdateData {
   title?: string;
   singer?: string;
-  /** 제목·가수가 실제로 바뀔 때만 `pending`으로 되돌린다 (`update` 주석 참조). */
-  youtubeReviewStatus?: YoutubeReviewStatus;
 }
 
 @Injectable()
@@ -126,30 +119,13 @@ export class SongsService {
    *
    * 이미 채워진 `albumCoverUrl`/`youtubeUrl`은 **초기화하지 않는다.** 이 엔드포인트는
    * "오타 교정"과 "다른 곡으로 교체"를 구분할 수 없는데, 두 경우의 비용이 비대칭이기
-   * 때문이다 — 앨범 커버는 F010으로 언제든 다시 받을 수 있지만, 승인된 유튜브 링크는
-   * 사람 검토와 일일 quota가 든 자산이라 잃으면 복구 비용이 크다. 교체 의도일 때의
-   * 재매칭은 F010/F013에서 명시적 동작으로 처리한다 (REFACTOR_NOTES §12).
+   * 때문이다 — 앨범 커버는 F010으로 언제든 다시 받을 수 있지만, 직접 연결한 유튜브 링크는
+   * 관리자가 다시 찾아야 한다. 교체 의도일 때의
+   * 재매칭은 F010/F025에서 명시적 동작으로 처리한다 (REFACTOR_NOTES §12).
    *
    * 중복 검사는 **수정 후 값** 기준이고 자기 자신은 제외한다. 같은 값으로 다시
    * 보내면 409가 아니라 200이다(no-op).
    *
-   * ## 제목·가수가 **실제로** 바뀌면 검토 상태를 되돌린다 (work02-6b에서 추가)
-   *
-   * §14가 남긴 결함이 있었다. URL을 유지하는 위 결정 때문에, 곡을 **다른 곡으로 교체하는
-   * 수정**을 해도 `approved`가 그대로 남고, `approved`는 배치 재검색 대상이 아니라서
-   * **이전 곡의 영상이 승인 상태로 영원히 남았다.**
-   *
-   * 그래서 정규화 비교로 실제 변경일 때만 `youtubeReviewStatus`를 `pending`으로 되돌리고
-   * 열린 추천을 닫는다. **URL은 그대로 둔다** — 위 비대칭 논리는 여전히 유효하다.
-   *
-   * 이 조합이 중요하다: 배치 대상 조건이 `youtube_url IS NULL AND pending`이므로,
-   * URL이 남아 있는 한 **쿼터를 쓰는 재검색은 일어나지 않는다.** 이 변경의 효과는
-   * "URL은 있는데 pending"이라는 표식이고, 7단계 관리자 UI가 그것을 *재검토 필요* 목록으로
-   * 보여 준다. 오타 교정도 이 목록에 걸리지만 비용은 사람이 한 번 훑는 것뿐이고,
-   * 반대쪽 비용(교체된 곡이 영원히 재검토되지 않음)이 훨씬 크다.
-   *
-   * 잠금 순서는 `Line Up` → `Setlist` → `YoutubeSearchAttempt`로 전역 규칙을 따른다
-   * (`common/lock-order.ts`).
    */
   async update(id: bigint, dto: UpdateSongDto): Promise<SongResponse> {
     // whitelist는 "선언되지 않은 필드"를 막을 뿐 "아무 필드도 없는 본문"은 통과시킨다.
@@ -188,27 +164,10 @@ export class SongsService {
         data.singer = dto.singer;
       }
 
-      // 곡이 실제로 "다른 곡"이 됐는지 **중복 검사와 같은 정규화 규칙**으로 본다.
-      // 대소문자·앞뒤 공백·자모 분리만 다른 수정은 표기 교정이지 곡 교체가 아니므로
-      // 검토 상태를 건드리지 않는다.
-      const identityChanged =
-        (dto.title !== undefined &&
-          normalizeForCompare(dto.title) !== normalizeForCompare(current.title)) ||
-        (dto.singer !== undefined &&
-          normalizeForCompare(dto.singer) !== normalizeForCompare(current.singer));
-
-      if (identityChanged) {
-        data.youtubeReviewStatus = 'pending';
-      }
-
       const updated = await mapRecordNotFound(
         tx.setlist.update({ where: { id }, data }),
         SONG_NOT_FOUND_MESSAGE,
       );
-
-      if (identityChanged) {
-        await invalidateAttempts(tx, id);
-      }
 
       return toSongResponse(updated);
     });

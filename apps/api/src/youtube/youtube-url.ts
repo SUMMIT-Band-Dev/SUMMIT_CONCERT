@@ -23,7 +23,7 @@ const fail = (reason: YoutubeUrlRejection): YoutubeUrlCheck => ({
 });
 
 /**
- * 유튜브 영상 URL 검증 + 정규화 (PRD F013).
+ * 유튜브 영상 URL 검증 + 정규화 (PRD F025).
  *
  * **저장 형식은 `https://www.youtube.com/watch?v=<11자>` 하나다.** 입력이
  * `youtu.be`든 `/shorts/`든 전부 이 형태로 바꿔 저장한다. 프론트와의 계약이기 때문이다 —

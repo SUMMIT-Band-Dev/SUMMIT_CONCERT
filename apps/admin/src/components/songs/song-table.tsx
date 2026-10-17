@@ -4,10 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { ImageOff } from "lucide-react";
 import { EmptyState, ErrorState, LoadingState } from "@/components/layout/page-states";
 import { Button } from "@/components/ui/button";
-import { StatusBadge, type StatusTone } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { listTeamSongs } from "@/lib/api/songs";
-import type { Song, Team, YoutubeReviewStatus } from "@/lib/api/types";
+import type { Song, Team } from "@/lib/api/types";
 import { queryKeys } from "@/lib/query-keys";
 import { shrinkAlbumCoverUrl } from "@/lib/songs/album-cover-url";
 
@@ -17,13 +16,6 @@ interface SongTableProps {
   onEdit: (song: Song) => void;
   onSetCover: (song: Song) => void;
 }
-
-/** 유튜브 검토 상태 표시. 색만으로 뜻을 전하지 않도록 글자를 함께 쓴다(badge.tsx 방침) */
-const REVIEW_STATUS: Record<YoutubeReviewStatus, { label: string; tone: StatusTone }> = {
-  pending: { label: "검토 대기", tone: "warning" },
-  approved: { label: "승인됨", tone: "success" },
-  rejected: { label: "반려됨", tone: "danger" },
-};
 
 /**
  * 선택한 팀의 곡 표 (PRD F008).
@@ -59,13 +51,11 @@ export function SongTable({ team, onCreate, onEdit, onSetCover }: SongTableProps
                 <TableHead className="w-16 text-center">커버</TableHead>
                 <TableHead>곡 제목</TableHead>
                 <TableHead>가수</TableHead>
-                <TableHead className="w-24 text-center">유튜브</TableHead>
                 <TableHead className="w-40 text-center">동작</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {query.data.map((song) => {
-                const status = REVIEW_STATUS[song.youtubeReviewStatus];
                 return (
                   <TableRow key={song.id}>
                     <TableCell>
@@ -83,9 +73,6 @@ export function SongTable({ team, onCreate, onEdit, onSetCover }: SongTableProps
                     </TableCell>
                     <TableCell className="font-medium">{song.title}</TableCell>
                     <TableCell className="text-muted-foreground">{song.singer ?? "—"}</TableCell>
-                    <TableCell className="text-center">
-                      <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
-                    </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-center gap-1">
                         <Button type="button" variant="subtle" size="sm" onClick={() => onEdit(song)}>

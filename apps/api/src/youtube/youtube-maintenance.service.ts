@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import {
   YOUTUBE_RESERVATION_STALE_MINUTES,
   YOUTUBE_RETENTION_DAYS,
-} from './youtube-search.constants.js';
+} from './youtube-maintenance.constants.js';
 
 export interface MaintenanceResult {
   /** 크래시 잔재로 보고 `failed`로 정리한 예약 수. */
@@ -29,7 +29,7 @@ export interface MaintenanceResult {
  * `expired`로 닫는다. 그러면 그 곡은 열린 추천이 없어져 배치 대상으로 돌아온다.
  * 정책이 요구하는 "delete or refresh"에서 **delete 후 refresh**에 해당한다.
  *
- * ⚠️ **스케줄러가 없다.** 이 서비스는 배치 실행 시작 시점과 `npm run youtube:cleanup`에서만
+ * ⚠️ **스케줄러가 없다.** 이 서비스는 `npm run youtube:cleanup`에서만
  * 돌아간다. 배치를 오래 돌리지 않으면 정리도 돌지 않으며, 그동안 후보 행이 30일을 넘겨
  * 남아 있을 수 있다(조회 응답에서는 제외되므로 화면 노출은 없다). 크론 연결은 7단계
  * 항목으로 남겼다 — REFACTOR_NOTES §10 참조.
