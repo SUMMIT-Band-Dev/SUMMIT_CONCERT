@@ -25,6 +25,22 @@ function createHarness() {
   return { service: new YoutubeUrlService(prisma), update };
 }
 describe('YoutubeUrlService — URL 저장', () => {
+  it('2^53 초과 BigInt id를 정밀도 손실 없이 문자열로 직렬화한다', async () => {
+    const { service, update } = createHarness();
+    update.mockResolvedValueOnce({
+      id: 9007199254740993n,
+      teamId: 9007199254740995n,
+      title: '사랑의 미학',
+      singer: '리도어',
+      albumCoverUrl: null,
+      youtubeUrl: CANONICAL,
+    });
+
+    const response = await service.update(9007199254740993n, CANONICAL);
+
+    expect(response.id).toBe('9007199254740993');
+    expect(response.teamId).toBe('9007199254740995');
+  });
   it('주소를 정규화하고 URL 컬럼만 한 번 갱신한다', async () => {
     const { service, update } = createHarness();
     const result = await service.update(
