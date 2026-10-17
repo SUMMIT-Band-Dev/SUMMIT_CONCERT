@@ -71,7 +71,7 @@
 1. 대상 범위 확인: `git log --oneline develop..HEAD`, `git diff --stat develop...HEAD`
 2. diff 전문을 스크래치패드에 저장한다 (`git diff develop...HEAD > <스크래치패드>/review-Tn.diff`). `code-reviewer`는 읽기 전용 도구(Read·Grep·Glob)만 있어 git을 직접 실행하지 못하기 때문이다
 3. `code-reviewer` 에이전트에 넘길 것: 작업 단위 번호(Tn), diff 파일 경로, 변경 파일 목록, 해당 Tn의 범위·완료 기준이 있는 명세 위치
-4. 에이전트 결과를 Claude가 직접 검증한다. 실제 코드를 확인해 사실인 항목만 남긴다. 완료 기준 중 실행이 필요한 것(build·lint·test)은 Codex 보고의 출력을 확인하고, 의심스러우면 Claude가 직접 실행한다
+4. 에이전트 결과를 Claude가 직접 검증한다. 실제 코드를 확인해 사실인 항목만 남긴다. 완료 기준 중 실행이 필요한 것(build·lint·test)은 Codex 보고의 출력을 확인하고, 의심스러우면 Claude가 직접 실행한다. **API의 메서드·헤더가 바뀌었다면 CORS 설정(`apps/api/src/common/cors.ts`)과 어드민 호출이 맞는지 직접 확인한다** — supertest 같은 서버 단위 테스트는 브라우저의 preflight를 거치지 않아 통과해도 화면에서는 막힐 수 있다 (T1에서 `DELETE` 누락으로 발생, T1.1). 브라우저로 확인하지 못한 항목은 통과로 보고하지 말고 "사용자 수동 확인 필요"로 따로 적는다
 5. 결과를 사용자에게 보고한다: 통과 여부, 명세 불일치, 버그, 그리고 수정이 필요하면 "Codex 전달용 수정 요청"
 
 ### "Codex 전달용 수정 요청" 형식
