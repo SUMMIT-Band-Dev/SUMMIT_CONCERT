@@ -73,10 +73,8 @@ describe('UpdateYoutubeUrlDto', () => {
     'albumCoverUrl',
     'teamId',
     'youtubeUrl',
-    'youtubeReviewStatus',
   ])('%s를 함께 보내면 400이다', async (field) => {
-    // 특히 youtubeReviewStatus — 상태를 클라이언트가 정할 수 있으면
-    // "URL은 있는데 pending"인 모순된 행이 생긴다.
+    // URL 이외의 필드는 전역 whitelist가 거부한다.
     await expect(
       messageOf({ url: VALID_URL, [field]: '덮어쓰기 시도' }),
     ).resolves.toMatch(/should not exist/);

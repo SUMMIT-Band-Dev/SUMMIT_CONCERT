@@ -31,9 +31,6 @@ const EMPTY_VALUES: SongFormValues = { title: "", singer: "" };
  * 등록과 수정이 같은 두 필드(제목·가수)를 쓰고 서버 검증 규칙도 같아서 한 컴포넌트로 둔다
  * (팀 쪽은 등록에만 공연순서가 있어 나눠야 했다).
  *
- * 수정 시 안내가 하나 붙는다 — 제목·가수가 실제로 바뀌면 서버가 유튜브 검토 상태를
- * `pending`으로 되돌린다(URL은 유지). 곡을 다른 곡으로 바꿔 놓고 이전 곡의 영상이 승인된 채
- * 남는 것을 막는 서버 동작인데, 모르면 "왜 검토 상태가 바뀌었지?"가 된다.
  */
 export function SongFormDialog({ open, onOpenChange, teamId, song }: SongFormDialogProps) {
   const queryClient = useQueryClient();
@@ -79,7 +76,7 @@ export function SongFormDialog({ open, onOpenChange, teamId, song }: SongFormDia
           <DialogTitle>{isEdit ? "곡 수정" : "곡 등록"}</DialogTitle>
           <DialogDescription>
             {isEdit
-              ? "제목이나 가수를 실제로 바꾸면 유튜브 검토 상태가 '검토 대기'로 돌아갑니다(연결된 영상 주소는 유지됩니다)."
+              ? "곡 제목과 가수를 수정합니다. 연결된 영상 주소와 앨범 커버는 유지됩니다."
               : "곡 제목과 가수를 입력해 주세요. 같은 팀에 같은 제목·가수의 곡이 있으면 등록되지 않습니다."}
           </DialogDescription>
         </DialogHeader>

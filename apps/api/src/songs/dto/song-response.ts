@@ -1,5 +1,4 @@
 import type { SetlistModel } from '../../generated/prisma/models.js';
-import type { YoutubeReviewStatus } from '../../generated/prisma/enums.js';
 
 /**
  * 곡 API의 응답 계약 (PRD 데이터 모델 기준 이름).
@@ -18,19 +17,16 @@ export interface SongResponse {
   singer: string | null;
   /** `album`. 5단계(PRD F010)부터 `PUT /songs/:id/album-cover`로 갱신된다 */
   albumCoverUrl: string | null;
-  /** `youtube_url`. 6단계 1/2(PRD F013)부터 `PUT /songs/:id/youtube-url`로 갱신된다 */
+  /** `youtube_url`. F025의 PUT으로 저장하고 DELETE로 연결을 해제한다 */
   youtubeUrl: string | null;
-  /**
-   * `youtube_review_status`. **읽기 전용이다** — 클라이언트가 직접 정하지 않는다.
-   *
-   * F013으로 URL을 넣으면 서버가 `approved`로 확정하고, 배치 추천의 승인·반려
-   * (F011/F012, 6단계 2/2)가 나머지 전이를 담당한다. 컬럼이 `NOT NULL DEFAULT 'pending'`
-   * 이라 응답도 null을 허용하지 않는다.
-   */
-  youtubeReviewStatus: YoutubeReviewStatus;
 }
 
-export function toSongResponse(song: SetlistModel): SongResponse {
+export function toSongResponse(
+  song: Pick<
+    SetlistModel,
+    'id' | 'teamId' | 'title' | 'singer' | 'albumCoverUrl' | 'youtubeUrl'
+  >,
+): SongResponse {
   return {
     id: song.id.toString(),
     teamId: song.teamId === null ? null : song.teamId.toString(),
@@ -38,6 +34,5 @@ export function toSongResponse(song: SetlistModel): SongResponse {
     singer: song.singer,
     albumCoverUrl: song.albumCoverUrl,
     youtubeUrl: song.youtubeUrl,
-    youtubeReviewStatus: song.youtubeReviewStatus,
   };
 }

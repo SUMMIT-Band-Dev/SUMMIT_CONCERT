@@ -45,9 +45,7 @@ export interface UpdateSongInput {
 /**
  * PATCH /songs/:id. 제목·가수만 바꾼다.
  *
- * ⚠️ 제목이나 가수가 **실제로** 바뀌면 서버가 `youtubeReviewStatus`를 `pending`으로 되돌린다
- * (유튜브 URL 자체는 유지). 곡을 다른 곡으로 바꿔 놓고 이전 곡의 영상이 승인 상태로 남는 것을
- * 막기 위한 서버 동작이라, 화면이 이 부작용을 관리자에게 알려 줘야 한다.
+ * 연결된 유튜브 URL과 앨범 커버는 유지한다.
  */
 export function updateSong(
   id: string,

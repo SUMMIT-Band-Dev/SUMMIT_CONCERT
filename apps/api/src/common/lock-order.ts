@@ -16,12 +16,10 @@
  * | 경로 | 잠금 | 순서 |
  * | --- | --- | --- |
  * | `POST /teams/:id/songs` (곡 등록) | Line Up `FOR NO KEY UPDATE` → Setlist INSERT | 1→2 |
- * | `PATCH /songs/:id` (곡 수정) | Line Up → Setlist UPDATE → Attempt UPDATE | 1→2→3 |
- * | `PUT /songs/:id/youtube-url` (F013) | Setlist UPDATE → Attempt UPDATE | 2→3 |
- * | `POST /youtube/recommendations/:id/approve` | Setlist `FOR UPDATE` → Attempt `FOR UPDATE` | 2→3 |
- * | `POST /youtube/recommendations/:id/reject` | Setlist `FOR UPDATE` → Attempt `FOR UPDATE` | 2→3 |
- * | `POST /youtube/recommendations/songs/:id/requeue` | Setlist `FOR UPDATE` → Attempt UPDATE | 2→3 |
- * | 배치 예약·완료 (F011) | Attempt / Recommendation 만 | 3 |
+ * | `PATCH /songs/:id` (곡 수정) | Line Up → Setlist UPDATE | 1→2 |
+ * | `PUT /songs/:id/youtube-url` (F025) | Setlist UPDATE 만 | 2 |
+ * | `DELETE /songs/:id/youtube-url` (F025) | Setlist UPDATE 만 | 2 |
+ * | `youtube:cleanup` 스크립트 | Attempt / Recommendation 만 | 3 |
  *
  * ## 데드락이 불가능한 이유
  *
