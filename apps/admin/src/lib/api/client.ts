@@ -22,12 +22,12 @@ export function configureApiClient(next: Partial<ApiClientHooks>): void {
 }
 
 export interface ApiRequestOptions {
-  method?: "GET" | "POST" | "PATCH" | "PUT";
+  method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
   /** 객체는 JSON으로, FormData는 그대로(multipart 경계는 브라우저가 붙인다) 보낸다 */
   body?: unknown;
   /** false면 토큰을 붙이지 않고 401을 "재로그인 필요"로 취급하지 않는다(로그인 요청) */
   auth?: boolean;
-  /** 기본 15초. 유튜브 배치는 최악 25~50초라 호출하는 쪽이 늘려야 한다 */
+  /** 기본 15초. 오래 걸리는 요청은 호출하는 쪽에서 늘린다 */
   timeoutMs?: number;
   /** 화면이 언마운트되거나 사용자가 취소할 때 */
   signal?: AbortSignal;

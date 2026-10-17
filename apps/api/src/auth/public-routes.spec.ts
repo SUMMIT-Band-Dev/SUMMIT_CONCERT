@@ -81,7 +81,6 @@ describe('@Public() 전수 회귀 (AppModule에서 컨트롤러 자동 발견)',
         'TeamSongsController',
         'SongsController',
         'AlbumCoverController',
-        'YoutubeRecommendationsController',
         'YoutubeUrlController',
       ]),
     );

@@ -1,4 +1,4 @@
-// 유튜브 URL 검증 (PRD F013). 서버(apps/api/src/youtube/youtube-url.ts, youtube.constants.ts)와
+// 유튜브 URL 검증 (PRD F025). 서버(apps/api/src/youtube/youtube-url.ts, youtube.constants.ts)와
 // **같은 판정**을 한다.
 //
 // 서버는 사유별로 문구를 나눠 주지만(YOUTUBE_URL_REJECTION_MESSAGES), 화면이 제출 전에

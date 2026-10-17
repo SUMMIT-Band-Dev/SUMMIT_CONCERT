@@ -29,4 +29,4 @@ Use this skill when the user asks to run the migrated source command `shrimp-ini
 
 ## 주의사항
 
-- 이 프로젝트의 `AGENTS.md`/`.Codex/rules/*.md`가 이미 언어·커밋·브랜치·코드 스타일의 원본 규칙이므로, `shrimp-rules.md`는 그것과 중복하지 않고 실제 코드 구조에서 발견되는 AI 전용 판단 지점만 다룬다.
+- 이 프로젝트의 `AGENTS.md`/`.claude/rules/*.md`가 이미 언어·커밋·브랜치·코드 스타일의 원본 규칙이므로, `shrimp-rules.md`는 그것과 중복하지 않고 실제 코드 구조에서 발견되는 AI 전용 판단 지점만 다룬다.

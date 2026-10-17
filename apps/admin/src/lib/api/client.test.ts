@@ -73,6 +73,15 @@ describe("apiRequest", () => {
       expect(init?.body).toBe(JSON.stringify({ teamName: "팀" }));
     });
 
+    it("연결 해제 DELETE도 인증 헤더를 붙이고 본문 없이 보낸다", async () => {
+      const fetchImpl = mockFetch(() => jsonResponse(200, { youtubeUrl: null }));
+      await apiRequest("/songs/50/youtube-url", { method: "DELETE", baseUrl: BASE, fetchImpl });
+      const init = fetchImpl.mock.calls[0][1];
+      expect(init?.method).toBe("DELETE");
+      expect(init?.body).toBeUndefined();
+      expect((init?.headers as Record<string, string>).Authorization).toBe(`Bearer ${TOKEN}`);
+    });
+
     it("FormData는 Content-Type을 직접 정하지 않는다(브라우저가 multipart 경계를 붙인다)", async () => {
       const fetchImpl = mockFetch(() => jsonResponse(200, {}));
       const form = new FormData();

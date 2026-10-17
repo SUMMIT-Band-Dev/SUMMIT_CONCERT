@@ -16,7 +16,6 @@
     "start:prod": "node dist/main",
     "seed:admin": "npm run build && node dist/scripts/seed-admin.js",
     "youtube:cleanup": "npm run build && node dist/scripts/youtube-cleanup.js",
-    "youtube:search-one": "npm run build && node dist/scripts/youtube-search-one.js",
     "lint": "oxlint src/ test/",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
