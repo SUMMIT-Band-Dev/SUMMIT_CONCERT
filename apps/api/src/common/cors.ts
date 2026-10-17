@@ -94,7 +94,8 @@ function normalizeOrigin(entry: string, position: number): string {
  *   빈 배열은 truthy라 "허용 목록이 비어 있음"으로 정상 처리되어 어떤 오리진도 허용하지 않는다
  * - `credentials: false` — 인증은 `Authorization` 헤더로 하고 쿠키를 쓰지 않는다(JWT 방식 결정과 묶여 있음).
  *   쿠키 방식으로 바꾸면 CSRF 설계가 함께 필요해진다
- * - `methods`: PRD에서 삭제 기능을 제외했으므로 `DELETE`는 열지 않는다
+ * - `methods`: 유튜브 연결 해제 1건을 위해 `DELETE`를 허용한다. 레코드 삭제 엔드포인트는 없으며,
+ *   모든 `DELETE` 라우트는 로그인 토큰 인증을 요구한다
  * - `exposedHeaders: Retry-After` — 없으면 브라우저 JS가 429의 `Retry-After`를 읽지 못해
  *   관리자 화면이 "몇 초 뒤에 다시 시도"를 안내할 수 없다
  * - `maxAge: 600` — preflight 결과를 10분 캐시. 오리진 설정을 바꿨을 때 반영이 크게 늦지 않는 선이다
@@ -103,7 +104,7 @@ export function buildCorsOptions(origins: string[]): CorsOptions {
   return {
     origin: origins,
     credentials: false,
-    methods: ['GET', 'POST', 'PATCH', 'PUT', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Authorization', 'Content-Type'],
     exposedHeaders: ['Retry-After'],
     maxAge: 600,

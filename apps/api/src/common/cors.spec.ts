@@ -145,15 +145,15 @@ describe('buildCorsOptions — 결정 사항 고정', () => {
     expect(buildCorsOptions(['http://localhost:3010'])).toEqual({
       origin: ['http://localhost:3010'],
       credentials: false,
-      methods: ['GET', 'POST', 'PATCH', 'PUT', 'OPTIONS'],
+      methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Authorization', 'Content-Type'],
       exposedHeaders: ['Retry-After'],
       maxAge: 600,
     });
   });
 
-  it('DELETE는 허용하지 않는다 (PRD에서 삭제 기능 제외)', () => {
-    expect(buildCorsOptions([]).methods).not.toContain('DELETE');
+  it('DELETE를 허용한다 (유튜브 연결 해제)', () => {
+    expect(buildCorsOptions([]).methods).toContain('DELETE');
   });
 
   it('허용 목록이 비어도 origin은 falsy가 아니라 빈 배열이다 (cors는 falsy면 미들웨어를 건너뛴다)', () => {
@@ -244,7 +244,7 @@ describe('실제 앱의 CORS 동작', () => {
     const res = await preflight(server, ALLOWED).expect(204);
 
     expect(res.headers['access-control-allow-origin']).toBe(ALLOWED);
-    expect(res.headers['access-control-allow-methods']).toBe('GET,POST,PATCH,PUT,OPTIONS');
+    expect(res.headers['access-control-allow-methods']).toBe('GET,POST,PATCH,PUT,DELETE,OPTIONS');
     expect(res.headers['access-control-allow-headers']).toBe('Authorization,Content-Type');
     expect(res.headers['access-control-max-age']).toBe('600');
   });
@@ -257,12 +257,21 @@ describe('실제 앱의 CORS 동작', () => {
     expect(res.headers['access-control-allow-origin']).toBeUndefined();
   });
 
-  it('허용 목록에 있어도 DELETE preflight는 메서드 허용 목록에 DELETE가 없다', async () => {
+  it('허용 오리진의 DELETE preflight는 204이고 DELETE를 허용한다', async () => {
     const server = await createApp([ALLOWED]);
 
-    const res = await preflight(server, ALLOWED, 'DELETE');
+    const res = await preflight(server, ALLOWED, 'DELETE').expect(204);
 
-    expect(res.headers['access-control-allow-methods']).not.toContain('DELETE');
+    expect(res.headers['access-control-allow-origin']).toBe(ALLOWED);
+    expect(res.headers['access-control-allow-methods']).toBe('GET,POST,PATCH,PUT,DELETE,OPTIONS');
+  });
+
+  it('허용되지 않은 오리진의 DELETE preflight에는 Access-Control-Allow-Origin을 주지 않는다', async () => {
+    const server = await createApp([ALLOWED]);
+
+    const res = await preflight(server, EVIL, 'DELETE');
+
+    expect(res.headers['access-control-allow-origin']).toBeUndefined();
   });
 
   it('CORS_ALLOWED_ORIGINS 미설정(빈 목록)이면 어떤 오리진도 허용하지 않는다 (fail-closed)', async () => {
