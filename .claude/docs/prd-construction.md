@@ -307,7 +307,7 @@
 | `Setlist.youtube_review_status` 컬럼 + `youtube_review_status` enum | F011~F013 리뷰 상태 | 미사용 유지. 읽기·쓰기 코드 제거(곡명 변경 시 `pending` 리셋, URL 저장 시 `approved` 기록, 곡 목록 상태 배지) — `@default(pending)`이라 안 써도 곡 등록 안전 | 컬럼·enum DROP |
 | `YoutubeSearchAttempt` 테이블 + `youtube_search_outcome`·`youtube_review_state` enum | F011 배치 검색 이력·쿼터 집계 | 미사용 유지 | 테이블·enum DROP |
 | `YoutubeRecommendation` 테이블 | F012 후보 영상 | 미사용 유지. 남아 있는 후보 행은 YouTube 정책상 30일 보관 제한 대상이므로 기존 `youtube-cleanup` 스크립트로 정리 (데이터 삭제라 실행 전 확인) | 테이블 DROP |
-| `apps/api/src/youtube/` 배치·쿼터·스코어링·리뷰 서비스와 엔드포인트, `YOUTUBE_BATCH_API_KEY` | F011·F012 | **제거**. URL 저장 로직만 남김. 배치 모듈이 빠지면 `YOUTUBE_BATCH_API_KEY` 미설정 시 기동 실패 조건도 함께 제거 | — |
+| `apps/api/src/youtube/` 배치·쿼터·스코어링·리뷰 서비스와 엔드포인트, `YOUTUBE_BATCH_API_KEY` | F011·F012 | **제거**. URL 저장 로직만 남김. 배치 모듈이 빠지면 `YOUTUBE_BATCH_API_KEY` 미설정 시 기동 실패 조건도 함께 제거. 예외: 남은 후보 정리용 `youtube-cleanup` 스크립트와 정리 서비스는 유지 (파일 범위는 구현 명세 T1) | 정리 스크립트·서비스 제거 |
 
 - 후속 DROP은 수작성 SQL 마이그레이션 + `migrate deploy`로 진행한다 (프로덕션 DB에 `migrate dev` 금지)
 
