@@ -27,6 +27,7 @@
 | 6   | Codex 범위           | 구현 → 커밋 → `create-impl-pr`로 **PR 생성까지**. PR 체크 확인과 머지는 사용자가 한다 (`git-rules.md`·`AGENTS.md`·`CLAUDE.md`는 Step 3에서 반영)                                                                           |
 | 7   | Claude 작업 공간     | 별도 `git worktree` 사용. 위치는 OneDrive 밖                                                                                                                                                                               |
 | 8   | Claude 리뷰 인증     | `CLAUDE_CODE_OAUTH_TOKEN` (`claude setup-token`으로 사용자가 직접 발급·등록). Claude 구독 한도를 쓰므로 추가 API 과금 없음, 설계 작업과 한도 공유. `ANTHROPIC_API_KEY`는 쓰지 않는다 (2026-10-20 API 키에서 변경)               |
+| 10  | Codex 승인 설정      | 로컬 실행, 승인 정책 「요청 시」(`on-request`), 승인 처리자는 **사용자 직접**(입력창 방패 메뉴. `auto_review` 사용 금지 — AI 검토자가 샌드박스 밖 명령을 자동 허용함, 2026-10-20 확인). `gh`·`git push`에는 "항상 허용"을 주지 않는다 |
 | 9   | 전환 시점            | Step 1~4(파이프라인 구축 + 파일럿)를 먼저 끝내고, work05 T2부터 새 흐름 적용                                                                                                                                                |
 
 ### 세팅 순서
