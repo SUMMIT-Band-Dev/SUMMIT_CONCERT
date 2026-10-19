@@ -14,7 +14,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **설계는 Claude Code, 구현은 Codex**가 담당한다
 - Codex는 설계 문서(PRD·구현 명세)에 적힌 결정을 그대로 구현한다. 명세와 다르게 구현해야 할 이유가 생기면 **임의로 결정하지 말고 작업을 멈추고 이유를 보고**한다 (설계 문서 수정은 Claude Code 쪽에서 한다)
 - 명세에 없는 기능·API·추상화는 만들지 않는다 (과설계 금지)
-- **설계 문서(`.claude/docs/*`, `.claude/rules/*`, `CLAUDE.md`)는 수정하지 않는다.** 명세 변경이 필요하면 보고만 한다
+- **설계 문서(`docs/specs/*`, `.claude/rules/*`, `CLAUDE.md`)는 수정하지 않는다.** 명세 변경이 필요하면 보고만 한다
 
 ## 작업 흐름 (항상 직렬)
 
@@ -37,8 +37,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 3. `.claude/rules/git-rules.md` — 브랜치·커밋·PR 규칙 (항상 적용)
 4. 진행 중인 work 문서 — 현재 **work05**:
    - `.claude/rules/work-05-construction.md` (배경·범위)
-   - `.claude/docs/prd-construction.md` (기능 명세, ✅ 확정 사항)
-   - `.claude/docs/work05-implementation.md` (**구현 명세 — 작업 단위·설계 결정·완료 기준. 구현은 이 문서를 기준으로 한다**)
+   - `docs/specs/prd-construction.md` (기능 명세, ✅ 확정 사항)
+   - `docs/specs/work05-implementation.md` (**구현 명세 — 작업 단위·설계 결정·완료 기준. 구현은 이 문서를 기준으로 한다**)
 5. 관리자 프론트를 건드리면 `apps/admin/AGENTS.md`, 백엔드를 건드리면 `apps/api/README.md`도 확인
 
 종료된 work 문서는 `.claude/rules/history/`에 있다. 지금 작업과 무관하면 읽지 않아도 된다.

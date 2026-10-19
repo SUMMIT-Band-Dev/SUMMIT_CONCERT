@@ -26,11 +26,11 @@
 
 | 단계   | 작업                                                       | 상태                                                                                   | 상세 문서                                       |
 | ------ | ---------------------------------------------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| work05 | 공연 콘텐츠 관리 확장 + 유튜브 연결 관리 단순화 (어드민)  | **진행 중 (2026-10-15 착수)** — PRD: `.claude/docs/prd-construction.md` · 구현 명세: `.claude/docs/work05-implementation.md` | `.claude/rules/work-05-construction.md`         |
+| work05 | 공연 콘텐츠 관리 확장 + 유튜브 연결 관리 단순화 (어드민)  | **진행 중 (2026-10-15 착수)** — PRD: `docs/specs/prd-construction.md` · 구현 명세: `docs/specs/work05-implementation.md` | `.claude/rules/work-05-construction.md`         |
 | work01 | 리팩토링 (웹 성능 지표 개선)                               | 우선순위 1~4 완료, 5~7(정리 작업 · `@vercel/analytics` · 라우트 리네이밍) 잔여         | `.claude/rules/history/work-01-refactoring.md`  |
 | work04 | 어드민 페이지 기능 수정                                    | 종료 — 범위를 work05로 이관                                                            | `.claude/rules/history/work-04-admin.md`        |
 | work03 | 데이터 업데이트 + 어드민 페이지                            | 종료 — B(어드민)는 work02와 함께 구축 완료, A(데이터 업데이트)는 폐기                 | `.claude/rules/history/work-03-update.md`       |
-| work02 | Nest.js 백엔드 (로그인 + 팀/곡 CRUD 어드민)                | 종료 — 배포 완료. 이전 어드민 PRD: `.claude/docs/prd-admin.md`                         | `.claude/rules/history/work-02-nest.js.md`      |
+| work02 | Nest.js 백엔드 (로그인 + 팀/곡 CRUD 어드민)                | 종료 — 배포 완료. 이전 어드민 PRD: `docs/specs/prd-admin.md`                         | `.claude/rules/history/work-02-nest.js.md`      |
 
 **이력 요약**: 2026-09-19에 Setlist/Line Up 스키마를 FK 구조로 정규화하고 RLS를 활성화한 뒤(`REFACTOR_NOTES.md` §8) work02(백엔드)를 착수해 배포까지 완료함. 이후 어드민 기능 수정을 work04로 신설했으나, 2026-10-15 공연 콘텐츠 전체 관리 + 유튜브 관리 단순화로 범위를 넓혀 work05로 새로 시작함.
 
@@ -51,7 +51,7 @@
 
 ### 한 작업 단위(Tn)의 흐름 — 항상 직렬로 진행
 
-1. **Claude — 명세 작성·수정 → 커밋**: 명세(`.claude/docs/work05-implementation.md`)를 고치면 `docs/*` 브랜치에서 커밋 → PR → `develop` 머지까지 끝낸 뒤 Codex에 넘긴다. Codex는 `develop`에서 분기하므로 머지되지 않은 명세는 Codex에 보이지 않는다
+1. **Claude — 명세 작성·수정 → 커밋**: 명세(`docs/specs/work05-implementation.md`)를 고치면 `docs/*` 브랜치에서 커밋 → PR → `develop` 머지까지 끝낸 뒤 Codex에 넘긴다. Codex는 `develop`에서 분기하므로 머지되지 않은 명세는 Codex에 보이지 않는다
 2. **Codex — 구현 → 커밋**: 명세의 작업 단위 순서대로, 명세에 적힌 `feature/*` 브랜치에서 구현한다. 커밋은 사용자 확인 후 `source-command-git-commit` 규칙대로 한다. 커밋하고 나면 **멈추고 리뷰를 기다린다** (push·PR은 아직 안 함)
 3. **Claude — 리뷰**: 아래 "리뷰 절차"대로 `code-reviewer` 에이전트로 리뷰한다
    - 문제가 없으면 → 4로
@@ -80,7 +80,7 @@
 
 ```
 [work05 Tn 리뷰 수정 요청]
-기준: .claude/docs/work05-implementation.md (Dn / Tn 완료 기준)
+기준: docs/specs/work05-implementation.md (Dn / Tn 완료 기준)
 1. <파일:줄> — <문제> → <명세가 요구하는 것>
 2. ...
 수정 후: 같은 브랜치에 추가 커밋(amend 금지), 완료 기준 재검증 출력 첨부, 커밋 후 멈춤
@@ -128,7 +128,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<익명-키>
 
 - **`apps/admin`**: 관리자 프론트 — Next.js 16.3.5, TanStack Query 5, shadcn/ui, React Hook Form + Zod (별도 Vercel 프로젝트)
 - **`apps/api`**: 관리자 API — NestJS 12 + Prisma 7, Supabase Postgres 직접 연결, JWT 인증, Supabase Storage 이미지 업로드
-- 구성 결정과 근거는 `REFACTOR_NOTES.md` §9 이후, 기능 명세는 `.claude/docs/prd-admin.md`(기존) · `.claude/docs/prd-construction.md`(work05) 참조
+- 구성 결정과 근거는 `REFACTOR_NOTES.md` §9 이후, 기능 명세는 `docs/specs/prd-admin.md`(기존) · `docs/specs/prd-construction.md`(work05) 참조
 
 ## 아키텍처
 
@@ -254,8 +254,8 @@ apps/
 - **.claude/rules/code-style.md**: 코드 스타일 규칙
 - **.claude/rules/git-rules.md**: Git 브랜치/커밋 규칙
 - **.claude/rules/work-05-construction.md**: work05 상세 범위 (진행 중)
-- **.claude/docs/prd-construction.md**: work05 PRD (공연 콘텐츠 관리 + 유튜브 연결 관리 개편)
-- **.claude/docs/work05-implementation.md**: work05 구현 명세 (설계 결정 D1~D10, 작업 단위 T1~T7, 완료 기준) — Codex 구현 기준 문서
+- **docs/specs/prd-construction.md**: work05 PRD (공연 콘텐츠 관리 + 유튜브 연결 관리 개편)
+- **docs/specs/work05-implementation.md**: work05 구현 명세 (설계 결정 D1~D10, 작업 단위 T1~T7, 완료 기준) — Codex 구현 기준 문서
 - **AGENTS.md**: Codex용 진입점 (역할 분담: 설계 Claude Code / 구현 Codex). 이 파일과 규칙을 맞춰 유지한다
-- **.claude/docs/prd-admin.md**: 이전 어드민 PRD (work02, 기존 기능 참고용)
+- **docs/specs/prd-admin.md**: 이전 어드민 PRD (work02, 기존 기능 참고용)
 - **.claude/rules/history/**: 종료된 work 문서 보관 (work01 잔여 항목 포함 — `work-01-refactoring.md`)
