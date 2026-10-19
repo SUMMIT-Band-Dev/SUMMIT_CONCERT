@@ -26,14 +26,14 @@
 | 5   | 사람 작업 수용 기준  | 명세에 `AC-xx [manual]`로 표기. Codex는 그 지점에 오면 **작업을 멈추고 사용자에게 확인 요청**(무엇을·어떻게 확인하는지)을 출력한 뒤, 확인을 받고 진행한다. Claude 리뷰는 `[manual]`을 판정에서 제외하고 PR 본문 체크리스트로 남긴다 |
 | 6   | Codex 범위           | 구현 → 커밋 → `create-impl-pr`로 **PR 생성까지**. PR 체크 확인과 머지는 사용자가 한다 (`git-rules.md`·`AGENTS.md`·`CLAUDE.md`는 Step 3에서 반영)                                                                           |
 | 7   | Claude 작업 공간     | 별도 `git worktree` 사용. 위치는 OneDrive 밖                                                                                                                                                                               |
-| 8   | Claude 리뷰 인증     | `ANTHROPIC_API_KEY` (사용자가 직접 발급·등록), 콘솔 월 한도 $10                                                                                                                                                             |
+| 8   | Claude 리뷰 인증     | `CLAUDE_CODE_OAUTH_TOKEN` (`claude setup-token`으로 사용자가 직접 발급·등록). Claude 구독 한도를 쓰므로 추가 API 과금 없음, 설계 작업과 한도 공유. `ANTHROPIC_API_KEY`는 쓰지 않는다 (2026-10-20 API 키에서 변경)               |
 | 9   | 전환 시점            | Step 1~4(파이프라인 구축 + 파일럿)를 먼저 끝내고, work05 T2부터 새 흐름 적용                                                                                                                                                |
 
 ### 세팅 순서
 
 | Step | 브랜치                 | 내용                                                                                                                                                                  |
 | ---- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0    | (사람)                 | API 키 발급·월 한도·Secret 등록, 패널 Codex 로컬 실행·명령 승인 확인                                                                                                  |
+| 0    | (사람)                 | OAuth 토큰 발급·Secret 등록, 패널 Codex 로컬 실행·명령 승인 확인                                                                                                      |
 | 1    | `maint/pr-validation`  | `ci.yml` 재사용화, `scripts/ai/classify-pr.mjs`, `pr-validation.yml`(`classify`·`ci`·`pr-gate`), 라벨. 머지 후 `develop` ruleset 설정과 차단 테스트(0-2)               |
 | 2    | `maint/claude-review`  | 리뷰 프롬프트·스키마·`review` 잡. 리뷰 1회 성공, 빈 출력·실패·취소가 게이트를 통과하지 못하는지 확인                                                                   |
 | 3    | `maint/spec-flow`      | 명세 템플릿, `design-pr` 커맨드, `spec-merged-notify.yml`, Codex 프롬프트 템플릿, `create-impl-pr.mjs`, `AGENTS.md`·`CLAUDE.md`·`git-rules.md` 새 흐름 반영(전환 시점) |
@@ -60,7 +60,7 @@
 | 구현 머지               | 사람. 자동 머지 금지                                                                           |
 | 서로 다른 명세 회차     | 최대 3개 (`revision` 0 → 1 → 2)                                                                |
 | Claude 리뷰 모델 [권장] | `claude-sonnet-5-5`, `risk-high` 라벨 PR만 `claude-opus-5-5` (라벨 변경 후 리뷰는 수동 재실행) |
-| Claude 인증 [권장]      | API 키 + 콘솔 월 한도. 선택: OAuth 토큰 (6.3)                                                  |
+| Claude 인증 [확정]      | OAuth 토큰 (Claude 구독, 6.3). API 키는 쓰지 않음                                              |
 
 ---
 
@@ -397,7 +397,7 @@ review:
       id: review
       uses: anthropics/claude-code-action@v1 # 운영 전에 검토한 커밋 SHA로 고정
       with:
-        anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+        claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         github_token: ${{ github.token }}
         base_branch: develop
         prompt: ${{ steps.build_prompt.outputs.prompt }}
@@ -560,9 +560,9 @@ review:
 | 저장소 플랜·보호 규칙 | `SUMMIT-Band-Dev/SUMMIT_CONCERT`, Public, org Free 플랜 → 보호 규칙·ruleset 사용 가능. 현재 `develop` 보호 없음. 차단 테스트(0-2)는 Step 1에서               |
 | 명세 경로·정책 경로   | 명세 `docs/specs/**`, 정책 경로는 10.3 표 그대로                                                                                                          |
 | 기존 Claude 커맨드    | `.claude/commands/git/commit.md`, `.claude/commands/git/push.md` (설계 커맨드는 Step 3에서 `design-pr.md` 신설)                                            |
-| Claude 인증 방식      | API 키                                                                                                                                                    |
+| Claude 인증 방식      | OAuth 토큰 (`CLAUDE_CODE_OAUTH_TOKEN`, Claude 구독)                                                                                                       |
 | 테스트 명령           | 기존 `ci.yml` 기준 — `apps/api`: lint·build·test·typecheck / `apps/admin`: lint·build·typecheck·test / 루트: lint (+ Step 1에서 `tsc --noEmit` 추가). 테스트 DB 없음 |
-| 월 예산               | $10                                                                                                                                                       |
+| 월 예산               | 추가 과금 없음 (구독 한도 사용). 비용 통제는 `--max-turns`·`timeout-minutes`·리뷰 입력 축소로 한도 소모를 줄이는 방식                                           |
 | 스크립트 형식         | Node(`.mjs`) — 로컬 Windows와 CI ubuntu에서 같은 규칙 모듈 공유                                                                                            |
 | 기본 브랜치·기존 CI   | 기본 브랜치 `develop`, 기존 CI `.github/workflows/ci.yml`                                                                                                 |
 | `gh` 신원 (0-5)       | `xodudgks`, `GH_TOKEN`·`GITHUB_TOKEN` 비어 있음 — 통과                                                                                                     |
