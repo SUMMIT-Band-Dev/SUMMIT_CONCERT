@@ -30,7 +30,7 @@ argument-hint: <요구사항 설명 | Codex 보완 요청문 | 명세 ID>
    - 목록 형식 `- AC-01 ...`, 번호 두 자리 이상, 중복 없음. 줄 맨 앞의 `- AC-xx`만 정의로 센다
    - 코드를 읽거나 명령을 실행해 참·거짓을 가릴 수 있게 쓴다
    - 사람이 직접 확인해야 하면 `[manual]`을 붙이고, 무엇을 어떻게 확인하는지 테스트 계획에 적는다
-5. 구현 PR은 정책 경로(`.github/`, `.claude/`, `.codex/`, `.agents/`, `docs/ai/`, `docs/workflow/`, `scripts/ai/`, `AGENTS.md`·`CLAUDE.md`)와 `docs/specs/`를 바꿀 수 없다. 필요하면 범위의 "제외"에 "머지 후 maint/로 처리"라고 적는다
+5. 구현 PR은 정책 경로(`.github/`, `.claude/`, `.codex/`, `.agents/`, `docs/ai/`, `docs/workflow/`, `scripts/ai/`, `AGENTS.md`·`CLAUDE.md`)와 `docs/specs/`를 바꿀 수 없다. 필요하면 범위의 "제외"에 "머지 후 일반 브랜치 PR로 처리"라고 적는다
 6. 이 PR에서는 `docs/specs/` 아래만 바꾼다. 다른 단위 명세 파일(`docs/specs/<다른 ID>.md`)은 같이 바꾸지 않는다
 
 ## 3. 로컬 검사

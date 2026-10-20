@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // PR 분류 규칙 (docs/workflow/claude-codex-plan.md 10.3)
 //
-// 브랜치 접두사만 믿지 않고 실제 변경 경로와 함께 대조한다.
+// spec/·impl/는 파이프라인 예약 접두사다. 그 외 브랜치(feature/·fix/·docs/ 등 기존 관행)는 general로 분류해 CI만 요구한다.
+// 예약 접두사는 브랜치명만 믿지 않고 실제 변경 경로와 함께 대조한다.
 // CI(pr-validation.yml의 classify 잡)와 로컬(create-impl-pr, Step 3)이 이 모듈 하나를 같이 쓴다 — 규칙이 두 벌이 되지 않게 하기 위함.
 //
 // 사용법 (CLI):
@@ -16,7 +17,8 @@ import { joinReasons, writeOutputs } from "./gh-output.mjs";
 
 export const SPEC_DIR = "docs/specs/";
 
-// 정책 경로: 리뷰 기준·자동화·에이전트 규칙. 바뀌면 검증 자체가 바뀌므로 maint/ PR에서만 허용한다
+// 정책 경로: 리뷰 기준·자동화·에이전트 규칙. 바뀌면 검증 자체가 바뀌므로 spec/·impl/ PR에서는 막고,
+// 일반 브랜치(general) PR에서 사람이 직접 검토해 머지한다
 const POLICY_PREFIXES = [
   ".github/",
   ".claude/",
@@ -35,7 +37,7 @@ export const SPEC_ID = "[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+";
 export const UNIT_SPEC_PATH = new RegExp(`^docs/specs/(${SPEC_ID})\\.md$`);
 const SPEC_BRANCH = new RegExp(`^spec/(${SPEC_ID})-r(0|[1-9][0-9]*)$`);
 const IMPL_BRANCH = new RegExp(`^impl/(${SPEC_ID})-spec-([1-9][0-9]*)$`);
-const MAINT_BRANCH = /^maint\/[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const RESERVED_PREFIX = /^(?:spec|impl)\//;
 
 // 서로 다른 명세 회차는 최대 3개 (revision 0·1·2)
 export const MAX_REVISION = 2;
@@ -52,7 +54,7 @@ export function isSpecPath(path) {
   return path.startsWith(SPEC_DIR);
 }
 
-// 브랜치명만으로 분류와 메타데이터를 읽는다. 형식이 틀리면 kind는 unknown
+// 브랜치명만으로 분류와 메타데이터를 읽는다. 예약 접두사인데 형식이 틀리면 unknown, 예약 접두사가 아니면 general
 export function parseBranch(branch) {
   let match = SPEC_BRANCH.exec(branch);
   if (match) {
@@ -62,10 +64,10 @@ export function parseBranch(branch) {
   if (match) {
     return { kind: "impl", specId: match[1], specPr: Number(match[2]) };
   }
-  if (MAINT_BRANCH.test(branch)) {
-    return { kind: "maint" };
+  if (RESERVED_PREFIX.test(branch)) {
+    return { kind: "unknown" };
   }
-  return { kind: "unknown" };
+  return { kind: "general" };
 }
 
 // 브랜치와 변경 파일 목록으로 분류하고 규칙 위반을 모은다
@@ -81,7 +83,7 @@ export function classifyPr({ branch, files }) {
 
   if (parsed.kind === "unknown") {
     errors.push(
-      `브랜치명 '${branch}'이 spec/<ID>-r<N> · impl/<ID>-spec-<PR번호> · maint/<설명> 형식이 아니다`,
+      `브랜치명 '${branch}'이 예약 접두사 형식(spec/<ID>-r<N> · impl/<ID>-spec-<PR번호>)이 아니다 — 파이프라인 밖 작업이면 spec/·impl/이 아닌 접두사를 쓴다`,
     );
   }
 
@@ -89,7 +91,10 @@ export function classifyPr({ branch, files }) {
     if (parsed.revision > MAX_REVISION) {
       errors.push(`revision ${parsed.revision}은 상한 ${MAX_REVISION}을 넘는다`);
     }
-    const outside = files.filter((file) => !isSpecPath(file));
+    if (policyFiles.length > 0) {
+      errors.push(`spec PR은 정책 경로를 바꿀 수 없다(일반 브랜치로 분리): ${policyFiles.join(", ")}`);
+    }
+    const outside = files.filter((file) => !isSpecPath(file) && !isPolicyPath(file));
     if (outside.length > 0) {
       errors.push(`spec PR은 ${SPEC_DIR} 밖을 바꿀 수 없다: ${outside.join(", ")}`);
     }
@@ -101,7 +106,7 @@ export function classifyPr({ branch, files }) {
 
   if (parsed.kind === "impl") {
     if (policyFiles.length > 0) {
-      errors.push(`impl PR은 정책 경로를 바꿀 수 없다(maint/로 분리): ${policyFiles.join(", ")}`);
+      errors.push(`impl PR은 정책 경로를 바꿀 수 없다(일반 브랜치로 분리): ${policyFiles.join(", ")}`);
     }
     const specFiles = files.filter(isSpecPath);
     if (specFiles.length > 0) {

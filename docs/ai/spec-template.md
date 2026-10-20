@@ -31,7 +31,7 @@ revision: 0
 
 **제외**
 
-- 이번에 하지 않는 것과 그 이유. 정책 경로(`.github/`, `.claude/`, `.codex/`, `.agents/`, `docs/ai/`, `docs/workflow/`, `scripts/ai/`, `AGENTS.md`, `CLAUDE.md`)와 `docs/specs/`는 구현 PR에서 바꿀 수 없으므로, 필요하면 여기에 "머지 후 maint/로 처리"라고 적는다
+- 이번에 하지 않는 것과 그 이유. 정책 경로(`.github/`, `.claude/`, `.codex/`, `.agents/`, `docs/ai/`, `docs/workflow/`, `scripts/ai/`, `AGENTS.md`, `CLAUDE.md`)와 `docs/specs/`는 구현 PR에서 바꿀 수 없으므로, 필요하면 여기에 "머지 후 일반 브랜치 PR로 처리"라고 적는다
 
 ## 설계 결정
 

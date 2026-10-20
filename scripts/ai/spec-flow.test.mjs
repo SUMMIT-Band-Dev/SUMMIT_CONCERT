@@ -54,7 +54,7 @@ test("머지된 spec PR 코멘트: 마커·manual 기준·프롬프트 포함", 
 
 test("코멘트: spec 브랜치가 아니거나 명세가 없거나 형식이 틀리면 거부", () => {
   const base = { prNumber: 70, mergeSha: MERGE_SHA, template: TEMPLATE };
-  assert.throws(() => buildComment({ ...base, branch: "maint/x", specContent: spec(0) }));
+  assert.throws(() => buildComment({ ...base, branch: "feature/x", specContent: spec(0) }));
   assert.throws(() => buildComment({ ...base, branch: "spec/FEATURE-0001-r0", specContent: null }));
   assert.throws(() => buildComment({ ...base, branch: "spec/FEATURE-0001-r1", specContent: spec(0) }));
 });
@@ -83,8 +83,8 @@ test("구현 PR 메타데이터는 spec PR 브랜치에서 revision을 읽는다
     source_spec_merge_sha: MERGE_SHA,
     feasibility: "ready",
   });
-  assert.throws(() => buildImplMeta("maint/x", { head: { ref: "spec/FEATURE-0001-r1" } }));
-  assert.throws(() => buildImplMeta("impl/FEATURE-0001-spec-70", { head: { ref: "maint/x" } }));
+  assert.throws(() => buildImplMeta("feature/x", { head: { ref: "spec/FEATURE-0001-r1" } }));
+  assert.throws(() => buildImplMeta("impl/FEATURE-0001-spec-70", { head: { ref: "feature/x" } }));
 });
 
 test("구현 PR 본문에 메타데이터를 붙이고, CI 파서가 다시 읽을 수 있다", () => {

@@ -47,7 +47,7 @@
 
 ## Claude–Codex 협업 흐름 (2026-10-20부터, 전체 설계: `docs/workflow/claude-codex-plan.md`)
 
-**설계는 Claude Code(터미널), 구현은 Codex(패널), 검증은 GitHub Actions, 머지는 사용자**가 맡는다. Codex의 규칙은 루트 `AGENTS.md`에 같은 흐름을 Codex 관점으로 적어 두었다. 흐름을 바꿀 때는 두 파일과 `.claude/rules/git-rules.md`를 함께 고친다 (모두 정책 경로 → `maint/` PR).
+**설계는 Claude Code(터미널), 구현은 Codex(패널), 검증은 GitHub Actions, 머지는 사용자**가 맡는다. Codex의 규칙은 루트 `AGENTS.md`에 같은 흐름을 Codex 관점으로 적어 두었다. 흐름을 바꿀 때는 두 파일과 `.claude/rules/git-rules.md`를 함께 고친다 (모두 정책 경로 → `spec/`·`impl/`이 아닌 일반 브랜치 PR). `spec/`·`impl/`은 파이프라인 예약 접두사이고, 그 밖의 브랜치는 기존 관행(`feature/`·`fix/` 등)대로 쓴다 (`.claude/rules/git-rules.md`).
 
 ### 명세 하나의 흐름 — 항상 직렬로 진행
 

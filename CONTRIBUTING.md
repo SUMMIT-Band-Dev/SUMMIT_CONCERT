@@ -8,21 +8,25 @@ SUMMIT 웹페이지 프로젝트의 협업 규칙입니다.
 ```
 main
  └─ develop
-     ├─ spec/<SPEC_ID>-r<revision>       명세 (Claude)
-     ├─ impl/<SPEC_ID>-spec-<명세 PR>     구현 (Codex)
-     └─ maint/<설명>                      그 외 모든 작업 (사람·Claude)
+     ├─ feature/기능명
+     └─ hotfix/수정할-기능
 ```
 
 - **main**: 배포(운영) 브랜치. 직접 커밋 금지, `develop`에서 병합된 안정 버전만 올라옵니다.
-- **develop**: 통합 개발 브랜치. 모든 작업 브랜치는 여기서 분기하고 여기로 병합합니다. 직접 push가 막혀 있고, 필수 체크 `pr-gate`를 통과한 PR만 머지됩니다.
-- **spec / impl / maint**: 이 세 접두사만 씁니다. 다른 접두사(`feature/`, `hotfix/` 등)의 PR은 `pr-gate`에서 실패합니다. 상세는 [`.claude/rules/git-rules.md`](./.claude/rules/git-rules.md), 명세→구현 흐름은 [`docs/workflow/claude-codex-plan.md`](./docs/workflow/claude-codex-plan.md)를 참고해주세요.
+- **develop**: 통합 개발 브랜치. 모든 `feature` 브랜치는 여기서 분기하고 여기로 병합합니다. 직접 push가 막혀 있고, 필수 체크 `pr-gate`를 통과한 PR만 머지됩니다.
+- **feature/기능명**: 개별 기능 개발 브랜치. 예: `feature/kanban-board`, `feature/slide-panel`
+- **hotfix/수정할-기능**: 긴급 수정 브랜치. 배포 후 발견된 급한 버그 등에 사용합니다.
 
-### 브랜치 생성 예시 (명세 없이 하는 작업)
+### 예약 접두사 `spec/`, `impl/` (직접 사용 금지)
+
+`spec/`(명세, Claude)과 `impl/`(구현, Codex)은 Claude·Codex 자동화 파이프라인 전용입니다. 사람이 브랜치를 만들 때는 쓰지 마세요. 형식이 틀리면 `pr-gate`가 실패하고, 이 두 접두사의 PR은 CI·워크플로우·에이전트 규칙 같은 정책 경로를 바꿀 수 없습니다. 그 밖의 브랜치는 CI만 통과하면 됩니다. 상세는 [`.claude/rules/git-rules.md`](./.claude/rules/git-rules.md)와 [`docs/workflow/claude-codex-plan.md`](./docs/workflow/claude-codex-plan.md)를 참고해주세요.
+
+### 브랜치 생성 예시
 
 ```bash
-git switch develop
-git pull --ff-only origin develop
-git switch -c maint/설명
+git checkout develop
+git pull origin develop
+git checkout -b feature/기능명
 ```
 
 ## 커밋 컨벤션
@@ -101,5 +105,5 @@ PR 본문은 [`.github/PULL_REQUEST_TEMPLATE.md`](./.github/PULL_REQUEST_TEMPLAT
 ### 3. 병합 순서
 
 ```
-spec/·impl/·maint/ → develop → (일정 도달 시) main
+feature/기능명 (또는 spec/·impl/) → develop → (일정 도달 시) main
 ```
