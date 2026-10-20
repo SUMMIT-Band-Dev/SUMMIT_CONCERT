@@ -1,6 +1,6 @@
 ---
 spec_id: CLEANUP-0001
-revision: 0
+revision: 1
 ---
 
 # CLEANUP-0001 — 중복 Supabase 클라이언트 파일 삭제
@@ -17,30 +17,33 @@ revision: 0
 
 **포함**
 
-- `lib/src/lib/supabase.ts` 삭제. 그 결과 비게 되는 `lib/` 디렉터리도 저장소에서 사라진다
+- `git rm lib/src/lib/supabase.ts`로 파일을 삭제하고 그 삭제를 스테이지한다. 그 결과 비게 되는 `lib/` 디렉터리도 저장소에서 사라진다
 
 **제외**
 
 - `src/lib/supabase.ts`(실제 클라이언트) 수정
 - `dist/` 정리 등 work01 #5의 나머지 항목
-- 이 파일을 언급하는 문서(`CLAUDE.md` 알려진 이슈 표, `REFACTOR_NOTES.md`, `.claude/`·`.codex/` 에이전트 설정, `shrimp-rules.md`)의 갱신 — 정책 경로가 섞여 있어 머지 후 사람이 `maint/` PR로 따로 정리한다
+- 이 파일을 언급하는 문서(`CLAUDE.md` 알려진 이슈 표, `REFACTOR_NOTES.md`, `.claude/`·`.codex/` 에이전트 설정, `shrimp-rules.md`)의 갱신 — 정책 경로가 섞여 있어 머지 후 사람이 일반 브랜치 PR로 따로 정리한다
 
 ## 수용 기준
 
-- AC-01 `lib/src/lib/supabase.ts`가 삭제되어, `git ls-files lib`의 결과가 비어 있다
-- AC-02 이 PR의 변경 파일은 위 파일 삭제 하나뿐이다 (범위 밖 변경 없음)
+- AC-01 `lib/src/lib/supabase.ts`의 삭제가 인덱스에 반영되어(스테이지 또는 커밋), `git ls-files lib`의 결과가 비어 있다
+- AC-02 `origin/develop` 대비 변경은 `lib/src/lib/supabase.ts` 삭제(`D`) 하나뿐이다 (범위 밖 변경 없음)
 - AC-03 앱 코드(`src/`, `apps/`)와 설정 파일에 삭제된 파일을 가리키는 import·경로 참조가 없다
 - AC-04 [manual] 이 PR의 Vercel 프리뷰(`summit-concert`)에서 홈(`/`)과 세트리스트(`/setlist`)가 이전과 같이 데이터와 함께 표시된다
 
 ## 테스트 계획
 
-구현 후 아래를 실행하고 명령과 결과를 커밋 전에 보고한다.
+`git rm`으로 삭제를 스테이지한 뒤, **커밋하기 전에** 루트에서 아래를 실행하고 명령과 결과를 보고한다. 모두 스테이지된 상태(인덱스)를 기준으로 하므로 커밋 전에 판정할 수 있다.
 
 ```bash
-git ls-files lib            # 출력 없음 (AC-01)
-git diff --stat develop...HEAD   # 1 file changed, 삭제만 (AC-02)
-npm run lint                # 루트, 통과
-npm run typecheck           # 루트, 통과
+git ls-files lib                                   # 출력 없음 (AC-01)
+git diff --cached --name-status origin/develop     # "D	lib/src/lib/supabase.ts" 한 줄만 (AC-02)
+git status --short                                 # 스테이지된 삭제 한 줄 외에 다른 변경 없음 (AC-02)
+npm run lint                                       # 통과
+npm run typecheck                                  # 통과
 ```
+
+브랜치는 `origin/develop`에서 만든 직후이므로 위 비교 기준(`origin/develop`)과 분기점이 같다.
 
 [manual] 기준(AC-04)은 PR이 생성된 뒤 Vercel 프리뷰가 올라와야 확인할 수 있으므로, PR 생성 후 사용자에게 확인을 요청한다.
