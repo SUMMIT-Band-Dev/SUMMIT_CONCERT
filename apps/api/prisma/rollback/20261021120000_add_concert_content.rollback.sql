@@ -1,0 +1,117 @@
+-- 롤백 SQL — 20261021120000_add_concert_content
+--
+-- 이 파일은 적용하지 않는다. 문제가 생겼을 때 참고할 절차만 기록해 둔 문서다.
+-- Prisma는 이 디렉터리를 마이그레이션으로 인식하지 않는다 (prisma/migrations 밖).
+-- 이미 적용된 prisma/migrations/20261021120000_add_concert_content/migration.sql은 수정하지 않는다.
+-- 체크섬이 어긋나 이후 migrate deploy가 막힐 수 있으므로 새 마이그레이션으로 처리한다.
+--
+-- 경고: T6에서 실제 데이터를 입력한 뒤 아래 DROP을 실행하면 그 데이터를 모두 지운다.
+-- 그 시점에는 테이블을 남겨두고 코드만 되돌리는 방안을 먼저 검토한다.
+
+-- ============================================================================
+-- 0) 실행 순서 — 코드 먼저, DB 나중
+-- ============================================================================
+--
+-- T3 API가 이 테이블을 쓰기 시작한 뒤라면 먼저 API 코드를 테이블 참조 전 버전으로 되돌려
+-- 배포하거나 API를 중지하고, 그 뒤 DB를 되돌린다. 공개 사이트도 전환됐다면 함께 되돌린다.
+-- T3 배포 전에는 이 스키마를 참조하는 앱 코드 의존이 없다.
+-- 코드 되돌리기에는 schema.prisma의 새 모델 6개와 InfoSectionCategory enum 제거 후
+-- npx prisma generate가 포함된다. 기존 마이그레이션 폴더는 아래 3)의 (다)에서만 제거한다.
+
+-- ============================================================================
+-- 1) 확인 쿼리 — 이력과 실제 스키마 상태를 함께 본다
+-- ============================================================================
+--
+-- 스크립트 커밋과 finished_at 기록은 별개의 단계다. 사이에 연결이 끊기면 실제 스키마와
+-- 이력이 어긋날 수 있다 (선례 문서의 가정이며 여기서 재현하지 않았다).
+-- 오류 본문이 들어갈 수 있는 logs 컬럼은 조회하지 않는다.
+--
+-- SELECT migration_name, started_at, finished_at, rolled_back_at, applied_steps_count
+-- FROM "_prisma_migrations"
+-- WHERE migration_name = '20261021120000_add_concert_content';
+--
+-- SELECT table_name FROM information_schema.tables
+-- WHERE table_schema = 'public'
+--   AND table_name IN ('Venue', 'Concert', 'PerformanceDay', 'Ticket', 'InfoSection', 'InfoItem');
+--
+-- SELECT t.typname, e.enumlabel FROM pg_type t
+-- JOIN pg_namespace n ON n.oid = t.typnamespace
+-- JOIN pg_enum e ON e.enumtypid = t.oid
+-- WHERE n.nspname = 'public' AND t.typname = 'info_section_category'
+-- ORDER BY e.enumsortorder;
+--
+-- finished_at 있음(성공) ........................................... → 3)의 (나)
+-- finished_at 없음(실패) + 테이블·enum 모두 없음 ..................... → 3)의 (가)
+-- finished_at 없음(실패) 또는 이력 행 없음 + 테이블·enum 하나라도 있음 → 3)의 (라)
+-- 이력 행도 없고 테이블·enum도 없으면 되돌릴 작업이 없다.
+
+-- ============================================================================
+-- 2) DROP SQL — 3)에서 DROP이 필요하다고 판단한 경우에만 실행한다
+-- ============================================================================
+--
+-- 수동 실행(콘솔/세션)용. SET LOCAL을 트랜잭션으로 감싸고, 락을 5초 안에 못 잡으면 실패한다.
+-- 콘솔의 트랜잭션 처리 방식은 실행 전에 확인한다.
+--
+-- BEGIN;
+-- SET LOCAL lock_timeout = '5s';
+-- DROP TABLE "InfoItem";
+-- DROP TABLE "InfoSection";
+-- DROP TABLE "Ticket";
+-- DROP TABLE "PerformanceDay";
+-- DROP TABLE "Concert";
+-- DROP TABLE "Venue";
+-- DROP TYPE "info_section_category";
+-- COMMIT;
+--
+-- 정방향 새 마이그레이션 파일용. 파일 전체가 암묵적 트랜잭션으로 실행되므로
+-- BEGIN/COMMIT 없이 아래 본문을 넣는다.
+--
+-- SET LOCAL lock_timeout = '5s';
+-- DROP TABLE "InfoItem";
+-- DROP TABLE "InfoSection";
+-- DROP TABLE "Ticket";
+-- DROP TABLE "PerformanceDay";
+-- DROP TABLE "Concert";
+-- DROP TABLE "Venue";
+-- DROP TYPE "info_section_category";
+--
+-- 참조하는 테이블부터 역순으로 제거한 뒤 enum을 제거한다. 정책·제약·소유 시퀀스는
+-- 테이블과 함께 지워진다. T6 이후에는 이 DROP으로 실제 공연 콘텐츠를 잃는다.
+
+-- ============================================================================
+-- 3) Prisma 이력 처리 — 1)의 결과에 따라 사람이 선택한다
+-- ============================================================================
+--
+-- (가) 이력은 실패이고, 테이블 6개와 enum이 모두 없음 (정상적인 실패):
+--      트랜잭션이 롤백됐으므로 2)의 DROP은 필요 없다.
+--      npx prisma migrate resolve --rolled-back 20261021120000_add_concert_content
+--
+-- (나) 이력이 성공 — 정방향 새 마이그레이션으로 되돌리는 것이 우선이다.
+--      더 늦은 타임스탬프의 새 폴더(예: <timestamp>_drop_concert_content/migration.sql)에
+--      2)의 정방향 마이그레이션용 SQL을 작성하고 npx prisma migrate deploy로 적용한다.
+--      프로덕션 DB에는 migrate dev를 쓰지 않는다. 기존 이력과 폴더는 보존하여
+--      다른 클론·환경과 체크섬이 어긋나지 않게 한다. 성공 기록에는 --rolled-back이 동작하지 않는다.
+--
+-- (다) 예외 — 머지 전에 브랜치 자체를 폐기할 때만 이력 행 삭제를 검토할 수 있다.
+--      이 마이그레이션이 develop/main에 들어가지 않았고, 다른 어떤 환경에도 적용·복제되지
+--      않았으며, 폴더도 브랜치와 함께 버리는 경우에 한한다. 2)의 수동 DROP을 마친 뒤:
+--      DELETE FROM "_prisma_migrations"
+--      WHERE migration_name = '20261021120000_add_concert_content';
+--      마이그레이션 디렉터리도 함께 제거한다. 머지된 뒤에는 이력 행을 지우지 않는다.
+--
+-- (라) 이력은 실패(또는 행 없음)인데 테이블·enum이 하나라도 있음 (이력과 스키마의 어긋남):
+--      --rolled-back만 표시하면 남은 객체 때문에 재적용이 실패한다. 먼저 유지할지 되돌릴지 정한다.
+--
+--      (라-1) 유지하려면 사람이 migration.sql과 실제 스키마를 대조한다.
+--             컬럼·기본값·PK·CHECK·FK·지연 UNIQUE·enum 값·RLS·테이블 및 시퀀스 권한·정책·
+--             임시값까지 확인한다. Prisma는 CHECK·RLS·지연 속성 등을 모두 표현하지 못하므로
+--             아래 diff만으로 확인을 대신할 수 없다.
+--             npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
+--             위 대조와 diff(차이 없음, 종료 코드 0)가 모두 일치할 때만:
+--             npx prisma migrate resolve --applied 20261021120000_add_concert_content
+--             --applied는 SQL 실행 여부를 검증하지 않고 이력만 기록하므로 확인 없이 쓰지 않는다.
+--             일부만 적용된 것처럼 보이면 원자성 가정이 깨진 것이므로 멈추고 원인을 조사한다.
+--
+--      (라-2) 되돌리려면 2)의 수동 DROP 후 1)의 쿼리로 테이블·enum이 모두 사라졌는지
+--             확인하고 (가)의 --rolled-back 처리를 한다. 이미 머지된 경우에는 (나)처럼
+--             정방향 DROP 마이그레이션으로 이력을 보존하는 방법을 먼저 검토한다.
