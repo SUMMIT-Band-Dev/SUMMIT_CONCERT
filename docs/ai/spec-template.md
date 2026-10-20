@@ -45,7 +45,7 @@ revision: 0
 
 ## 테스트 계획
 
-구현 후 아래를 실행하고 명령과 결과를 PR 본문에 남긴다.
+구현 후 **커밋하기 전에** 아래를 실행하고 명령과 결과를 PR 본문에 남긴다. 커밋 후에만 결과가 나오는 명령(`git diff develop...HEAD` 등)은 쓰지 않는다 — 변경 범위 확인은 `git diff --cached --name-status origin/develop`, `git status --short`처럼 인덱스·작업 트리 기준으로 쓴다.
 
 ```bash
 # 예) 해당 앱 폴더에서

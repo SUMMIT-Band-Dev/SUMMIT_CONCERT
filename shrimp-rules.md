@@ -12,9 +12,8 @@
 
 ## 중복 파일 — 반드시 올바른 쪽을 수정
 
-- **Supabase 클라이언트가 두 곳에 존재한다**: `src/lib/supabase.ts`(사용 중, `cache-control: no-cache/no-store` 헤더 래핑 포함)와 `lib/src/lib/supabase.ts`(구버전, 미사용 중복 파일).
-- Supabase 관련 코드를 수정할 때는 **`src/lib/supabase.ts`만 수정**한다. `lib/src/lib/supabase.ts`는 정리 대상(work01 우선순위 5)이므로 새 로직을 추가하지 않는다.
-- import 시 반드시 `@/lib/supabase`(→ `src/lib/supabase.ts`)를 사용한다. `lib/src/lib/supabase`를 import하는 코드를 발견하면 버그로 간주하고 `@/lib/supabase`로 교체한다.
+- **Supabase 클라이언트는 `src/lib/supabase.ts` 하나뿐이다** (`cache-control: no-cache/no-store` 헤더 래핑 포함). 옛 중복 사본 `lib/src/lib/supabase.ts`는 2026-10-20 삭제됐다 (CLEANUP-0001, #70).
+- import 시 반드시 `@/lib/supabase`(→ `src/lib/supabase.ts`)를 사용한다. 저장소 루트 기준의 다른 Supabase 클라이언트 파일을 새로 만들지 않는다.
 
 ## 이미지 처리 규칙
 

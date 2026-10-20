@@ -78,6 +78,8 @@ Network 요청 분석 결과, 이 페이지의 무거운 이미지 18개는 `pub
 
 정상 위치는 `src/lib/supabase.ts`. `lib/src/lib/supabase.ts`는 불필요한 중복으로, GitHub 트리 직접 확인으로 재확인됨. 제거 대상.
 
+> **해결 (2026-10-20)**: 단위 명세 `docs/specs/CLEANUP-0001.md`로 삭제 (구현 PR #70). Claude·Codex 연결 흐름의 파일럿 작업으로 진행됨.
+
 ### 3-6. `dist` 폴더가 레포에 커밋되어 있음
 
 빌드 산출물(`dist/assets/*.js`, `*.css`, 이미지 중복본)이 버전관리 대상이 되어있음. `.gitignore` 설정 미흡으로 추정. 저장소 용량 증가 + 혼란 유발.
@@ -113,7 +115,7 @@ Network 요청 분석 결과, 이 페이지의 무거운 이미지 18개는 `pub
 2. `public` 폴더 팀 카드 이미지 → `next/image` 전환
 3. DevTools Performance 탭으로 실제 스크롤 녹화 → jank 원인 특정
 4. `setlist/page.tsx`, `event-goods/page.tsx` 서버/클라이언트 컴포넌트 분리 (TypeScript/React 학습 진도에 맞춰 진행 예정)
-5. `lib/src/lib/supabase.ts` 삭제, `dist` 폴더 `.gitignore` 처리
+5. ~~`lib/src/lib/supabase.ts` 삭제~~(2026-10-20 완료, #70), `dist` 폴더 `.gitignore` 처리
 6. `@vercel/analytics` 설치
 7. `/event-goods` 라우트 리네이밍
 
