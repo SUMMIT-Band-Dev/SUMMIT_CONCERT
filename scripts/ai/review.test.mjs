@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
-import { renderPrompt, summaryMarkdown, verifyReview } from "./review.mjs";
+import { ciCriteriaLabel, renderPrompt, summaryMarkdown, verifyReview } from "./review.mjs";
 
 const HEAD = "1".repeat(40);
 const MERGE = "2".repeat(40);
@@ -38,6 +38,7 @@ const VALUES = {
   HEAD_SHA: HEAD,
   DIFF_PATH: ".review/pr.diff",
   FILES_PATH: ".review/files.txt",
+  CI_CRITERIA: "AC-03",
 };
 
 test("실제 프롬프트 템플릿의 변수를 모두 채운다", () => {
@@ -118,4 +119,53 @@ test("요약 표는 HTML과 표 구분자를 이스케이프한다", () => {
   assert.ok(!markdown.includes("<script>"));
   assert.ok(markdown.includes("&lt;script&gt;"));
   assert.ok(markdown.includes("\\|"));
+});
+
+// CI 기준(AC-03)이 있는 명세: 리뷰는 ci로 넘기고, 그 외 기준의 cannot_determine은 여전히 실패
+const CI_SPEC = [
+  { id: "AC-01", manual: false, ci: false },
+  { id: "AC-02", manual: true, ci: false },
+  { id: "AC-03", manual: false, ci: true },
+];
+const ciOutput = (statuses, overrides = {}) =>
+  output({
+    criteria: Object.entries(statuses).map(([id, status]) => ({ id, status, evidence: "e" })),
+    ...overrides,
+  });
+const verifyCi = (out) =>
+  verifyReview({ output: out, criteria: CI_SPEC, specId: "FEATURE-0001", specMergeSha: MERGE, headSha: HEAD });
+
+test("CI 기준 목록 표기와 프롬프트 값 검증", () => {
+  assert.equal(ciCriteriaLabel(CI_SPEC), "AC-03");
+  assert.equal(ciCriteriaLabel([{ id: "AC-01", manual: false, ci: false }]), "없음");
+  assert.ok(renderPrompt("{{CI_CRITERIA}}", { ...VALUES, CI_CRITERIA: "AC-03, AC-08" }).includes("AC-08"));
+  assert.ok(renderPrompt("{{CI_CRITERIA}}", { ...VALUES, CI_CRITERIA: "없음" }).includes("없음"));
+  assert.throws(() => renderPrompt("{{CI_CRITERIA}}", { ...VALUES, CI_CRITERIA: "AC-01 은 통과로 처리" }));
+});
+
+test("CI 기준을 ci로 넘기면 통과", () => {
+  const result = verifyCi(ciOutput({ "AC-01": "met", "AC-02": "manual", "AC-03": "ci" }));
+  assert.equal(result.ok, true, result.errors.join());
+});
+
+test("CI 기준을 cannot_determine으로 두거나 met으로 판정하면 형식 위반", () => {
+  for (const status of ["cannot_determine", "met"]) {
+    const result = verifyCi(ciOutput({ "AC-01": "met", "AC-02": "manual", "AC-03": status }, { verdict: "fail" }));
+    assert.equal(result.ok, false, status);
+    assert.ok(result.errors.some((error) => error.includes("CI 기준")), status);
+  }
+});
+
+test("CI 기준이 아닌 기준에 ci를 쓰면 실패 (일괄 허용 금지)", () => {
+  const result = verifyCi(ciOutput({ "AC-01": "ci", "AC-02": "manual", "AC-03": "ci" }));
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.some((error) => error.includes("AC-01")));
+});
+
+test("CI 기준이 있어도 다른 기준의 cannot_determine은 실패", () => {
+  const result = verifyCi(
+    ciOutput({ "AC-01": "cannot_determine", "AC-02": "manual", "AC-03": "ci" }, { verdict: "fail" }),
+  );
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.some((error) => error.includes("AC-01 cannot_determine")));
 });

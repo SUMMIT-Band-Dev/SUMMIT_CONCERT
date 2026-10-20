@@ -11,6 +11,11 @@
 //
 // 수용 기준은 목록 기호·체크박스·제목 기호·표 칸·굵게(**) 바로 뒤에 AC-<두 자리 이상 숫자>로 정의한다.
 // 그 외 위치(문장 맨 앞 "AC-04는 ..." 포함)에 나오는 AC-xx는 참조로 보고 정의로 세지 않는다.
+//
+// CI 기준: 문장 전체가 "<범위>에서 <CI가 실행하는 명령들>이 통과한다" 한 가지뿐인 기준이다.
+//   예) - AC-08 `apps/api`에서 `npm run build`·`npm run typecheck`·`npm run lint`·`npm test`가 통과한다
+// 같은 head의 ci 잡이 실제로 실행해 판정하므로, 읽기 전용 Claude 리뷰는 판정하지 않는다(status "ci").
+// 형식이 조금이라도 다르거나(다른 주장이 섞임) CI가 실행하지 않는 명령이 있으면 일반 기준으로 남는다.
 
 import { createHash } from "node:crypto";
 
@@ -20,6 +25,25 @@ const REVISION_VALUE = /^(0|[1-9][0-9]*)$/;
 // ID 바로 뒤는 공백·줄 끝·표 구분자·굵게·콜론·마침표만 허용한다 ("AC-01는"처럼 조사가 붙으면 참조)
 const AC_DEFINITION =
   /^[ \t]*(?:#{1,6}[ \t]+\**|[-*+][ \t]+(?:\[[ xX]\][ \t]+)?\**|\|[ \t]*\**|\*\*)(AC-[0-9]{2,})(?=[ \t*|:.]|$)(.*)$/gm;
+
+// .github/workflows/ci.yml의 잡별 npm 명령 (범위 → 명령). ci.yml을 바꾸면 함께 고친다 — spec-check.test.mjs가 대조한다
+export const CI_COMMANDS = {
+  "apps/api": ["npm run lint", "npm run build", "npm test", "npm run typecheck"],
+  "apps/admin": ["npm run lint", "npm run build", "npm run typecheck", "npm test"],
+  root: ["npm run lint", "npm run typecheck"],
+};
+const CI_CRITERION =
+  /^\s*(?:(?:`(apps\/api|apps\/admin)`|루트)\s*(?:에서|폴더에서)?\s*)?((?:`npm (?:run [a-z:-]+|test)`\s*(?:[·,]|와|과)?\s*)+)(?:이|가)?\s*(?:모두\s*)?통과한다\.?\s*$/;
+
+// 기준 본문(ID 뒤)이 CI 기준 형식이고, 적힌 명령을 그 범위의 CI 잡이 모두 실행하는지
+export function isCiCriterion(text) {
+  // ID 뒤에 붙을 수 있는 굵게·콜론·표 구분자는 형식 판단에서 뺀다
+  const match = CI_CRITERION.exec(text.replace(/^[\s*:|]+/, "").replace(/[\s|]+$/, ""));
+  if (!match) return false;
+  const scope = match[1] ?? "root";
+  const commands = [...match[2].matchAll(/`(npm (?:run [a-z:-]+|test))`/g)].map((m) => m[1]);
+  return commands.length > 0 && commands.every((command) => CI_COMMANDS[scope].includes(command));
+}
 
 function normalize(content) {
   return content.replace(/^﻿/, "").replace(/\r\n?/g, "\n");
@@ -39,11 +63,12 @@ export function parseFrontmatter(content) {
   return fields;
 }
 
-// 수용 기준 정의 목록: [{ id, manual }]
+// 수용 기준 정의 목록: [{ id, manual, ci }]. [manual]이면 ci가 될 수 없다
 export function parseCriteria(content) {
   const criteria = [];
   for (const match of normalize(content).matchAll(AC_DEFINITION)) {
-    criteria.push({ id: match[1], manual: /\[manual\]/i.test(match[2]) });
+    const manual = /\[manual\]/i.test(match[2]);
+    criteria.push({ id: match[1], manual, ci: !manual && isCiCriterion(match[2]) });
   }
   return criteria;
 }
