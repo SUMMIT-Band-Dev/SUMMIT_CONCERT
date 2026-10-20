@@ -16,7 +16,7 @@
     "verdict": {
       "type": "string",
       "enum": ["pass", "fail"],
-      "description": "pass는 manual이 아닌 모든 수용 기준이 met이고 blocking_issues가 비어 있을 때만"
+      "description": "pass는 manual·ci가 아닌 모든 수용 기준이 met이고 blocking_issues가 비어 있을 때만"
     },
     "spec_id": { "type": "string" },
     "spec_merge_sha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
@@ -32,8 +32,8 @@
           "id": { "type": "string", "pattern": "^AC-[0-9]{2,}$" },
           "status": {
             "type": "string",
-            "enum": ["met", "not_met", "cannot_determine", "manual"],
-            "description": "manual은 명세에 [manual]로 표시된 기준에만 쓴다"
+            "enum": ["met", "not_met", "cannot_determine", "manual", "ci"],
+            "description": "manual은 명세에 [manual]로 표시된 기준에만, ci는 프롬프트의 CI 기준 목록에 있는 기준에만 쓴다"
           },
           "evidence": {
             "type": "string",

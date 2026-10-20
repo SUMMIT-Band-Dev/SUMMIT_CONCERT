@@ -10,6 +10,8 @@
 //
 // 리뷰 성공 조건: 유효한 JSON + reviewed_head_sha·spec_merge_sha·spec_id 일치 + 명세의 수용 기준과 1:1 대응
 //                + verdict=pass와 기준별 상태가 모순 없음. 빈 출력은 실패다.
+// 판정 책임: [manual] 기준은 사람(status manual), CI 기준(spec-file.mjs isCiCriterion)은 같은 head의 ci 잡
+//           (status ci, pr-gate가 ci 잡 성공을 요구), 그 외는 Claude 정적 리뷰. 그 외 기준의 cannot_determine은 실패다.
 
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
@@ -22,7 +24,20 @@ import { joinReasons, writeOutputs, writeSummary } from "./gh-output.mjs";
 import { parseSpec } from "./spec-file.mjs";
 
 const SHA = /^[0-9a-f]{40}$/;
-const STATUSES = ["met", "not_met", "cannot_determine", "manual"];
+// ci = 명세의 CI 기준(spec-file.mjs isCiCriterion). 같은 head의 ci 잡 성공으로 판정하며, pr-gate가 ci 잡 결과를 요구한다
+const STATUSES = ["met", "not_met", "cannot_determine", "manual", "ci"];
+
+// 명세가 정한 상태: [manual] → manual, CI 기준 → ci, 그 외 → 리뷰어가 판정 (manual·ci 사용 불가)
+function fixedStatus(criterion) {
+  if (criterion.manual) return "manual";
+  if (criterion.ci) return "ci";
+  return null;
+}
+
+export function ciCriteriaLabel(criteria) {
+  const ids = criteria.filter((item) => item.ci).map((item) => item.id);
+  return ids.length > 0 ? ids.join(", ") : "없음";
+}
 
 // 프롬프트에 끼워 넣는 값은 형식을 검증한 것만 쓴다 (PR이 정한 문자열이 지시문으로 들어가지 않게)
 export function renderPrompt(template, values) {
@@ -34,6 +49,7 @@ export function renderPrompt(template, values) {
     HEAD_SHA: (v) => SHA.test(v),
     DIFF_PATH: (v) => /^[A-Za-z0-9._/-]+$/.test(v),
     FILES_PATH: (v) => /^[A-Za-z0-9._/-]+$/.test(v),
+    CI_CRITERIA: (v) => /^(?:AC-[0-9]{2,}(?:, AC-[0-9]{2,})*|없음)$/.test(v),
   };
   for (const [key, check] of Object.entries(checks)) {
     if (typeof values[key] !== "string" || !check(values[key])) {
@@ -47,7 +63,7 @@ export function renderPrompt(template, values) {
   return rendered;
 }
 
-// output: STRUCTURED_OUTPUT 문자열, criteria: 명세의 수용 기준 [{ id, manual }]
+// output: STRUCTURED_OUTPUT 문자열, criteria: 명세의 수용 기준 [{ id, manual, ci }]
 export function verifyReview({ output, criteria, specId, specMergeSha, headSha }) {
   if (!output || !output.trim()) {
     return { ok: false, review: null, errors: ["Claude 결과가 비어 있다"] };
@@ -91,14 +107,17 @@ export function verifyReview({ output, criteria, specId, specMergeSha, headSha }
       continue;
     }
     seen.add(item.id);
+    const fixed = fixedStatus(expected.get(item.id));
     if (!STATUSES.includes(item.status)) {
       errors.push(`${item.id}의 status '${item.status}'가 올바르지 않다`);
-    } else if (expected.get(item.id).manual !== (item.status === "manual")) {
+    } else if (fixed && item.status !== fixed) {
       errors.push(
-        expected.get(item.id).manual
+        fixed === "manual"
           ? `${item.id}은 [manual]이므로 status가 manual이어야 한다`
-          : `${item.id}은 [manual]이 아닌데 status가 manual이다`,
+          : `${item.id}은 CI 기준이므로 status가 ci여야 한다`,
       );
+    } else if (!fixed && ["manual", "ci"].includes(item.status)) {
+      errors.push(`${item.id}은 [manual]·CI 기준이 아닌데 status가 ${item.status}이다`);
     }
   }
   const missing = [...expected.keys()].filter((id) => !seen.has(id));
@@ -108,7 +127,8 @@ export function verifyReview({ output, criteria, specId, specMergeSha, headSha }
   // 형식 오류가 있으면 판정 내용은 보지 않는다
   if (errors.length > 0) return { ok: false, review, errors };
 
-  const unmet = review.criteria.filter((item) => !["met", "manual"].includes(item.status));
+  // manual은 사람이, ci는 ci 잡이 판정한다. 그 외 기준의 cannot_determine은 그대로 미충족이다
+  const unmet = review.criteria.filter((item) => !["met", "manual", "ci"].includes(item.status));
   const consistentPass = unmet.length === 0 && review.blocking_issues.length === 0;
   if (review.verdict === "pass" && !consistentPass) {
     errors.push("verdict는 pass인데 충족되지 않은 기준이나 차단 사유가 있다");
@@ -205,6 +225,10 @@ function preparePrompt(argv) {
     execFileSync("git", ["diff", "--name-status", "--no-renames", range], { encoding: "utf8" }),
   );
 
+  // CI 기준 목록은 PR이 아니라 base의 명세에서 계산한다
+  const specContent = readFileAt(args.base, args["spec-path"]);
+  if (specContent === null) throw new Error(`base에 ${args["spec-path"]}이 없다`);
+
   const prompt = renderPrompt(readFileSync(args.template, "utf8"), {
     SPEC_ID: args["spec-id"],
     SPEC_PATH: args["spec-path"],
@@ -213,6 +237,7 @@ function preparePrompt(argv) {
     HEAD_SHA: args.head,
     DIFF_PATH: diffPath,
     FILES_PATH: filesPath,
+    CI_CRITERIA: ciCriteriaLabel(parseSpec(specContent).criteria),
   });
   // claude_args 안에서 작은따옴표로 감싸므로 스키마에 작은따옴표가 있으면 안 된다
   const schema = JSON.stringify(JSON.parse(readFileSync(args.schema, "utf8")));
@@ -227,19 +252,22 @@ function verify(argv) {
   const args = parseArgs(argv, ["spec-path", "spec-id", "spec-merge-sha", "base", "head"]);
   // 명세는 PR 작업 트리가 아니라 base 커밋에서 읽는다 (impl PR은 명세를 바꿀 수 없지만 한 번 더 막는다)
   const content = readFileAt(args.base, args["spec-path"]);
+  const criteria = content === null ? [] : parseSpec(content).criteria;
   const result = content === null
     ? { ok: false, review: null, errors: [`base에 ${args["spec-path"]}이 없다`] }
     : verifyReview({
       output: process.env.STRUCTURED_OUTPUT,
-      criteria: parseSpec(content).criteria,
+      criteria,
       specId: args["spec-id"],
       specMergeSha: args["spec-merge-sha"],
       headSha: args.head,
     });
+  const ciCriteria = ciCriteriaLabel(criteria);
 
-  console.log(JSON.stringify({ ok: result.ok, errors: result.errors }, null, 2));
+  console.log(JSON.stringify({ ok: result.ok, errors: result.errors, ciCriteria }, null, 2));
   writeSummary(summaryMarkdown(result));
-  writeOutputs({ ok: result.ok, reason: joinReasons(result.errors) });
+  // pr-gate가 CI 기준을 같은 head의 ci 잡 결과로 판정했음을 요약에 남긴다
+  writeOutputs({ ok: result.ok, reason: joinReasons(result.errors), ci_criteria: ciCriteria });
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
