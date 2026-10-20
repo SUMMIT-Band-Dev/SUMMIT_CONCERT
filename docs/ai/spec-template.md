@@ -15,6 +15,10 @@ revision: 0
 - 사람이 직접 확인해야 하는 기준은 ID 뒤에 [manual]을 붙인다. Codex는 그 지점에서 멈추고 사용자에게 확인을 요청하고,
   Claude 리뷰는 판정하지 않고 PR 체크리스트로 남긴다
 - 수용 기준은 코드를 읽거나 명령을 실행해 참·거짓을 가릴 수 있게 쓴다 ("잘 동작한다" 대신 "X를 저장하면 Y가 반환된다")
+- 빌드·린트·타입 검사·테스트 통과는 **CI 기준**으로 따로 한 줄에 쓴다: "- AC-xx `apps/api`에서 `npm run build`·`npm test`가 통과한다"
+  (범위는 `apps/api`·`apps/admin`·루트, 명령은 그 범위의 CI 잡이 실행하는 것만 — scripts/ai/spec-file.mjs CI_COMMANDS)
+  이 형식이면 Claude 리뷰는 판정하지 않고 같은 head의 ci 잡 성공으로 판정한다. 다른 주장을 같은 줄에 섞으면 CI 기준이 아니게 되어
+  읽기 전용 리뷰가 판정 불가(cannot_determine)로 남겨 게이트가 실패한다. CI가 실행하지 않는 명령(예: 루트 build, prisma 명령)은 일반 기준이다
 
 이 주석 블록은 명세를 만들 때 지운다.
 -->

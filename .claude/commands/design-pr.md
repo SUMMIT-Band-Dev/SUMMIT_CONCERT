@@ -30,6 +30,7 @@ argument-hint: <요구사항 설명 | Codex 보완 요청문 | 명세 ID>
    - 목록 형식 `- AC-01 ...`, 번호 두 자리 이상, 중복 없음. 줄 맨 앞의 `- AC-xx`만 정의로 센다
    - 코드를 읽거나 명령을 실행해 참·거짓을 가릴 수 있게 쓴다
    - 사람이 직접 확인해야 하면 `[manual]`을 붙이고, 무엇을 어떻게 확인하는지 테스트 계획에 적는다
+   - 빌드·린트·타입 검사·테스트 통과는 **CI 기준** 형식 한 줄로 쓴다: `- AC-xx \`apps/api\`에서 \`npm run build\`·\`npm test\`가 통과한다`. 명령은 그 범위의 CI 잡이 실행하는 것만(`scripts/ai/spec-file.mjs`의 `CI_COMMANDS`). 이 기준은 같은 head의 ci 잡이 판정하고 Claude 리뷰는 판정하지 않는다. 다른 주장을 섞거나 CI가 실행하지 않는 명령을 넣으면 일반 기준이 되어 정적 리뷰가 판단 불가로 남긴다 (WORK05-T2 #73에서 발생)
    - 테스트 계획의 명령은 Codex가 **커밋하기 전에** 실행한다. 커밋 후에만 결과가 나오는 명령(`git diff develop...HEAD` 등)은 쓰지 않고, 인덱스·작업 트리 기준(`git diff --cached --name-status origin/develop`, `git status --short`)으로 쓴다. 비교 기준은 로컬 `develop`이 아니라 `origin/develop`
    - 검증 명령은 워크트리에서 **실제로 실행해** 기대 결과가 나오는지 확인한 뒤 적는다 (CLEANUP-0001 r0에서 이 확인을 빠뜨려 보완 회차가 생겼다)
 5. 구현 PR은 정책 경로(`.github/`, `.claude/`, `.codex/`, `.agents/`, `docs/ai/`, `docs/workflow/`, `scripts/ai/`, `AGENTS.md`·`CLAUDE.md`)와 `docs/specs/`를 바꿀 수 없다. 필요하면 범위의 "제외"에 "머지 후 일반 브랜치 PR로 처리"라고 적는다

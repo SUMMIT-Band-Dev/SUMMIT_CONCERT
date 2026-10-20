@@ -126,6 +126,7 @@ jobs:
     outputs:
       ok: ${{ steps.verify.outputs.ok }}
       reason: ${{ steps.verify.outputs.reason }}
+      ci_criteria: ${{ steps.verify.outputs.ci_criteria }}
     steps:
       # Claude가 Read·Grep·Glob으로 읽을 작업 트리. claude-code-action은 .claude/·CLAUDE.md 등을 base 버전으로 되돌린다
       - name: PR 체크아웃
@@ -222,6 +223,8 @@ jobs:
           META_REASON: ${{ needs.classify.outputs.meta_reason }}
           REVIEW_OK: ${{ needs.review.outputs.ok }}
           REVIEW_REASON: ${{ needs.review.outputs.reason }}
+          CI_CRITERIA: ${{ needs.review.outputs.ci_criteria }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           fail() {
             echo "::error::$1"
@@ -249,6 +252,11 @@ jobs:
               # 빈 출력·스킵·실패·취소는 모두 여기서 걸린다
               [ "$REVIEW_RESULT" = "success" ] || fail "review 잡이 성공하지 않았다 ($REVIEW_RESULT)"
               [ "$REVIEW_OK" = "true" ] || fail "Claude 리뷰 미통과: ${REVIEW_REASON:-결과 없음}"
+              # CI 기준(리뷰가 status ci로 넘긴 기준)은 이 실행의 ci 잡이 같은 head에서 판정한다.
+              # 위에서 ci 잡 success를 이미 요구했으므로 여기서는 판정 근거만 남긴다
+              if [ -n "$CI_CRITERIA" ] && [ "$CI_CRITERIA" != "없음" ]; then
+                echo "CI 기준 ${CI_CRITERIA}: ci 잡 ${CI_RESULT} (head ${HEAD_SHA})" | tee -a "$GITHUB_STEP_SUMMARY"
+              fi
               ;;
             *)
               fail "알 수 없는 분류: ${KIND:-없음}"
