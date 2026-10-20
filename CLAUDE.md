@@ -45,45 +45,44 @@
 
 ---
 
-## Claude–Codex 협업 흐름 (work05부터)
+## Claude–Codex 협업 흐름 (2026-10-20부터, 전체 설계: `docs/workflow/claude-codex-plan.md`)
 
-**설계·리뷰는 Claude Code(터미널), 구현은 Codex(패널)**가 맡는다. Codex의 규칙은 루트 `AGENTS.md`에 있으며, 이 섹션과 같은 흐름을 Codex 관점으로 적어 두었다. 흐름을 바꿀 때는 두 파일을 함께 고친다.
+**설계는 Claude Code(터미널), 구현은 Codex(패널), 검증은 GitHub Actions, 머지는 사용자**가 맡는다. Codex의 규칙은 루트 `AGENTS.md`에 같은 흐름을 Codex 관점으로 적어 두었다. 흐름을 바꿀 때는 두 파일과 `.claude/rules/git-rules.md`를 함께 고친다 (모두 정책 경로 → `maint/` PR).
 
-### 한 작업 단위(Tn)의 흐름 — 항상 직렬로 진행
+### 명세 하나의 흐름 — 항상 직렬로 진행
 
-1. **Claude — 명세 작성·수정 → 커밋**: 명세(`docs/specs/work05-implementation.md`)를 고치면 `docs/*` 브랜치에서 커밋 → PR → `develop` 머지까지 끝낸 뒤 Codex에 넘긴다. Codex는 `develop`에서 분기하므로 머지되지 않은 명세는 Codex에 보이지 않는다
-2. **Codex — 구현 → 커밋**: 명세의 작업 단위 순서대로, 명세에 적힌 `feature/*` 브랜치에서 구현한다. 커밋은 사용자 확인 후 `source-command-git-commit` 규칙대로 한다. 커밋하고 나면 **멈추고 리뷰를 기다린다** (push·PR은 아직 안 함)
-3. **Claude — 리뷰**: 아래 "리뷰 절차"대로 `code-reviewer` 에이전트로 리뷰한다
-   - 문제가 없으면 → 4로
-   - 구현이 명세와 어긋나면 → "Codex 전달용 수정 요청"을 작성하고, 사용자가 Codex에 전달한다. Codex는 같은 브랜치에 **추가 커밋**으로 고치고(amend·force push 금지), 다시 3으로
-   - 명세 자체가 틀렸으면 → Claude가 명세를 고친다. 이때는 **현재 feature 브랜치에 별도 `📝 docs` 커밋**으로 넣어 구현과 같은 PR로 묶는다. 그다음 수정 요청을 Codex에 전달한다
-4. **push·PR → 머지**: 리뷰를 통과하면 사용자가 `git:push`(Claude) 또는 `source-command-git-push`(Codex)로 PR을 연다. 머지는 사용자가 직접 한다
-5. 머지가 끝난 뒤에 다음 작업 단위로 넘어간다. **이전 PR이 머지되기 전에 다음 Tn을 시작하지 않는다**
+1. **Claude — 명세 PR**: `/design-pr`로 단위 명세 `docs/specs/<SPEC_ID>.md`를 쓰고 `spec/<SPEC_ID>-r<N>` PR을 연다. 수용 기준은 `- AC-xx` 목록, 사람이 확인할 기준은 `[manual]`
+2. **사용자 — 명세 머지**: `pr-gate`(명세 형식·revision 검사) 통과 후 머지. Actions(`spec-merged-notify.yml`)가 그 PR에 **Codex용 프롬프트 코멘트**를 게시한다
+3. **Codex — 판정·구현·PR**: 사용자가 프롬프트를 패널에 붙여넣으면 Codex가 판정 JSON을 출력하고, `ready`면 `impl/<SPEC_ID>-spec-<명세 PR 번호>`에서 구현·테스트·커밋 후 `create-impl-pr`로 PR을 연다 (실행 승인은 사용자)
+4. **Actions — 검증**: `pr-validation.yml`이 `classify`(분류·경로·메타데이터 대조) → `ci` + `review`(Claude 명세 대조 리뷰, 읽기 전용) → `pr-gate`로 판정한다
+5. **사용자 — 머지**: `pr-gate`, 리뷰 잡 요약의 기준별 판정, `[manual]` 체크리스트를 확인하고 머지한다. 이전 구현 PR이 머지되기 전에 다음 명세를 Codex에 넘기지 않는다
 
-### 같은 작업 폴더를 공유하므로 지킬 것
+### 막혔을 때
 
-- Claude와 Codex는 같은 체크아웃을 쓴다. **Codex가 작업 중일 때 Claude는 파일 수정·브랜치 전환·커밋을 하지 않는다** (읽기 전용 확인만 한다)
-- Claude가 명세를 고치거나 커밋할 때는 Codex가 멈춰 있는 상태(커밋 후 리뷰 대기, 또는 작업 단위 사이)여야 한다
-- 브랜치 전환 전에는 `git status`로 미커밋 변경이 없는지 확인한다. 다른 쪽이 남긴 변경이 보이면 손대지 말고 사용자에게 알린다
+- **Codex가 `needs_spec_revision`**: Codex가 출력한 `[명세 보완 요청 — <ID> r<N>]`을 사용자가 Claude에 전달 → Claude가 `/design-pr`로 revision을 올린 명세 PR을 연다 (최대 r2, 그 이상은 사람이 범위를 나눈다)
+- **`pr-gate` 실패**: 잡 요약의 실패 사유를 보고 사용자가 Codex에 수정을 지시한다. Codex는 같은 브랜치에 추가 커밋 후 `create-impl-pr`을 다시 실행한다. 사용자가 Claude에 분석을 요청하면 아래 "구현 PR 확인"을 한다
+- **명세 자체가 틀렸음**: 구현 PR에서 명세를 고치지 않는다 (`impl/` PR은 `docs/specs/`를 바꿀 수 없다). Claude가 revision을 올린 명세 PR을 새로 열고, 머지 후 Codex가 새 프롬프트로 다시 구현한다
 
-### 리뷰 절차 (Claude)
+### Claude 작업 공간
 
-1. 대상 범위 확인: `git log --oneline develop..HEAD`, `git diff --stat develop...HEAD`
-2. diff 전문을 스크래치패드에 저장한다 (`git diff develop...HEAD > <스크래치패드>/review-Tn.diff`). `code-reviewer`는 읽기 전용 도구(Read·Grep·Glob)만 있어 git을 직접 실행하지 못하기 때문이다
-3. `code-reviewer` 에이전트에 넘길 것: 작업 단위 번호(Tn), diff 파일 경로, 변경 파일 목록, 해당 Tn의 범위·완료 기준이 있는 명세 위치
-4. 에이전트 결과를 Claude가 직접 검증한다. 실제 코드를 확인해 사실인 항목만 남긴다. 완료 기준 중 실행이 필요한 것(build·lint·test)은 Codex 보고의 출력을 확인하고, 의심스러우면 Claude가 직접 실행한다. **API의 메서드·헤더가 바뀌었다면 CORS 설정(`apps/api/src/common/cors.ts`)과 어드민 호출이 맞는지 직접 확인한다** — supertest 같은 서버 단위 테스트는 브라우저의 preflight를 거치지 않아 통과해도 화면에서는 막힐 수 있다 (T1에서 `DELETE` 누락으로 발생, T1.1). 브라우저로 확인하지 못한 항목은 통과로 보고하지 말고 "사용자 수동 확인 필요"로 따로 적는다
-5. 결과를 사용자에게 보고한다: 통과 여부, 명세 불일치, 버그, 그리고 수정이 필요하면 "Codex 전달용 수정 요청"
+- Claude는 **전용 워크트리 `C:\Users\PC\worktrees\summit-claude`**에서만 파일 수정·브랜치 전환·커밋을 한다
+- 사용자·Codex가 쓰는 OneDrive 체크아웃(`summit_concert`)은 읽기만 한다. 그쪽에 미커밋 변경이 보이면 손대지 말고 사용자에게 알린다
 
-### "Codex 전달용 수정 요청" 형식
+### 구현 PR 확인 (사용자가 요청할 때, Claude)
 
-사용자가 Codex 패널에 그대로 붙여넣을 수 있게, 하나의 코드 블록으로 작성한다.
+CI의 Claude 리뷰는 명세 대조만 한다. 사용자가 더 깊은 확인을 요청하면:
+
+1. 워크트리에서 `git fetch origin` 후 PR 범위 확인: `git diff --stat origin/develop...origin/<impl 브랜치>`
+2. diff 전문을 스크래치패드에 저장하고 `code-reviewer` 에이전트에 diff 경로, 변경 파일 목록, 명세 경로를 넘긴다 (에이전트는 git을 실행하지 못한다)
+3. 에이전트 결과를 Claude가 실제 코드로 검증해 사실인 항목만 남긴다. **API의 메서드·헤더가 바뀌었다면 CORS 설정(`apps/api/src/common/cors.ts`)과 어드민 호출이 맞는지 직접 확인한다** — 서버 단위 테스트는 브라우저 preflight를 거치지 않아 통과해도 화면에서 막힐 수 있다 (work05 T1.1). 브라우저로 확인하지 못한 항목은 "사용자 수동 확인 필요"로 따로 적는다
+4. 수정이 필요하면 사용자가 Codex 패널에 붙여넣을 수 있게 코드 블록 하나로 쓴다
 
 ```
-[work05 Tn 리뷰 수정 요청]
-기준: docs/specs/work05-implementation.md (Dn / Tn 완료 기준)
+[<SPEC_ID> 수정 요청]
+기준: docs/specs/<SPEC_ID>.md (AC-xx)
 1. <파일:줄> — <문제> → <명세가 요구하는 것>
 2. ...
-수정 후: 같은 브랜치에 추가 커밋(amend 금지), 완료 기준 재검증 출력 첨부, 커밋 후 멈춤
+수정 후: 같은 브랜치에 추가 커밋(amend 금지), 테스트 계획 재실행, create-impl-pr 재실행 후 멈춤
 ```
 
 ---
@@ -255,7 +254,10 @@ apps/
 - **.claude/rules/git-rules.md**: Git 브랜치/커밋 규칙
 - **.claude/rules/work-05-construction.md**: work05 상세 범위 (진행 중)
 - **docs/specs/prd-construction.md**: work05 PRD (공연 콘텐츠 관리 + 유튜브 연결 관리 개편)
-- **docs/specs/work05-implementation.md**: work05 구현 명세 (설계 결정 D1~D10, 작업 단위 T1~T7, 완료 기준) — Codex 구현 기준 문서
+- **docs/specs/work05-implementation.md**: work05 구현 명세 (설계 결정 D1~D10, 작업 단위 T1~T7, 완료 기준). T2부터는 단위 명세 `docs/specs/WORK05-T2.md` 등으로 나눠 새 흐름으로 진행 (계획 Step 5)
+- **docs/workflow/claude-codex-plan.md**: Claude·Codex 연결 계획 (분류 규칙, 검증·게이트, 세팅 순서와 진행 표)
+- **docs/ai/spec-template.md**, **docs/ai/codex-prompt.template.md**: 단위 명세 템플릿, 명세 머지 시 게시되는 Codex 프롬프트 템플릿
+- **.claude/commands/design-pr.md**: 명세 작성·보완 → `spec/` PR 커맨드
 - **AGENTS.md**: Codex용 진입점 (역할 분담: 설계 Claude Code / 구현 Codex). 이 파일과 규칙을 맞춰 유지한다
 - **docs/specs/prd-admin.md**: 이전 어드민 PRD (work02, 기존 기능 참고용)
 - **.claude/rules/history/**: 종료된 work 문서 보관 (work01 잔여 항목 포함 — `work-01-refactoring.md`)

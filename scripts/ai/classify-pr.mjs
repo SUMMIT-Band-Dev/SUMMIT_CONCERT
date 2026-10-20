@@ -21,6 +21,7 @@ const POLICY_PREFIXES = [
   ".github/",
   ".claude/",
   ".codex/",
+  ".agents/", // Codex 스킬 (커밋·push 절차 등)
   "docs/ai/",
   "docs/workflow/",
   "scripts/ai/",

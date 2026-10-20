@@ -33,14 +33,14 @@ Use this skill when the user asks to run the migrated source command `git-commit
 **새 브랜치가 필요한 경우**
 
 - 현재 브랜치가 `main` 또는 `develop`인 경우 (직접 커밋 금지)
-- 현재 브랜치의 작업 목적과 이번 변경사항이 무관한 경우 (예: `feature/login` 브랜치에서 칸반 수정)
+- 현재 브랜치의 작업 목적과 이번 변경사항이 무관한 경우 (예: `maint/ci-cache` 브랜치에서 화면 수정)
 - 이미 머지된 브랜치이거나 PR이 이미 머지된 브랜치인 경우
 
 **새 브랜치 생성 절차**
 
-1. 변경사항의 성격에 맞춰 브랜치명을 정한다. 형식은 `<타입>/<기능명>` (영문 kebab-case)
-   - 예) `feature/kanban-board`, `fix/deadline-sort`, `docs/qa-list`, `chore/design-system`
-   - 타입은 `CONTRIBUTING.md`의 브랜치 전략(`feature/`, `hotfix/`)을 따르되, 문서·설정 변경은 `docs/`, `chore/`도 사용 가능
+1. 브랜치명을 정한다
+   - 접두사는 `spec/`·`impl/`·`maint/`만 쓴다 (`.claude/rules/git-rules.md`). 명세 없이 하는 작업은 `maint/<영문-kebab-case>` — 예) `maint/ci-cache`, `maint/hero-spacing`
+   - `spec/`·`impl/` 브랜치는 이 절차로 만들지 않는다 (`/design-pr`, Codex 프롬프트가 만든다)
 2. 기준 브랜치는 `develop`. 최신 `develop`에서 분기하는 것이 원칙이며, 작업 중인 변경사항은 `git switch -c <브랜치명>`으로 그대로 가져온다
 3. 브랜치명을 사용자에게 알린 뒤 새 브랜치에서 커밋을 진행한다
 4. 현재 브랜치가 적합하다면 브랜치를 바꾸지 않고 그대로 커밋한다
