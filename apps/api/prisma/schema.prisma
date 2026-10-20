@@ -144,3 +144,89 @@ model YoutubeRecommendation {
 
   @@unique([attemptId, rank])
 }
+
+/// 공연장 정보의 단일 출처. 공개 사이트에는 anon SELECT만 허용한다.
+model Venue {
+  id            BigInt    @id @default(autoincrement())
+  name          String
+  address       String
+  addressDetail String?
+  latitude      Decimal   @db.Decimal(9, 6)
+  longitude     Decimal   @db.Decimal(9, 6)
+  naverMapUrl   String?
+  websiteUrl    String?
+  updatedAt     DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  concerts      Concert[]
+}
+
+/// 현재 공연 한 건. DB의 Concert_singleton CHECK가 id = 1을 강제한다.
+/// Concert_dateRange CHECK가 endDate >= startDate를 강제한다. CHECK는 Prisma가 표현하지 못한다.
+model Concert {
+  id               BigInt   @id
+  titleKo          String
+  titleEn          String
+  subtitle         String?
+  startDate        DateTime @db.Date
+  endDate          DateTime @db.Date
+  showTime         String
+  posterImageUrl   String?
+  titleImageUrl    String?
+  subtitleImageUrl String?
+  venueId          BigInt
+  updatedAt        DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+  venue            Venue    @relation(fields: [venueId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "Concert_venueId_fkey")
+}
+
+/// 일차별 공연. dayKey는 기존 LineUp.day와 같은 day1·day2 식별값이다.
+model PerformanceDay {
+  id                BigInt   @id @default(autoincrement())
+  dayKey            String   @unique(map: "PerformanceDay_dayKey_key")
+  dayLabel          String
+  dateLabel         String
+  bookingUrl        String?
+  lineupOverride    String?
+  timetableImageUrl String?
+  updatedAt         DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+}
+
+/// 티켓 안내 한 건. DB의 Ticket_singleton CHECK가 id = 1을 강제한다.
+/// CHECK는 Prisma가 표현하지 못하므로 수작성 마이그레이션에서 관리한다.
+model Ticket {
+  id            BigInt   @id
+  frontImageUrl String?
+  backImageUrl  String?
+  description   String?
+  updatedAt     DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+}
+
+/// 요금 안내·관람 유의사항의 구분.
+enum InfoSectionCategory {
+  ticket
+  notice
+
+  @@map("info_section_category")
+}
+
+/// 안내 섹션. DB의 UNIQUE는 DEFERRABLE INITIALLY DEFERRED로 순서 맞바꾸기를 허용한다.
+/// Prisma는 지연 제약을 표현하지 못하므로 지연 속성은 수작성 마이그레이션에서 관리한다.
+model InfoSection {
+  id        BigInt              @id @default(autoincrement())
+  category  InfoSectionCategory
+  title     String
+  sortOrder Int
+  items     InfoItem[]
+
+  @@unique([category, sortOrder], map: "InfoSection_category_sortOrder_key")
+}
+
+/// 섹션에 속한 안내 항목. 섹션 삭제 시 함께 삭제한다.
+/// DB의 UNIQUE는 DEFERRABLE INITIALLY DEFERRED이며 Prisma는 지연 속성을 표현하지 못한다.
+model InfoItem {
+  id        BigInt      @id @default(autoincrement())
+  sectionId BigInt
+  content   String
+  sortOrder Int
+  section   InfoSection @relation(fields: [sectionId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "InfoItem_sectionId_fkey")
+
+  @@unique([sectionId, sortOrder], map: "InfoItem_sectionId_sortOrder_key")
+}
