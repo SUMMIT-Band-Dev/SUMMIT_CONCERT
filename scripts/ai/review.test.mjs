@@ -53,11 +53,13 @@ test("형식이 틀린 값·알 수 없는 변수는 프롬프트에 넣지 않�
   assert.throws(() => renderPrompt("{{UNKNOWN}}", VALUES));
 });
 
-test("실제 스키마는 JSON이고 작은따옴표가 없다", () => {
+test("실제 스키마는 JSON이고 작은따옴표·$schema가 없다", () => {
   const raw = readFileSync(new URL("../../.github/ai/schemas/spec-review.schema.json", import.meta.url), "utf8");
   const schema = JSON.parse(raw);
   assert.equal(schema.type, "object");
   assert.ok(!JSON.stringify(schema).includes("'"));
+  // Claude Code의 --json-schema 검증기가 draft 2020-12 메타스키마 참조를 해석하지 못해 실행이 실패한다 (PR #65)
+  assert.equal("$schema" in schema, false);
 });
 
 test("정상 pass 결과는 통과", () => {
