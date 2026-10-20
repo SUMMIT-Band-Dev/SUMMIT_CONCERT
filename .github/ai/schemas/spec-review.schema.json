@@ -1,5 +1,4 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "spec-review",
   "description": "구현 PR의 명세 대조 리뷰 결과 (docs/workflow/claude-codex-plan.md 10.1)",
   "type": "object",
