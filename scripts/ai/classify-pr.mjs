@@ -6,12 +6,13 @@
 //
 // 사용법 (CLI):
 //   node scripts/ai/classify-pr.mjs [--branch <이름>] [--base <rev>] [--head <rev>]
-//   기본값: 현재 브랜치, origin/develop, HEAD. 결과는 JSON으로 출력하고, GITHUB_OUTPUT이 있으면 kind·ok·reason을 쓴다.
+//   기본값: 현재 브랜치, origin/develop, HEAD. 결과는 JSON으로 출력하고, GITHUB_OUTPUT이 있으면 kind·ok·reason과 브랜치 메타데이터(spec_id·revision·spec_pr)를 쓴다.
 //   분류 실패도 종료 코드 0으로 끝낸다(판정은 pr-gate가 한다). 인자·git 오류만 종료 코드 2.
 
 import { execFileSync } from "node:child_process";
-import { appendFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
+
+import { joinReasons, writeOutputs } from "./gh-output.mjs";
 
 export const SPEC_DIR = "docs/specs/";
 
@@ -28,7 +29,9 @@ const POLICY_PREFIXES = [
 const POLICY_BASENAMES = ["AGENTS.md", "CLAUDE.md"];
 
 // 명세 ID: 대문자로 시작하고 하이픈으로 이어지는 대문자·숫자 묶음 (예: FEATURE-0001, WORK05-T2)
-const SPEC_ID = "[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+";
+export const SPEC_ID = "[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+";
+// 단위 명세 파일 (frontmatter 검사 대상). 그 외 docs/specs/ 파일(PRD 등)은 관련 문서
+export const UNIT_SPEC_PATH = new RegExp(`^docs/specs/(${SPEC_ID})\\.md$`);
 const SPEC_BRANCH = new RegExp(`^spec/(${SPEC_ID})-r(0|[1-9][0-9]*)$`);
 const IMPL_BRANCH = new RegExp(`^impl/(${SPEC_ID})-spec-([1-9][0-9]*)$`);
 const MAINT_BRANCH = /^maint\/[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -118,6 +121,18 @@ export function changedFiles(base, head) {
   return output.split("\n").map((line) => line.trim()).filter(Boolean);
 }
 
+// 특정 커밋의 파일 내용. 파일이 없으면 null
+export function readFileAt(rev, path) {
+  try {
+    return execFileSync("git", ["show", `${rev}:${path}`], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+  } catch {
+    return null;
+  }
+}
+
 function currentBranch() {
   return execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], { encoding: "utf8" }).trim();
 }
@@ -143,14 +158,14 @@ function main() {
 
   console.log(JSON.stringify(result, null, 2));
 
-  if (process.env.GITHUB_OUTPUT) {
-    // 줄바꿈이 들어가면 출력 형식이 깨지므로 한 줄로 만든다
-    const reason = result.errors.join(" / ").replace(/[\r\n]+/g, " ");
-    appendFileSync(
-      process.env.GITHUB_OUTPUT,
-      `kind=${result.kind}\nok=${result.ok}\nreason=${reason}\n`,
-    );
-  }
+  writeOutputs({
+    kind: result.kind,
+    ok: result.ok,
+    reason: joinReasons(result.errors),
+    spec_id: result.specId ?? "",
+    revision: result.revision ?? "",
+    spec_pr: result.specPr ?? "",
+  });
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {

@@ -205,7 +205,7 @@ revision: 0
 
 ### 6.2 구현 PR 본문 메타데이터
 
-`create-impl-pr`이 PR 본문에 JSON 블록을 넣는다.
+`create-impl-pr`이 PR 본문에 JSON 블록을 넣는다. 블록 바로 앞에 `<!-- impl-meta -->` 마커를 한 번만 두고, 키는 아래 6개만 쓴다 (구현: `scripts/ai/impl-meta.mjs`의 `formatMeta`·`checkImplMeta`).
 
 ```json
 {
@@ -420,6 +420,21 @@ review:
 
 스키마는 최소한 `verdict`, `spec_merge_sha`, `reviewed_head_sha`, 수용 기준별 결과, 차단 사유를 포함한다. 성공 조건: Action 성공 + 유효 JSON + `reviewed_head_sha`가 현재 head와 일치 + `spec_merge_sha`가 메타데이터와 일치 + `verdict=pass`. 빈 출력·스킵·실패·취소는 모두 실패다.
 
+**구현 (Step 2, 2026-10-20)**
+
+| 파일                                         | 내용                                                                                                                                                                  |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.github/ai/prompts/spec-review.md`          | 리뷰 프롬프트. 검증된 ID·경로·SHA만 끼워 넣고, diff는 `.review/pr.diff` 파일로 읽게 한다                                                                                  |
+| `.github/ai/schemas/spec-review.schema.json` | `verdict`, `spec_id`, `spec_merge_sha`, `reviewed_head_sha`, `criteria[]`(`met`·`not_met`·`cannot_determine`·`manual`), `blocking_issues[]`, `summary`                  |
+| `scripts/ai/review.mjs`                      | `prompt`: 입력 준비 / `verify`: 결과 검증 — 명세의 `AC-xx`와 1:1 대응, `[manual]` 기준만 `manual`, `pass`와 기준별 상태가 모순 없음. 결과 표를 잡 요약에 남긴다         |
+| `scripts/ai/spec-file.mjs`                   | 명세 frontmatter·수용 기준 해석, 내용 해시(CRLF 무시)                                                                                                                  |
+| `scripts/ai/spec-check.mjs`                  | `spec` PR 검사: frontmatter = 브랜치명, `AC-xx` 1개 이상·중복 없음, revision = develop +1(없으면 0), 다른 단위 명세 동시 변경 금지                                       |
+| `scripts/ai/impl-meta.mjs`                   | 6.2 대조 1~5. superseded 판정은 merge SHA와 base의 명세 내용 해시 비교                                                                                                 |
+
+- Action은 v1.0.244(`58985842`)로 고정했다. 프롬프트를 주면 agent 모드로 돌고, 허용 도구에 `mcp__github*`가 없으면 GitHub MCP 서버를 붙이지 않는다 (소스 확인).
+- `review`는 `classify`가 `impl`이고 메타데이터 대조를 통과했을 때만 돈다. 형식이 틀린 PR에 구독 한도를 쓰지 않기 위함이다.
+- `risk-high` 라벨은 PR 생성 직후 이벤트에 실리지 않을 수 있다. 붙인 뒤에는 리뷰를 수동 재실행한다.
+
 ### 10.2 `pr-gate` 규칙
 
 | 분류      | 통과 조건                                                                                                                   |
@@ -558,7 +573,7 @@ review:
 
 | 항목                  | 값 (2026-10-20 확인)                                                                                                                                      |
 | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 저장소 플랜·보호 규칙 | `SUMMIT-Band-Dev/SUMMIT_CONCERT`, Public, org Free 플랜 → 보호 규칙·ruleset 사용 가능. 현재 `develop` 보호 없음. 차단 테스트(0-2)는 Step 1에서               |
+| 저장소 플랜·보호 규칙 | `SUMMIT-Band-Dev/SUMMIT_CONCERT`, Public, org Free 플랜 → ruleset `develop-protection` 적용(2026-10-20: `pr-gate` 필수·최신화 요구·PR 필수·승인 0·삭제/강제 push 금지·우회 없음). 차단 테스트(0-2) 통과 — PR #61이 `BLOCKED`, 우회 머지 옵션 없음 |
 | 명세 경로·정책 경로   | 명세 `docs/specs/**`, 정책 경로는 10.3 표 그대로                                                                                                          |
 | 기존 Claude 커맨드    | `.claude/commands/git/commit.md`, `.claude/commands/git/push.md` (설계 커맨드는 Step 3에서 `design-pr.md` 신설)                                            |
 | Claude 인증 방식      | OAuth 토큰 (`CLAUDE_CODE_OAUTH_TOKEN`, Claude 구독)                                                                                                       |
@@ -608,12 +623,12 @@ review:
 
 | Phase | 작업                                                          | 완료 기준                                     | 담당      | 상태 |
 | ----- | ------------------------------------------------------------- | --------------------------------------------- | --------- | ---- |
-| 0     | 14장 1~9 중 1·3·4·6·7·8 확인                                  | 값이 13.3에 채워짐                            | 사람      | ◐ (2·3·4·6·7·8 완료, 1은 Step 1 차단 테스트) |
-| 0     | 필수 체크 차단 테스트                                         | 실패 체크 PR이 머지 불가 (또는 (c) 방침 기록) | 사람      | ☐    |
-| 1     | `classify` + `ci` + `pr-gate` 워크플로우                      | 분류별 규칙대로 통과·실패                     | 구현      | ☐    |
-| 1     | Claude 리뷰 읽기 전용 구성, 스키마                            | 리뷰 1회 성공, 빈 결과·실패는 게이트 실패     | 구현      | ☐    |
-| 1     | 6.2 메타데이터·`develop` 현재 명세 대조                       | superseded·변조 시 실패                       | 구현      | ☐    |
-| 1     | 보호 규칙 적용 (strict 포함)                                  | 10.4 표대로 설정                              | 사람      | ☐    |
+| 0     | 14장 1~9 중 1·3·4·6·7·8 확인                                  | 값이 13.3에 채워짐                            | 사람      | ✅ (9는 Step 4 실측) |
+| 0     | 필수 체크 차단 테스트                                         | 실패 체크 PR이 머지 불가 (또는 (c) 방침 기록) | 사람      | ✅ (PR #61)          |
+| 1     | `classify` + `ci` + `pr-gate` 워크플로우                      | 분류별 규칙대로 통과·실패                     | 구현      | ✅ (PR #60)          |
+| 1     | Claude 리뷰 읽기 전용 구성, 스키마                            | 리뷰 1회 성공, 빈 결과·실패는 게이트 실패     | 구현      | ◐ (Step 2 구현, 실제 리뷰 1회는 머지 후 테스트 impl PR로) |
+| 1     | 6.2 메타데이터·`develop` 현재 명세 대조                       | superseded·변조 시 실패                       | 구현      | ◐ (단위 테스트 통과, 실제 PR 확인은 위와 함께) |
+| 1     | 보호 규칙 적용 (strict 포함)                                  | 10.4 표대로 설정                              | 사람      | ✅                   |
 | 2     | 명세 템플릿(`spec_id`, `revision`, `AC-xx`), 설계 커맨드 연결 | 명세 PR이 `spec/` 브랜치로 자동 생성          | 구현      | ☐    |
 | 2     | `spec-merged-notify.yml` + 프롬프트 템플릿                    | 머지 시 코멘트 게시/갱신                      | 구현      | ☐    |
 | 2     | `create-impl-pr`, `classify-pr`, `AGENTS.md`                  | 로컬 검사·CI 분류가 일치                      | 구현      | ☐    |
