@@ -57,7 +57,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **프로덕션 DB에 `prisma migrate dev` 금지.** 마이그레이션은 수작성 SQL(`apps/api/prisma/migrations/<timestamp>_<name>/migration.sql`) + 롤백 SQL(`apps/api/prisma/rollback/`)로 작성만 하고, `migrate deploy` 실행은 사용자가 직접 한다
 - **막히면 우회하지 말고 보고한다.** 권한 거부·샌드박스 차단·인증 실패 등으로 실행이 막히면, 다른 방법으로 돌아가지 말고 무엇이 어떤 이유로 막혔는지 그대로 보고한다
 - **비밀번호·API 키·시크릿을 채팅으로 주고받지 않는다.** 필요한 값은 어느 파일(`.env`, `.env.local`)의 어떤 키에 넣으면 되는지만 안내하고, 사용자가 직접 편집한다. `.env*` 파일은 커밋하지 않는다 (Public 레포). `.env.example`에는 키 이름과 설명만 쓴다
-- **커밋·PR은 Codex용 프롬프트의 흐름 안에서만** 한다. 커밋 형식은 `source-command-git-commit`, PR은 `create-impl-pr` 스크립트로만 연다. 프롬프트 없이 받은 작업은 사용자가 요청할 때만 `maint/` 브랜치에서 커밋·push·PR(`source-command-git-push`)을 한다. **PR 머지는 절대 하지 않는다**
+- **커밋·PR은 Codex용 프롬프트의 흐름 안에서만** 한다. 커밋 형식은 `source-command-git-commit`, PR은 `create-impl-pr` 스크립트로만 연다. 프롬프트 없이 받은 작업은 사용자가 요청할 때만 일반 브랜치(`feature/`·`fix/` 등, `spec/`·`impl/` 제외)에서 커밋·push·PR(`source-command-git-push`)을 한다. **PR 머지는 절대 하지 않는다**
 - **공개 사이트 성능 회귀 금지** — `next/image` 최적화와 메인 배경 `priority`를 유지한다. 공개 사이트를 바꾼 작업은 `source-command-perf-check`로 측정 대상인지 사용자에게 알린다
 
 ## 저장소 구조와 커맨드

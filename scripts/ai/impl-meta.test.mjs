@@ -59,7 +59,7 @@ test("브랜치명과 메타데이터가 다르면 실패", () => {
   assert.equal(check({ m: meta({ spec_id: "FEATURE-0002" }) }).ok, false);
   assert.equal(check({ m: meta({ source_spec_pr: 61 }) }).ok, false);
   assert.equal(check({ m: meta({ spec_path: "docs/specs/other.md" }) }).ok, false);
-  assert.equal(check({ branch: "maint/x" }).ok, false);
+  assert.equal(check({ branch: "feature/x" }).ok, false);
 });
 
 test("메타데이터 형식 오류는 실패", () => {
@@ -76,7 +76,7 @@ test("명세 PR이 머지되지 않았거나 다른 PR이면 실패", () => {
   assert.equal(check({ pr: null }).ok, false);
   assert.equal(check({ pr: specPr({ merged_at: null }) }).ok, false);
   assert.equal(check({ pr: specPr({ base: { ref: "main" } }) }).ok, false);
-  assert.equal(check({ pr: specPr({ head: { ref: "maint/x" } }) }).ok, false);
+  assert.equal(check({ pr: specPr({ head: { ref: "feature/x" } }) }).ok, false);
   assert.equal(check({ pr: specPr({ merge_commit_sha: "c".repeat(40) }) }).ok, false);
   assert.equal(check({ ancestor: false }).ok, false);
 });

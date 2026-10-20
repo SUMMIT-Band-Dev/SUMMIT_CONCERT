@@ -15,19 +15,19 @@ test("브랜치명을 분류하고 메타데이터를 읽는다", () => {
     specId: "WORK05-T2",
     specPr: 61,
   });
-  assert.deepEqual(parseBranch("maint/pr-validation"), { kind: "maint" });
+  for (const branch of ["feature/login", "fix/cors-allow-delete", "docs/claude-codex", "hotfix/x", "maint/pr-validation"]) {
+    assert.deepEqual(parseBranch(branch), { kind: "general" }, branch);
+  }
 });
 
-test("형식이 다른 브랜치는 unknown", () => {
+test("예약 접두사인데 형식이 다르면 unknown", () => {
   for (const branch of [
-    "feature/login",
-    "docs/claude-codex",
     "spec/feature-0001-r0",
     "spec/FEATURE-0001-r01",
+    "spec/FEATURE-0001",
     "impl/FEATURE-0001-spec-0",
     "impl/FEATURE-0001",
-    "maint/Upper",
-    "maint/",
+    "impl/",
   ]) {
     assert.equal(parseBranch(branch).kind, "unknown", branch);
   }
@@ -110,15 +110,24 @@ test("impl PR: 명세를 바꾸면 실패", () => {
   assert.equal(result.ok, false);
 });
 
-test("maint PR: 정책 경로를 포함해도 분류는 통과", () => {
+test("spec PR: 정책 경로가 섞이면 실패", () => {
   const result = classifyPr({
-    branch: "maint/pr-validation",
-    files: [".github/workflows/ci.yml", "scripts/ai/classify-pr.mjs"],
+    branch: "spec/FEATURE-0001-r0",
+    files: ["docs/specs/FEATURE-0001.md", "AGENTS.md"],
+  });
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.some((error) => error.includes("정책 경로")));
+});
+
+test("general PR: 코드·정책 경로·명세 모두 분류는 통과 (CI만 요구)", () => {
+  const result = classifyPr({
+    branch: "feature/login",
+    files: ["src/a.ts", ".github/workflows/ci.yml", "scripts/ai/classify-pr.mjs", "docs/specs/prd-admin.md"],
   });
   assert.equal(result.ok, true, result.errors.join());
 });
 
-test("분류 불가 브랜치와 빈 변경은 실패", () => {
-  assert.equal(classifyPr({ branch: "feature/login", files: ["src/a.ts"] }).ok, false);
-  assert.equal(classifyPr({ branch: "maint/empty", files: [] }).ok, false);
+test("예약 접두사 형식 위반과 빈 변경은 실패", () => {
+  assert.equal(classifyPr({ branch: "impl/FEATURE-0001", files: ["src/a.ts"] }).ok, false);
+  assert.equal(classifyPr({ branch: "feature/empty", files: [] }).ok, false);
 });

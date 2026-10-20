@@ -1,7 +1,8 @@
 # PR 검증 (docs/workflow/claude-codex-plan.md 8.3 · 10.1 · 10.2 · 10.3)
 #
 # develop 대상 PR의 필수 체크는 마지막 잡 `pr-gate` 하나다. 구성:
-#   classify — 브랜치명 + 실제 변경 경로로 spec / impl / maint / unknown 분류 (scripts/ai/classify-pr.mjs)
+#   classify — 브랜치명 + 실제 변경 경로로 분류 (scripts/ai/classify-pr.mjs)
+#              spec/·impl/ = 파이프라인 예약 접두사(형식이 틀리면 unknown), 그 외 = general
 #              spec이면 명세 형식·revision 검사(spec-check.mjs), impl이면 본문 메타데이터 대조(impl-meta.mjs)까지
 #   ci       — 기존 ci.yml을 workflow_call로 호출 (lint · build · test · typecheck)
 #   review   — impl이고 메타데이터 대조를 통과했을 때만 Claude 명세 대조 리뷰 (claude-code-action, 읽기 전용)
@@ -15,8 +16,8 @@
 # - 경로 필터를 쓰지 않는다. 필터로 건너뛴 필수 체크는 Pending으로 남아 머지를 막는다
 #
 # 판정 스크립트·리뷰 프롬프트·스키마는 PR이 아니라 base(develop) 쪽 파일로 실행한다 — PR이 판정 기준을
-# 고쳐서 자기 자신을 통과시키지 못하게 하기 위함. 기준을 바꾸려면 maint/ PR로 먼저 머지한다.
-# 단, 이 워크플로우 파일 자체는 PR의 병합 결과로 실행되므로, 정책 경로 변경은 maint/ PR + 사람 검토가 실제 방어선이다 (10.3).
+# 고쳐서 자기 자신을 통과시키지 못하게 하기 위함. 기준을 바꾸려면 일반 브랜치 PR로 먼저 머지한다.
+# 단, 이 워크플로우 파일 자체는 PR의 병합 결과로 실행되므로, 정책 경로 변경은 일반 브랜치 PR + 사람 검토가 실제 방어선이다 (10.3).
 name: PR Validation
 
 on:
@@ -73,7 +74,7 @@ jobs:
         with:
           node-version: 24.x
 
-      # PR이 바꾼 판정 규칙이 깨지지 않았는지 확인한다 (maint/ PR에서 규칙을 고칠 때 의미가 있다)
+      # PR이 바꾼 판정 규칙이 깨지지 않았는지 확인한다 (일반 브랜치 PR에서 규칙을 고칠 때 의미가 있다)
       - name: 판정 규칙 테스트
         working-directory: pr
         run: node --test "scripts/ai/*.test.mjs"
@@ -236,8 +237,9 @@ jobs:
           [ "$CI_RESULT" = "success" ] || fail "ci 잡이 성공하지 않았다 ($CI_RESULT)"
 
           case "$KIND" in
-            maint)
-              # 정책·유지보수 변경은 CI만 필수, 내용은 사람이 직접 검토하고 머지한다
+            general|maint)
+              # 파이프라인 밖의 일반 브랜치는 CI만 필수, 내용(특히 정책 경로 변경)은 사람이 직접 검토하고 머지한다
+              # maint는 이전 분류기가 내던 값이다. general 전환 PR 자체가 base(이전 분류기)로 분류되므로 남겨 둔다
               ;;
             spec)
               [ "$SPEC_OK" = "true" ] || fail "명세 형식 검사 실패: ${SPEC_REASON:-결과 없음}"
