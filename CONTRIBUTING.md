@@ -8,21 +8,21 @@ SUMMIT 웹페이지 프로젝트의 협업 규칙입니다.
 ```
 main
  └─ develop
-     ├─ feature/기능명
-     └─ hotfix/수정할-기능
+     ├─ spec/<SPEC_ID>-r<revision>       명세 (Claude)
+     ├─ impl/<SPEC_ID>-spec-<명세 PR>     구현 (Codex)
+     └─ maint/<설명>                      그 외 모든 작업 (사람·Claude)
 ```
 
 - **main**: 배포(운영) 브랜치. 직접 커밋 금지, `develop`에서 병합된 안정 버전만 올라옵니다.
-- **develop**: 통합 개발 브랜치. 모든 `feature` 브랜치는 여기서 분기하고 여기로 병합합니다.
-- **feature/기능명**: 개별 기능 개발 브랜치. 예: `feature/kanban-board`, `feature/slide-panel`
-- **hotfix/수정할-기능**: 긴급 수정 브랜치. 배포 후 발견된 급한 버그 등에 사용합니다.
+- **develop**: 통합 개발 브랜치. 모든 작업 브랜치는 여기서 분기하고 여기로 병합합니다. 직접 push가 막혀 있고, 필수 체크 `pr-gate`를 통과한 PR만 머지됩니다.
+- **spec / impl / maint**: 이 세 접두사만 씁니다. 다른 접두사(`feature/`, `hotfix/` 등)의 PR은 `pr-gate`에서 실패합니다. 상세는 [`.claude/rules/git-rules.md`](./.claude/rules/git-rules.md), 명세→구현 흐름은 [`docs/workflow/claude-codex-plan.md`](./docs/workflow/claude-codex-plan.md)를 참고해주세요.
 
-### 브랜치 생성 예시
+### 브랜치 생성 예시 (명세 없이 하는 작업)
 
 ```bash
-git checkout develop
-git pull origin develop
-git checkout -b feature/기능명
+git switch develop
+git pull --ff-only origin develop
+git switch -c maint/설명
 ```
 
 ## 커밋 컨벤션
@@ -93,12 +93,13 @@ PR 본문은 [`.github/PULL_REQUEST_TEMPLATE.md`](./.github/PULL_REQUEST_TEMPLAT
 
 | 구분                             | 규칙                        |
 | -------------------------------- | --------------------------- |
-| **프론트엔드 및 백엔드 PR 모두** | 셀프 리뷰 후 셀프 머지 가능 |
+| **프론트엔드 및 백엔드 PR 모두** | 셀프 리뷰 후 셀프 머지 가능 (`pr-gate` 통과 필수) |
 
 - 머지 방식은 **Squash and merge**를 기본값으로 사용합니다. (커밋 히스토리를 깔끔하게 유지하기 위함)
+- `develop`이 앞서 있으면 **Update branch**로 최신화한 뒤 검사가 다시 통과해야 머지할 수 있습니다.
 
 ### 3. 병합 순서
 
 ```
-feature/기능명 → develop → (일정 도달 시) main
+spec/·impl/·maint/ → develop → (일정 도달 시) main
 ```
