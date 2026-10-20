@@ -22,7 +22,7 @@
 2. **`public` 폴더 팀 카드 이미지 → `next/image` 전환** — `day{1,2}-team*.png` 14개, 각 85–94KB. 현재 `next/image` 미적용 (일부 이미지는 이미 적용돼 있음, 팀 카드만 누락)
 3. **스크롤 끊김 원인 특정** — DevTools Performance 탭으로 실제 스크롤 녹화. CLS는 0으로 측정되어 레이아웃 시프트가 원인이 아님은 확인됨. 이미지 디코딩 비용 또는 `FadeInUp`(framer-motion) 애니메이션의 메인 스레드 점유가 유력 후보
 4. **Server/Client 컴포넌트 분할** — `setlist/page.tsx`(654줄), `event-goods/page.tsx`(539줄) 전부 `"use client"` + `useEffect` 데이터 페칭. `location/page.tsx` 패턴 참고해 데이터 페칭을 Server Component로 이동
-5. **정리 작업** — `lib/src/lib/supabase.ts` 중복 파일 삭제, `dist/` 폴더 `.gitignore` 처리 후 레포에서 제거
+5. **정리 작업** — `lib/src/lib/supabase.ts` 중복 파일 삭제(2026-10-20 완료, CLEANUP-0001 #70), `dist/` 폴더 `.gitignore` 처리 후 레포에서 제거(잔여)
 6. **`@vercel/analytics` 설치** — 1학기엔 analytics 자체가 없어서 "실사용자에게 미친 영향"을 증명할 데이터가 없었음. 12월 정기공연 전 선반영 필요 (work03과도 연결)
 7. **`/event-goods` 라우트 리네이밍** — 실제 콘텐츠는 셋리스트 전체보기라 `/setlist/all` 등으로 변경 검토 (우선순위 낮음)
 

@@ -41,6 +41,18 @@
 | 4    | 파일럿                 | `lib/src/lib/supabase.ts` 중복 파일 삭제(work01 잔여 #5)로 end-to-end 1건. 13.2 핵심 시나리오 확인, 비용 실측                                                          |
 | 5    | work05 T2~            | `work05-implementation.md`의 T2~T5를 `docs/specs/WORK05-T2.md` 등으로 분할(완료 기준 → `AC-xx`, U1~U5 → `[manual]`)                                                  |
 
+### Step 4 파일럿 결과 (2026-10-20, CLEANUP-0001)
+
+| 단계 | 결과 |
+| --- | --- |
+| 명세 r0 (#63) | 머지 후 `spec-merged-notify` 수동 실행으로 프롬프트 게시(첫 시도 GitHub API 500 → 재실행 성공), 재실행 시 같은 코멘트 갱신(중복 없음) |
+| Codex 판정 (r0) | `needs_spec_revision` — 테스트 계획을 "커밋 전" 실행하라면서 커밋 후에만 맞는 `git diff --stat develop...HEAD`를 적은 모순을 지적. 구현·브랜치 생성 없이 보완 요청문 출력 |
+| 명세 r1 (#69) | `/design-pr` 절차로 revision 1, 검증 명령을 인덱스 기준(`git diff --cached --name-status origin/develop`)으로 수정. 머지 시 프롬프트 코멘트 **자동** 게시 |
+| 구현 (#70) | Codex가 `ready` 판정 → `impl/CLEANUP-0001-spec-69`에서 삭제 1건 → 테스트 계획 5개 실행 → `create-impl-pr`(사용자 승인)로 PR 생성. 작성자 본인, 라벨 `impl`, 메타데이터 r1·#69 |
+| 검증·머지 | `classify`·`ci`·`review`(Sonnet 5.5, 8턴, 권한 거부 0)·`pr-gate` 통과. AC-04 `[manual]`은 사용자가 Vercel 프리뷰에서 확인 후 머지 |
+
+배운 점: 명세의 테스트 계획은 Codex 프롬프트의 실행 시점(커밋 전)에 판정 가능한 명령으로 써야 한다. `/design-pr`로 명세를 쓸 때 검증 명령을 실제로 실행해 확인한다.
+
 ---
 
 ## 1. 채택할 운영 방식
@@ -641,8 +653,8 @@ review:
 | 1     | Claude 리뷰 읽기 전용 구성, 스키마                            | 리뷰 1회 성공, 빈 결과·실패는 게이트 실패     | 구현      | ✅ (PR #62·#66, 검증 #65) |
 | 1     | 6.2 메타데이터·`develop` 현재 명세 대조                       | superseded·변조 시 실패                       | 구현      | ✅ (변조 차단 #65, superseded는 단위 테스트) |
 | 1     | 보호 규칙 적용 (strict 포함)                                  | 10.4 표대로 설정                              | 사람      | ✅                   |
-| 2     | 명세 템플릿(`spec_id`, `revision`, `AC-xx`), 설계 커맨드 연결 | 명세 PR이 `spec/` 브랜치로 자동 생성          | 구현      | ◐ (Step 3: `docs/ai/spec-template.md`, `/design-pr`) |
-| 2     | `spec-merged-notify.yml` + 프롬프트 템플릿                    | 머지 시 코멘트 게시/갱신                      | 구현      | ◐ (Step 3, 실제 게시는 다음 spec PR 머지 때) |
-| 2     | `create-impl-pr`, `classify-pr`, `AGENTS.md`                  | 로컬 검사·CI 분류가 일치                      | 구현      | ◐ (Step 3, dry-run 확인. 실제 생성은 Step 4) |
-| 2     | 작은 기능 1개 end-to-end                                      | 13.2 핵심 시나리오 통과, PR 작성자 확인       | 사람+구현 | ☐    |
-| 3     | 비용 실측 후 한도·`--max-turns` 조정, 필요 시 재사용 캐시     | 월 예산 내                                    | 사람      | ☐    |
+| 2     | 명세 템플릿(`spec_id`, `revision`, `AC-xx`), 설계 커맨드 연결 | 명세 PR이 `spec/` 브랜치로 자동 생성          | 구현      | ✅ (#69, `/design-pr` 절차) |
+| 2     | `spec-merged-notify.yml` + 프롬프트 템플릿                    | 머지 시 코멘트 게시/갱신                      | 구현      | ✅ (#63 수동 게시·갱신, #69 자동 게시) |
+| 2     | `create-impl-pr`, `classify-pr`, `AGENTS.md`                  | 로컬 검사·CI 분류가 일치                      | 구현      | ✅ (#70) |
+| 2     | 작은 기능 1개 end-to-end                                      | 13.2 핵심 시나리오 통과, PR 작성자 확인       | 사람+구현 | ✅ (CLEANUP-0001: #63→#69→#70) |
+| 3     | 비용 실측 후 한도·`--max-turns` 조정, 필요 시 재사용 캐시     | 월 예산 내                                    | 사람      | ◐ (리뷰 2회 각 8턴·API 환산 약 $0.33, work05 실측 후 조정) |
