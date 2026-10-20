@@ -3,7 +3,7 @@
 # 원칙
 # - **비밀값을 쓰지 않는다.** 저장소 비밀값·변수 컨텍스트를 참조하지 않고, 포크 PR에 저장소 권한을 넘겨주는
 #   이벤트 유형도 쓰지 않는다(포크에서 온 PR 코드가 비밀값을 가진 채 실행되는 경로를 만들지 않기 위함).
-#   이 레포는 Public이다. 트리거는 pull_request 와 push 뿐이다
+#   이 레포는 Public이다. 트리거는 workflow_call(pr-validation.yml이 호출) 과 push 뿐이다
 # - 기본 권한은 읽기 전용(`contents: read`)
 # - 액션은 태그가 아니라 **커밋 SHA로 고정**한다(태그는 옮겨질 수 있다). 버전은 주석에 남긴다.
 #   갱신할 때는 릴리스 태그의 SHA를 GitHub에서 확인하고, action.yml의 입력 이름이 그대로인지 본다
@@ -13,23 +13,27 @@
 # 그보다 새 `ubuntu-26.04`는 공식 공지상 **public preview**(GA 아님)라 채택하지 않았다. 22.04는 2026-09-17부터 deprecation이 시작됐다.
 # GA가 되면 그때 올린다 — 올릴 때는 이 파일에서 두 잡의 runs-on 을 함께 바꾼다.
 #
-# 트리거: pull_request 와 develop·main 으로의 push. main 은 배포 브랜치라 직접 푸시(규칙상 금지지만 막는 장치는 없다)도 검증한다.
+# 트리거: develop·main 으로의 push, 그리고 PR 검증 워크플로우(pr-validation.yml)의 workflow_call.
+# PR에서는 이 파일이 직접 돌지 않고 pr-validation.yml의 `ci` 잡으로 호출된다 — pr-gate가 이 결과를 needs로 받아야 하기 때문이다
+# (다른 워크플로우의 잡 결과는 needs로 기다릴 수 없다). main 은 배포 브랜치라 직접 푸시(규칙상 금지지만 막는 장치는 없다)도 검증한다.
 #
 # 범위: apps/api 는 lint·build·test·타입 검사(스펙 포함)를, apps/admin(관리자 프론트)은 lint·build·타입 검사·test를,
-# 루트 Next.js 앱은 lint만 검사한다. 잠금 파일은 세 곳(루트·apps/api·apps/admin)이 각각 독립이라 잡마다 자기 것으로 npm ci 한다.
+# 루트 Next.js 앱은 lint·타입 검사를 한다. 잠금 파일은 세 곳(루트·apps/api·apps/admin)이 각각 독립이라 잡마다 자기 것으로 npm ci 한다.
 # 루트 `next build`는 `NEXT_PUBLIC_SUPABASE_*` 없이는 실패한다(`supabaseUrl is required`, 2026-09-21 실측).
-# 그 값들은 브라우저에 노출되는 공개 값이지만, 어떤 값을 CI에 둘지는 별도로 정한다.
+# 그 값들은 브라우저에 노출되는 공개 값이지만, 어떤 값을 CI에 둘지는 별도로 정한다. 그래서 루트는 빌드 대신
+# `next typegen`(라우트 타입 생성, 환경변수 불필요) + `tsc --noEmit`으로 타입만 검사한다(2026-10-20 로컬 실측 통과).
 name: CI
 
 on:
-  pull_request:
+  workflow_call:
   push:
     branches: [develop, main]
 
 permissions:
   contents: read
 
-# 같은 브랜치에 새 커밋이 오면 이전 실행을 취소한다
+# 같은 브랜치에 새 커밋이 오면 이전 실행을 취소한다.
+# workflow_call로 불릴 때 github.workflow는 호출한 워크플로우 이름이 되므로, 호출자(pr-validation)의 그룹과 겹치지 않는다
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -81,7 +85,7 @@ jobs:
         run: npm run typecheck
 
   web:
-    name: web (lint)
+    name: web (lint · typecheck)
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -102,6 +106,10 @@ jobs:
 
       - name: 린트
         run: npm run lint
+
+      # next-env.d.ts·.next/types는 gitignore라, typecheck 스크립트가 next typegen으로 먼저 만든다
+      - name: 타입 검사
+        run: npm run typecheck
 
   admin:
     name: apps/admin (lint · build · typecheck · test)

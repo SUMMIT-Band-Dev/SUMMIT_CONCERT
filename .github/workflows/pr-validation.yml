@@ -1,0 +1,132 @@
+# PR 검증 (docs/workflow/claude-codex-plan.md 8.3 · 10.2 · 10.3)
+#
+# develop 대상 PR의 필수 체크는 마지막 잡 `pr-gate` 하나다. 구성:
+#   classify — 브랜치명 + 실제 변경 경로로 spec / impl / maint / unknown 분류 (scripts/ai/classify-pr.mjs)
+#   ci       — 기존 ci.yml을 workflow_call로 호출 (lint · build · test · typecheck)
+#   pr-gate  — 위 결과를 분류별 규칙으로 최종 판정. if: always() 라서 앞 잡이 실패·취소돼도 반드시 실행되고 실패로 끝난다
+#
+# 원칙
+# - 비밀값을 쓰지 않는다 (Claude 리뷰 잡은 Step 2에서 이 파일에 추가하고, 비밀값은 그 잡에만 준다)
+# - 기본 권한은 읽기 전용. 액션은 ci.yml과 같은 커밋 SHA로 고정한다
+# - 이벤트 유형을 아래 4개로 제한한다. 라벨 변경·본문 수정으로는 어떤 잡도 다시 돌지 않는다
+# - 경로 필터를 쓰지 않는다. 필터로 건너뛴 필수 체크는 Pending으로 남아 머지를 막는다
+#
+# 분류 규칙은 PR이 아니라 base(develop) 쪽 scripts/ai/classify-pr.mjs로 실행한다 — PR이 분류기 자체를 고쳐서
+# 자기 자신을 통과시키지 못하게 하기 위함. base에 파일이 아직 없을 때(이 파일을 처음 도입하는 PR)만 PR 쪽 파일을 쓴다.
+# 단, 이 워크플로우 파일 자체는 PR의 병합 결과로 실행되므로, 정책 경로 변경은 maint/ PR + 사람 검토가 실제 방어선이다 (10.3).
+name: PR Validation
+
+on:
+  pull_request:
+    branches: [develop]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+# 같은 PR에 새 커밋이 오면 이전 실행을 취소한다 (취소된 실행의 pr-gate는 통과로 남지 않는다)
+concurrency:
+  group: pr-validation-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  classify:
+    name: classify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      kind: ${{ steps.classify.outputs.kind }}
+      ok: ${{ steps.classify.outputs.ok }}
+      reason: ${{ steps.classify.outputs.reason }}
+    steps:
+      # base...head 비교에 두 커밋의 공통 조상이 필요해서 전체 이력을 받는다
+      - name: PR 체크아웃
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: pr
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: base 분류 규칙 체크아웃
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: trusted
+          sparse-checkout: scripts/ai
+          persist-credentials: false
+
+      - name: Node 설정
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.x
+
+      # PR이 바꾼 분류 규칙이 깨지지 않았는지 확인한다 (maint/ PR에서 규칙을 고칠 때 의미가 있다)
+      - name: 분류 규칙 테스트
+        working-directory: pr
+        run: node --test "scripts/ai/*.test.mjs"
+
+      # 브랜치명은 PR 작성자가 정하는 값이라 쉘에 직접 끼워 넣지 않고 env로 넘긴다
+      - name: 분류
+        id: classify
+        working-directory: pr
+        env:
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          script="../trusted/scripts/ai/classify-pr.mjs"
+          if [ ! -f "$script" ]; then
+            echo "::warning::base에 classify-pr.mjs가 없어 PR 쪽 파일을 사용한다 (최초 도입 PR에서만 정상)"
+            script="scripts/ai/classify-pr.mjs"
+          fi
+          node "$script" --branch "$BRANCH" --base "$BASE_SHA" --head "$HEAD_SHA"
+
+  ci:
+    name: ci
+    uses: ./.github/workflows/ci.yml
+
+  pr-gate:
+    name: pr-gate
+    needs: [classify, ci]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: 최종 판정
+        env:
+          CLASSIFY_RESULT: ${{ needs.classify.result }}
+          CI_RESULT: ${{ needs.ci.result }}
+          KIND: ${{ needs.classify.outputs.kind }}
+          OK: ${{ needs.classify.outputs.ok }}
+          REASON: ${{ needs.classify.outputs.reason }}
+        run: |
+          fail() {
+            echo "::error::$1"
+            echo "### ❌ pr-gate 실패" >> "$GITHUB_STEP_SUMMARY"
+            echo "$1" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          }
+
+          echo "분류: ${KIND:-없음} / classify: $CLASSIFY_RESULT / ci: $CI_RESULT"
+
+          [ "$CLASSIFY_RESULT" = "success" ] || fail "classify 잡이 성공하지 않았다 ($CLASSIFY_RESULT)"
+          [ "$OK" = "true" ] || fail "분류 규칙 위반 ($KIND): $REASON"
+          [ "$CI_RESULT" = "success" ] || fail "ci 잡이 성공하지 않았다 ($CI_RESULT)"
+
+          case "$KIND" in
+            maint)
+              # 정책·유지보수 변경은 CI만 필수, 내용은 사람이 직접 검토하고 머지한다
+              ;;
+            spec)
+              # 명세 형식(frontmatter·AC-xx)·revision +1 검사는 Step 2에서 추가한다
+              ;;
+            impl)
+              # Claude 명세 대조 리뷰·메타데이터 대조(Step 2)가 붙기 전에는 구현 PR을 통과시키지 않는다
+              fail "impl PR 검증(Claude 리뷰)이 아직 구성되지 않았다 — Step 2 이후 통과 가능"
+              ;;
+            *)
+              fail "알 수 없는 분류: ${KIND:-없음}"
+              ;;
+          esac
+
+          echo "### ✅ pr-gate 통과 ($KIND)" >> "$GITHUB_STEP_SUMMARY"
