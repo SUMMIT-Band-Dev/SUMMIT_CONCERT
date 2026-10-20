@@ -16,6 +16,10 @@ test("수용 기준 정의를 읽고 [manual]을 구분한다", () => {
     "| AC-04 | 표 |",
     "**AC-05** 굵게",
     "본문에서 AC-01을 참조하는 문장은 정의가 아니다",
+    "AC-03는 문장 맨 앞의 참조라 정의가 아니다",
+    "AC-04 접두 기호 없는 줄도 정의가 아니다",
+    "- AC-06는 조사가 붙으면 참조다",
+    "- **AC-07**: 굵게와 콜론",
   ].join("\n");
   assert.deepEqual(parseCriteria(content), [
     { id: "AC-01", manual: false },
@@ -23,6 +27,7 @@ test("수용 기준 정의를 읽고 [manual]을 구분한다", () => {
     { id: "AC-03", manual: true },
     { id: "AC-04", manual: false },
     { id: "AC-05", manual: false },
+    { id: "AC-07", manual: false },
   ]);
 });
 
