@@ -1,6 +1,6 @@
 ---
 spec_id: WORK05-T3A
-revision: 0
+revision: 1
 ---
 
 # WORK05-T3A — 재검증 모듈 + 공연 콘텐츠 텍스트 관리 API
@@ -28,6 +28,7 @@ revision: 0
 - `src/app.module.ts`에 `ConcertContentModule` 등록
 - `src/teams/` — 팀 등록·수정·재정렬 커밋 후 `lineup` 재검증 (`teams.module.ts`, `teams.service.ts`와 기존 스펙 수정)
 - `src/auth/public-routes.spec.ts` — 발견 목록에 새 컨트롤러 추가 (공개 라우트 허용 목록은 바꾸지 않는다)
+- `src/youtube/youtube.module.spec.ts` — `AppModule` 전체를 기동하는 유일한 기존 테스트다. `ConfigService` 대역이 `JWT_SECRET` 외의 필수 설정을 거부하므로(`예상하지 않은 필수 설정`), 새 필수 환경변수 때문에 기동이 실패한다 (r0 구현에서 확인). 설정 대역을 아래 "기존 테스트의 설정 대역" 규칙대로 고치고, 새 라우트의 미인증 요청 확인을 추가한다
 - `.env.example` — `PUBLIC_SITE_URL`, `REVALIDATE_SECRET` 섹션 추가
 - 위 모든 새 코드의 단위 테스트(`*.spec.ts`)
 
@@ -69,6 +70,14 @@ export type ContentTag = (typeof CONTENT_TAGS)[number];
 - 응답이 2xx면 `true`. 그 밖의 모든 경우(비 2xx, 네트워크 오류, 타임아웃, 리다이렉트)는 **예외를 던지지 않고** `Logger.warn` 한 줄을 남긴 뒤 `false`
   - 로그에는 태그 목록과 실패 종류(HTTP 상태코드 또는 `timeout`·`network`)만 남긴다. 시크릿·요청 헤더·응답 본문은 남기지 않는다
 - 빈 배열이면 요청하지 않고 `true`
+
+**기존 테스트의 설정 대역** (r1 추가)
+
+- `youtube.module.spec.ts`의 설정 대역은 `PUBLIC_SITE_URL`에 `http://localhost:3000`, `REVALIDATE_SECRET`에 32자 이상의 테스트 전용 문자열(예: `'test-only-revalidate-'.repeat(3)`)을 돌려준다. `RevalidationService`가 `get`과 `getOrThrow` 중 무엇으로 읽든 같은 값이 나오도록 **두 메서드 모두** 이 두 키에 값을 준다. 그 밖의 키는 지금처럼 `get`은 `undefined`, `getOrThrow`는 예외다 (예상하지 않은 필수 설정을 계속 드러내기 위함)
+- 이 테스트는 실제 네트워크에 접속하지 않는다. 미인증 요청은 Guard에서 막혀 재검증 호출까지 가지 않는다
+- 기존 단언(유튜브 `PUT`·`DELETE` 401, DB 미접근, 옛 경로 404)은 지우거나 약하게 바꾸지 않는다. 테스트 이름의 "배치 키 설정 없이"도 유지한다
+- 같은 테스트에 **`PUT /ticket` 미인증 요청이 401이고 Prisma 대역이 호출되지 않음**을 추가한다 (새 라우트가 실제 앱에서 인증을 요구하는지 확인)
+- 다른 기존 스펙도 같은 이유로 기동이 실패하면 **설정 대역에 이 두 키를 추가하는 변경만** 허용한다. 기존 단언은 바꾸지 않고, 고친 파일 목록을 PR 본문에 적는다
 
 **모듈** — `RevalidationModule`은 `RevalidationService`를 providers·exports에 둔다. `@Global`로 만들지 않고 쓰는 모듈(`TeamsModule`, `ConcertContentModule`)이 명시적으로 import한다 (`StorageModule`과 같은 이유)
 
@@ -192,6 +201,7 @@ interface InfoSectionResponse { id: string; title: string; items: { id: string; 
 - AC-13 `apps/api`에서 `npm run build`·`npm run typecheck`·`npm run lint`·`npm test`가 통과한다
 - AC-14 `origin/develop` 대비 변경 파일이 모두 `apps/api/` 아래이고, `apps/api/prisma/`와 `apps/api/src/common/cors.ts`는 바뀌지 않았다
 - AC-15 [manual] 사용자가 로컬에서 API를 띄워(`apps/api`에서 `npm run start:dev`, 공개 사이트는 띄우지 않음) 로그인 토큰으로 `GET /concert`가 임시값을 돌려주고, `PUT /ticket`에 `{"description":"테스트"}`를 보내면 200과 `revalidated: false`(공개 사이트 재검증 엔드포인트가 아직 없으므로)를 받으며, 서버 로그에 재검증 실패 경고 한 줄이 시크릿 없이 남는 것을 확인한다. 확인 후 `PUT /ticket`에 `{"description":null}`로 되돌린다
+- AC-16 `youtube.module.spec.ts`의 설정 대역이 "기존 테스트의 설정 대역" 규칙대로 두 키에 테스트용 유효값을 주고 그 밖의 필수 설정은 계속 거부하며, 기존 단언이 모두 남아 있고, `PUT /ticket` 미인증 401·Prisma 미호출 단언이 추가되어 있다
 
 ## 테스트 계획
 
