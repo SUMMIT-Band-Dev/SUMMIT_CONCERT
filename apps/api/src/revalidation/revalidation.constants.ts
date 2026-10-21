@@ -1,0 +1,2 @@
+export const REVALIDATE_TIMEOUT_MS = 5000;
+export const MIN_REVALIDATE_SECRET_LENGTH = 32;

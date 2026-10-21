@@ -13,7 +13,10 @@ import { IS_PUBLIC_KEY } from './public.decorator.js';
  *
  * 공개 라우트를 새로 여는 것은 보안 결정이다. 목록에 추가하려면 이 파일을 수정해 리뷰에 드러나야 한다.
  */
-const EXPECTED_PUBLIC_HANDLERS = ['AuthController.login', 'HealthController.check'];
+const EXPECTED_PUBLIC_HANDLERS = [
+  'AuthController.login',
+  'HealthController.check',
+];
 
 type ModuleRef = unknown;
 
@@ -33,7 +36,9 @@ function collectControllers(root: ModuleRef): Function[] {
       imports?: ModuleRef[];
       controllers?: Function[];
     };
-    const moduleClass = (typeof moduleRef === 'function' ? moduleRef : dynamic.module) as Function;
+    const moduleClass = (
+      typeof moduleRef === 'function' ? moduleRef : dynamic.module
+    ) as Function;
     if (!moduleClass) {
       return;
     }
@@ -62,7 +67,8 @@ function routeHandlers(controller: Function): string[] {
     (name) =>
       name !== 'constructor' &&
       typeof prototype[name] === 'function' &&
-      Reflect.getMetadata(PATH_METADATA, prototype[name] as object) !== undefined,
+      Reflect.getMetadata(PATH_METADATA, prototype[name] as object) !==
+        undefined,
   );
 }
 
@@ -82,6 +88,11 @@ describe('@Public() 전수 회귀 (AppModule에서 컨트롤러 자동 발견)',
         'SongsController',
         'AlbumCoverController',
         'YoutubeUrlController',
+        'ConcertController',
+        'VenueController',
+        'PerformanceDaysController',
+        'TicketController',
+        'InfoSectionsController',
       ]),
     );
   });
@@ -106,7 +117,9 @@ describe('@Public() 전수 회귀 (AppModule에서 컨트롤러 자동 발견)',
 
   it('어떤 컨트롤러 클래스에도 @Public()이 붙어 있지 않다 (클래스에 붙으면 하위 라우트가 전부 열린다)', () => {
     const publicClasses = controllers
-      .filter((controller) => Reflect.getMetadata(IS_PUBLIC_KEY, controller) === true)
+      .filter(
+        (controller) => Reflect.getMetadata(IS_PUBLIC_KEY, controller) === true,
+      )
       .map((controller) => controller.name);
 
     expect(publicClasses).toEqual([]);

@@ -18,11 +18,20 @@ afterEach(async () => {
 describe('유튜브 개편 — 앱 기동과 인증', () => {
   it('배치 키 설정 없이 기동하고 PUT·DELETE 미인증 요청은 DB 접근 전에 거부한다', async () => {
     const update = vi.fn();
+    const ticketUpdate = vi.fn();
     // 외부 DB·Storage를 대체한다. 이 테스트는 실제 데이터에 접근하지 않는다.
     const config = {
-      get: () => undefined,
+      get: (name: string) => {
+        if (name === 'PUBLIC_SITE_URL') return 'http://localhost:3000';
+        if (name === 'REVALIDATE_SECRET')
+          return 'test-only-revalidate-'.repeat(3);
+        return undefined;
+      },
       getOrThrow: (name: string) => {
         if (name === 'JWT_SECRET') return 'test-only-secret-'.repeat(3);
+        if (name === 'PUBLIC_SITE_URL') return 'http://localhost:3000';
+        if (name === 'REVALIDATE_SECRET')
+          return 'test-only-revalidate-'.repeat(3);
         throw new Error(`예상하지 않은 필수 설정: ${name}`);
       },
     };
@@ -30,7 +39,7 @@ describe('유튜브 개편 — 앱 기동과 인증', () => {
       .overrideProvider(ConfigService)
       .useValue(config)
       .overrideProvider(PrismaService)
-      .useValue({ setlist: { update } })
+      .useValue({ setlist: { update }, ticket: { update: ticketUpdate } })
       .overrideProvider(STORAGE_CLIENT)
       .useValue({})
       .compile();
@@ -49,6 +58,11 @@ describe('유튜브 개편 — 앱 기동과 인증', () => {
       .delete('/songs/50/youtube-url')
       .expect(401);
     expect(update).not.toHaveBeenCalled();
+    await request(app.getHttpServer())
+      .put('/ticket')
+      .send({ description: '테스트' })
+      .expect(401);
+    expect(ticketUpdate).not.toHaveBeenCalled();
     await request(app.getHttpServer())
       .get('/youtube/recommendations')
       .expect(404);
