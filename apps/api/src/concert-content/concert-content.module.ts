@@ -1,0 +1,21 @@
+import { Module } from '@nestjs/common';
+import { RevalidationModule } from '../revalidation/revalidation.module.js';
+import { ConcertContentService } from './concert-content.service.js';
+import { ConcertController } from './concert.controller.js';
+import { VenueController } from './venue.controller.js';
+import { PerformanceDaysController } from './performance-days.controller.js';
+import { TicketController } from './ticket.controller.js';
+import { InfoSectionsController } from './info-sections.controller.js';
+
+@Module({
+  imports: [RevalidationModule],
+  controllers: [
+    ConcertController,
+    VenueController,
+    PerformanceDaysController,
+    TicketController,
+    InfoSectionsController,
+  ],
+  providers: [ConcertContentService],
+})
+export class ConcertContentModule {}

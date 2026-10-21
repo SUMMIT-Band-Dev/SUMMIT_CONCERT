@@ -6,6 +6,7 @@ import {
 import { describe, expect, it, vi } from 'vitest';
 import { TeamsService } from './teams.service.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
+import type { RevalidationService } from '../revalidation/revalidation.service.js';
 
 // 2단계와 같은 방식으로 PrismaService만 대역으로 둔다. 다만 호출 여부만 보는 게 아니라
 // 작은 인메모리 저장소로 동작까지 흉내 내서, 순서 부여·집합 검증 같은 로직을 실제로 검증한다.
@@ -19,11 +20,41 @@ interface LineUpRow {
 
 /** 실데이터와 같은 모양: 순서가 전체 1..N이 아니라 일자별 1..N */
 const initialRows = (): LineUpRow[] => [
-  { id: 1n, teamName: '8C8', day: 'day1', performanceOrder: 1, cardImageUrl: '/day1-team1.png' },
-  { id: 2n, teamName: '뉴비', day: 'day1', performanceOrder: 2, cardImageUrl: null },
-  { id: 3n, teamName: '즐겜굴비', day: 'day1', performanceOrder: 3, cardImageUrl: null },
-  { id: 8n, teamName: '오미자', day: 'day2', performanceOrder: 1, cardImageUrl: null },
-  { id: 9n, teamName: '낭만치사량', day: 'day2', performanceOrder: 2, cardImageUrl: null },
+  {
+    id: 1n,
+    teamName: '8C8',
+    day: 'day1',
+    performanceOrder: 1,
+    cardImageUrl: '/day1-team1.png',
+  },
+  {
+    id: 2n,
+    teamName: '뉴비',
+    day: 'day1',
+    performanceOrder: 2,
+    cardImageUrl: null,
+  },
+  {
+    id: 3n,
+    teamName: '즐겜굴비',
+    day: 'day1',
+    performanceOrder: 3,
+    cardImageUrl: null,
+  },
+  {
+    id: 8n,
+    teamName: '오미자',
+    day: 'day2',
+    performanceOrder: 1,
+    cardImageUrl: null,
+  },
+  {
+    id: 9n,
+    teamName: '낭만치사량',
+    day: 'day2',
+    performanceOrder: 2,
+    cardImageUrl: null,
+  },
 ];
 
 interface WhereArgs {
@@ -38,6 +69,11 @@ interface DataArgs {
 
 function createService(rows: LineUpRow[] = initialRows()) {
   const store = rows.map((row) => ({ ...row }));
+  const events: string[] = [];
+  const revalidate = vi.fn(async () => {
+    events.push('revalidate');
+    return true;
+  });
   let nextId = 16n;
 
   const byDay = (day: string | undefined) =>
@@ -47,7 +83,8 @@ function createService(rows: LineUpRow[] = initialRows()) {
     [...subset].sort(
       (a, b) =>
         (a.performanceOrder ?? Number.MAX_SAFE_INTEGER) -
-          (b.performanceOrder ?? Number.MAX_SAFE_INTEGER) || Number(a.id - b.id),
+          (b.performanceOrder ?? Number.MAX_SAFE_INTEGER) ||
+        Number(a.id - b.id),
     );
 
   const lineUp = {
@@ -87,7 +124,9 @@ function createService(rows: LineUpRow[] = initialRows()) {
       const target = store.find((row) => row.id === args.where?.id);
       if (!target) {
         // Prisma가 갱신 대상이 없을 때 내는 코드. mapRecordNotFound가 404로 바꿔야 한다.
-        throw Object.assign(new Error('Record to update not found.'), { code: 'P2025' });
+        throw Object.assign(new Error('Record to update not found.'), {
+          code: 'P2025',
+        });
       }
       Object.assign(target, args.data);
       return { ...target };
@@ -98,20 +137,89 @@ function createService(rows: LineUpRow[] = initialRows()) {
         .map((row) => row.performanceOrder)
         .filter((order): order is number => order !== null);
       return {
-        _max: { performanceOrder: orders.length > 0 ? Math.max(...orders) : null },
+        _max: {
+          performanceOrder: orders.length > 0 ? Math.max(...orders) : null,
+        },
       };
     }),
   };
 
   const $transaction = vi.fn(
-    async (callback: (tx: { lineUp: typeof lineUp }) => Promise<unknown>) =>
-      callback({ lineUp }),
+    async (callback: (tx: { lineUp: typeof lineUp }) => Promise<unknown>) => {
+      const result = await callback({ lineUp });
+      events.push('commit');
+      return result;
+    },
   );
 
   const prisma = { lineUp, $transaction } as unknown as PrismaService;
 
-  return { service: new TeamsService(prisma), lineUp, $transaction, store };
+  return {
+    service: new TeamsService(prisma, {
+      revalidate,
+    } as unknown as RevalidationService),
+    lineUp,
+    $transaction,
+    store,
+    revalidate,
+    events,
+  };
 }
+
+describe('TeamsService — 커밋 후 lineup 재검증', () => {
+  it.each(['create', 'update', 'reorder'] as const)(
+    '%s는 커밋 후 정확히 한 번 재검증하며 false여도 기존 응답을 유지한다',
+    async (action) => {
+      const { service, revalidate, events } = createService();
+      revalidate.mockImplementation(async () => {
+        events.push('revalidate');
+        return false;
+      });
+      const result =
+        action === 'create'
+          ? await service.create({
+              teamName: '새 팀',
+              day: 'day1',
+              performanceOrder: 4,
+            })
+          : action === 'update'
+            ? await service.update(1n, { teamName: '새 이름' })
+            : await service.reorder({ day: 'day1', teamIds: ['3', '2', '1'] });
+      expect(events).toEqual(['commit', 'revalidate']);
+      expect(revalidate).toHaveBeenCalledExactlyOnceWith(['lineup']);
+      expect(result).not.toHaveProperty('revalidated');
+      expect(result).not.toHaveProperty('data');
+      if (Array.isArray(result))
+        expect(result.map((row) => row.id)).toEqual(['3', '2', '1']);
+      else
+        expect(result).toMatchObject({
+          teamName: action === 'create' ? '새 팀' : '새 이름',
+        });
+    },
+  );
+
+  it('400·404·409 또는 DB 실패 시 재검증을 하지 않는다', async () => {
+    const { service, revalidate, lineUp } = createService();
+    await expect(service.update(1n, {})).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    await expect(
+      service.update(999n, { teamName: '없음' }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    await expect(
+      service.create({ teamName: '중복', day: 'day1', performanceOrder: 1 }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    await expect(
+      service.reorder({ day: 'day1', teamIds: ['1'] }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    const failure = new Error('DB 실패');
+    lineUp.update.mockRejectedValueOnce(failure);
+    await expect(service.update(1n, { teamName: '수정' })).rejects.toBe(
+      failure,
+    );
+    expect(revalidate).not.toHaveBeenCalled();
+  });
+});
 
 describe('TeamsService.findAll (F003)', () => {
   it('day → performanceOrder → id 순으로 정렬해 조회한다', async () => {
@@ -209,7 +317,9 @@ describe('TeamsService.create (F004)', () => {
       Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }),
     );
 
-    await expect(service.create(validDto)).rejects.toBeInstanceOf(ConflictException);
+    await expect(service.create(validDto)).rejects.toBeInstanceOf(
+      ConflictException,
+    );
   });
 
   it('중복 확인과 등록이 하나의 트랜잭션 안에서 일어난다', async () => {
@@ -249,15 +359,17 @@ describe('TeamsService.update (F005)', () => {
   it('없는 id면 404', async () => {
     const { service } = createService();
 
-    await expect(service.update(999n, { teamName: '아무개' })).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    await expect(
+      service.update(999n, { teamName: '아무개' }),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('본문이 비어 있으면 400이고 트랜잭션을 열지 않는다', async () => {
     const { service, $transaction } = createService();
 
-    await expect(service.update(1n, {})).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.update(1n, {})).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
     expect($transaction).not.toHaveBeenCalled();
   });
 
@@ -267,7 +379,11 @@ describe('TeamsService.update (F005)', () => {
     // day1의 1번 팀을 day2로 옮긴다. day2는 1,2가 차 있으므로 3번이 되어야 한다.
     const updated = await service.update(1n, { day: 'day2' });
 
-    expect(updated).toMatchObject({ id: '1', day: 'day2', performanceOrder: 3 });
+    expect(updated).toMatchObject({
+      id: '1',
+      day: 'day2',
+      performanceOrder: 3,
+    });
   });
 
   it('같은 day를 그대로 보내면 순서를 재배치하지 않는다 (no-op)', async () => {
@@ -291,7 +407,10 @@ describe('TeamsService.update (F005)', () => {
   it('팀명과 일자를 함께 바꿀 수 있다', async () => {
     const { service } = createService();
 
-    const updated = await service.update(2n, { teamName: '이사간팀', day: 'day2' });
+    const updated = await service.update(2n, {
+      teamName: '이사간팀',
+      day: 'day2',
+    });
 
     expect(updated).toMatchObject({
       teamName: '이사간팀',
@@ -305,7 +424,10 @@ describe('TeamsService.reorder (F006)', () => {
   it('배열 순서대로 1..N을 부여한다', async () => {
     const { service } = createService();
 
-    const reordered = await service.reorder({ day: 'day1', teamIds: ['3', '1', '2'] });
+    const reordered = await service.reorder({
+      day: 'day1',
+      teamIds: ['3', '1', '2'],
+    });
 
     expect(reordered.map((team) => [team.id, team.performanceOrder])).toEqual([
       ['3', 1],
@@ -317,7 +439,10 @@ describe('TeamsService.reorder (F006)', () => {
   it('현재 순서를 그대로 보내면 결과가 바뀌지 않는다', async () => {
     const { service } = createService();
 
-    const reordered = await service.reorder({ day: 'day1', teamIds: ['1', '2', '3'] });
+    const reordered = await service.reorder({
+      day: 'day1',
+      teamIds: ['1', '2', '3'],
+    });
 
     expect(reordered.map((team) => [team.id, team.performanceOrder])).toEqual([
       ['1', 1],
@@ -403,7 +528,10 @@ describe('TeamsService.reorder (F006)', () => {
   it('응답이 BigInt 없이 JSON으로 직렬화된다', async () => {
     const { service } = createService();
 
-    const reordered = await service.reorder({ day: 'day2', teamIds: ['9', '8'] });
+    const reordered = await service.reorder({
+      day: 'day2',
+      teamIds: ['9', '8'],
+    });
 
     expect(() => JSON.stringify(reordered)).not.toThrow();
   });

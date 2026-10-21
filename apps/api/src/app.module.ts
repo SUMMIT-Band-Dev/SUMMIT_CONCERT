@@ -8,6 +8,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
 import { SongsModule } from './songs/songs.module.js';
 import { TeamsModule } from './teams/teams.module.js';
 import { YoutubeModule } from './youtube/youtube.module.js';
+import { ConcertContentModule } from './concert-content/concert-content.module.js';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { YoutubeModule } from './youtube/youtube.module.js';
     SongsModule,
     AlbumCoverModule,
     YoutubeModule,
+    ConcertContentModule,
   ],
 })
 export class AppModule {}
