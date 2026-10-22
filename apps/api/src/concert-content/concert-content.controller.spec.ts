@@ -1,6 +1,11 @@
 import 'reflect-metadata';
 import { RequestMethod } from '@nestjs/common';
-import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants.js';
+import {
+  HTTP_CODE_METADATA,
+  INTERCEPTORS_METADATA,
+  METHOD_METADATA,
+  PATH_METADATA,
+} from '@nestjs/common/constants.js';
 import { describe, expect, it, vi } from 'vitest';
 import { IS_PUBLIC_KEY } from '../auth/public.decorator.js';
 import { ConcertController } from './concert.controller.js';
@@ -13,6 +18,10 @@ import { RevalidationModule } from '../revalidation/revalidation.module.js';
 import { RevalidationService } from '../revalidation/revalidation.service.js';
 import { TeamsModule } from '../teams/teams.module.js';
 import type { ConcertContentService } from './concert-content.service.js';
+import type { ConcertImageService } from './concert-image.service.js';
+import { ConcertImageUploadInterceptor } from './concert-image-upload.interceptor.js';
+import { GeocodingModule } from '../geocoding/geocoding.module.js';
+import type { GeocodingService } from '../geocoding/geocoding.service.js';
 
 const controllers = [
   ConcertController,
@@ -29,7 +38,7 @@ describe('공연 콘텐츠 라우트와 인증 메타데이터', () => {
     [TicketController, 'ticket', 'find', '/'],
     [InfoSectionsController, 'info-sections', 'findAll', '/'],
   ])(
-    '컨트롤러에 명세의 GET·PUT만 있고 클래스·핸들러 모두 인증을 요구한다',
+    '컨트롤러의 기존 GET·PUT과 새 핸들러 모두 인증을 요구한다',
     (controller, path, getMethod, updatePath) => {
       const prototype = controller.prototype as unknown as Record<
         string,
@@ -40,7 +49,11 @@ describe('공연 콘텐츠 라우트와 인증 메타데이터', () => {
       const handlers = Object.getOwnPropertyNames(prototype).filter(
         (name) => name !== 'constructor',
       );
-      expect(handlers.sort()).toEqual([getMethod, 'update'].sort());
+      const extra =
+        controller === InfoSectionsController
+          ? []
+          : [controller === VenueController ? 'geocode' : 'replaceImage'];
+      expect(handlers.sort()).toEqual([getMethod, 'update', ...extra].sort());
       expect(Reflect.getMetadata(PATH_METADATA, prototype[getMethod])).toBe(
         '/',
       );
@@ -93,10 +106,20 @@ describe('공연 콘텐츠 라우트와 인증 메타데이터', () => {
       updateInfoSections: vi.fn(),
     };
     const service = stub as unknown as ConcertContentService;
-    const concert = new ConcertController(service);
-    const venue = new VenueController(service);
-    const days = new PerformanceDaysController(service);
-    const ticket = new TicketController(service);
+    const images = {
+      replaceConcert: vi.fn(),
+      replaceTimetable: vi.fn(),
+      replaceTicket: vi.fn(),
+    };
+    const imageService = images as unknown as ConcertImageService;
+    const geocoding = { geocode: vi.fn() };
+    const concert = new ConcertController(service, imageService);
+    const venue = new VenueController(
+      service,
+      geocoding as unknown as GeocodingService,
+    );
+    const days = new PerformanceDaysController(service, imageService);
+    const ticket = new TicketController(service, imageService);
     const info = new InfoSectionsController(service);
     const concertDto = {
       titleKo: '공연',
@@ -139,6 +162,48 @@ describe('공연 콘텐츠 라우트와 인증 메타데이터', () => {
     expect(stub.updateInfoSections).toHaveBeenCalledExactlyOnceWith(
       'ticket',
       infoDto,
+    );
+    const file = { buffer: Buffer.from('파일'), size: 6 };
+    await concert.replaceImage('poster', file);
+    await days.replaceImage('day1', file);
+    await ticket.replaceImage('front', file);
+    await venue.geocode({ address: '서울' });
+    expect(images.replaceConcert).toHaveBeenCalledExactlyOnceWith(
+      'poster',
+      file,
+    );
+    expect(images.replaceTimetable).toHaveBeenCalledExactlyOnceWith(
+      'day1',
+      file,
+    );
+    expect(images.replaceTicket).toHaveBeenCalledExactlyOnceWith('front', file);
+    expect(geocoding.geocode).toHaveBeenCalledExactlyOnceWith('서울');
+  });
+
+  it.each([
+    [ConcertController, 'images/:slot'],
+    [PerformanceDaysController, ':dayKey/timetable-image'],
+    [TicketController, 'images/:side'],
+  ])('이미지 라우트가 PUT과 공연 전용 파서를 사용한다', (controller, path) => {
+    const handler = controller.prototype.replaceImage;
+    expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe(path);
+    expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(
+      RequestMethod.PUT,
+    );
+    expect(Reflect.getMetadata(INTERCEPTORS_METADATA, handler)).toEqual([
+      ConcertImageUploadInterceptor,
+    ]);
+  });
+
+  it('주소 검색은 POST geocode·200이고 콘텐츠 모듈이 Geocoding을 들인다', () => {
+    const handler = VenueController.prototype.geocode;
+    expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe('geocode');
+    expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(
+      RequestMethod.POST,
+    );
+    expect(Reflect.getMetadata(HTTP_CODE_METADATA, handler)).toBe(200);
+    expect(Reflect.getMetadata('imports', ConcertContentModule)).toContain(
+      GeocodingModule,
     );
   });
 });

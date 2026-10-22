@@ -7,8 +7,12 @@ import { PerformanceDaysController } from './performance-days.controller.js';
 import { TicketController } from './ticket.controller.js';
 import { InfoSectionsController } from './info-sections.controller.js';
 
+import { StorageModule } from '../storage/storage.module.js';
+import { GeocodingModule } from '../geocoding/geocoding.module.js';
+import { ConcertImageService } from './concert-image.service.js';
+
 @Module({
-  imports: [RevalidationModule],
+  imports: [RevalidationModule, StorageModule, GeocodingModule],
   controllers: [
     ConcertController,
     VenueController,
@@ -16,6 +20,6 @@ import { InfoSectionsController } from './info-sections.controller.js';
     TicketController,
     InfoSectionsController,
   ],
-  providers: [ConcertContentService],
+  providers: [ConcertContentService, ConcertImageService],
 })
 export class ConcertContentModule {}
