@@ -19,3 +19,10 @@ export const INFO_TITLE_MAX_LENGTH = 100;
 export const INFO_CONTENT_MAX_LENGTH = 500;
 export const INFO_CATEGORIES = ['ticket', 'notice'] as const;
 export type InfoCategory = (typeof INFO_CATEGORIES)[number];
+
+// 버킷 상한과 같다. 공개 사이트는 next/image로 최적화해 내려보낸다(T5).
+export const CONCERT_IMAGE_MAX_BYTES = 2 * 1024 * 1024;
+export const CONCERT_IMAGE_TOO_LARGE_MESSAGE =
+  '이미지 크기는 2MB를 넘을 수 없습니다.';
+export const CONCERT_IMAGE_SLOTS = ['poster', 'title', 'subtitle'] as const;
+export const TICKET_IMAGE_SIDES = ['front', 'back'] as const;

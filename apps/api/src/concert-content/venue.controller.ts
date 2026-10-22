@@ -1,10 +1,24 @@
-import { Body, Controller, Get, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Put,
+  Post,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { ConcertContentService } from './concert-content.service.js';
 import { UpdateVenueDto } from './dto/update-concert-content.dto.js';
 
+import { GeocodingService } from '../geocoding/geocoding.service.js';
+import { GeocodeAddressDto } from './dto/geocode-address.dto.js';
+
 @Controller('venue')
 export class VenueController {
-  constructor(private readonly content: ConcertContentService) {}
+  constructor(
+    private readonly content: ConcertContentService,
+    private readonly geocoding: GeocodingService,
+  ) {}
 
   @Get()
   find() {
@@ -14,5 +28,10 @@ export class VenueController {
   @Put()
   update(@Body() dto: UpdateVenueDto) {
     return this.content.updateVenue(dto);
+  }
+  @Post('geocode')
+  @HttpCode(HttpStatus.OK)
+  geocode(@Body() dto: GeocodeAddressDto) {
+    return this.geocoding.geocode(dto.address);
   }
 }
