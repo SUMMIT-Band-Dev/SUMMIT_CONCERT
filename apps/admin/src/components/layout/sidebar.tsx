@@ -2,7 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CircleUser, Clapperboard, Clock, LogOut, Music, Users, type LucideIcon } from "lucide-react";
+import {
+  CalendarDays,
+  CircleUser,
+  Clapperboard,
+  Clock,
+  Info,
+  LogOut,
+  Music,
+  Ticket,
+  TriangleAlert,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 import { useSessionRemainingMs } from "@/lib/auth/use-session-remaining";
 import { formatSessionRemaining, isSessionExpiringSoon } from "@/lib/auth/session-remaining";
 import { BRAND_NAME, isNavActive, NAV_ITEMS } from "@/lib/nav";
@@ -13,6 +25,10 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   "/teams": Users,
   "/songs": Music,
   "/youtube": Clapperboard,
+  "/concert": Info,
+  "/performance-days": CalendarDays,
+  "/ticket": Ticket,
+  "/notice": TriangleAlert,
 };
 
 interface SidebarContentProps {
@@ -41,11 +57,14 @@ export function SidebarContent({ username, onLogout, onNavigate }: SidebarConten
 
       <nav aria-label="관리자 메뉴" className="flex-1 overflow-y-auto px-2 py-3">
         <ul className="grid gap-0.5">
-          {NAV_ITEMS.map((item) => {
+          {NAV_ITEMS.map((item, index) => {
             const Icon = NAV_ICONS[item.href];
             const isActive = isNavActive(pathname, item.href);
             return (
               <li key={item.href}>
+                {item.group && item.group !== NAV_ITEMS[index - 1]?.group ? (
+                  <p className="px-3 pb-2 pt-5 text-small font-medium text-sidebar-muted">{item.group}</p>
+                ) : null}
                 <Link
                   href={item.href}
                   onClick={onNavigate}
