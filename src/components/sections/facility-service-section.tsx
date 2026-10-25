@@ -226,7 +226,6 @@ const serviceCards: ServiceCard[] = [
 ];
 
 const serviceCardHrefById: Partial<Record<ServiceCard["id"], string>> = {
-  StageInfoCard: "https://flexlounge.creatorlink.net/",
   TimeTableCard: "/time-table",
   TicketInfoCard: "/ticket-info",
   EventMDCard: "/event-goods",
@@ -291,7 +290,7 @@ function ServiceCard({ card, href }: ServiceCardProps) {
   );
 }
 
-export default function FacilityServiceSection() {
+export default function FacilityServiceSection({ stageInfoUrl }: { stageInfoUrl: string | null }) {
   return (
     <section
       id="facility-service"
@@ -309,7 +308,7 @@ export default function FacilityServiceSection() {
             <ServiceCard
               key={card.id}
               card={card}
-              href={serviceCardHrefById[card.id]}
+              href={card.id === "StageInfoCard" ? (stageInfoUrl ?? undefined) : serviceCardHrefById[card.id]}
             />
           ))}
         </div>

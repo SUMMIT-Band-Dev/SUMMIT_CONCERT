@@ -1,3 +1,4 @@
+import { getConcert } from "@/lib/concert-content";
 import { fetchLineUpRows, fetchSetlistRows } from "@/lib/fetch-line-up-and-setlist";
 import { buildLineUpCards, buildTracksByTeamId } from "@/lib/line-up";
 import FadeInUp from "@/components/common/fade-in-up";
@@ -139,7 +140,7 @@ async function buildSetlistData(): Promise<{
 }
 
 export default async function SetlistPage() {
-  const { cardsData, trackItemsByTeamId } = await buildSetlistData();
+  const [{ cardsData, trackItemsByTeamId }, concert] = await Promise.all([buildSetlistData(), getConcert()]);
 
   return (
     <main className="relative min-h-screen overflow-hidden pt-16 md:pt-21 lg:pt-25.5">
@@ -150,7 +151,7 @@ export default async function SetlistPage() {
           </h1>
         </FadeInUp>
 
-        <SetlistView cardsData={cardsData} trackItemsByTeamId={trackItemsByTeamId} />
+        <SetlistView cardsData={cardsData} trackItemsByTeamId={trackItemsByTeamId} posterImageUrl={concert.posterImageUrl} />
       </section>
     </main>
   );

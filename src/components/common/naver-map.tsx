@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { escapeHtml } from "@/lib/escape-html";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 declare global {
@@ -10,10 +11,13 @@ declare global {
 }
 
 const MAP_DIV_ID = "naver-map-container";
-const VENUE_LAT = 37.552555;
-const VENUE_LNG = 126.91899;
 
-export default function NaverMap() {
+export default function NaverMap({ latitude, longitude, name, address }: {
+  latitude: number;
+  longitude: number;
+  name: string;
+  address: string;
+}) {
   useEffect(() => {
     const clientId = process.env.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID ?? "";
 
@@ -21,7 +25,7 @@ export default function NaverMap() {
       const el = document.getElementById(MAP_DIV_ID);
       if (!el || !window.naver?.maps) return;
 
-      const center = new window.naver.maps.LatLng(VENUE_LAT, VENUE_LNG);
+      const center = new window.naver.maps.LatLng(latitude, longitude);
       const map = new window.naver.maps.Map(el, {
         center,
         zoom: 17,
@@ -36,8 +40,8 @@ export default function NaverMap() {
       const infoWindow = new window.naver.maps.InfoWindow({
         content: `
           <div style="padding:10px 14px;font-family:sans-serif;min-width:120px;">
-            <strong style="font-size:13px;">플렉스라운지</strong><br/>
-            <span style="font-size:11px;color:#666;">서울 관악구 남부순환로 1937</span>
+            <strong style="font-size:13px;">${escapeHtml(name)}</strong><br/>
+            <span style="font-size:11px;color:#666;">${escapeHtml(address)}</span>
           </div>
         `,
         borderWidth: 0,
@@ -59,15 +63,16 @@ export default function NaverMap() {
     const existingScript = document.getElementById("naver-map-script");
     if (existingScript) {
       existingScript.addEventListener("load", initMap);
-      return;
+      return () => existingScript.removeEventListener("load", initMap);
     }
 
     const script = document.createElement("script");
     script.id = "naver-map-script";
     script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${clientId}`;
-    script.onload = initMap;
+    script.addEventListener("load", initMap);
     document.head.appendChild(script);
-  }, []);
+    return () => script.removeEventListener("load", initMap);
+  }, [latitude, longitude, name, address]);
 
   return (
     <div
