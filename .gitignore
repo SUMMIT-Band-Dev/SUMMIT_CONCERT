@@ -53,3 +53,5 @@ next-env.d.ts
 
 # Codex가 구현 PR 본문을 임시로 쓰는 위치 (create-impl-pr --body-file)
 .ai-tmp/
+
+.shrimp-data/WebGUI.md
