@@ -54,7 +54,10 @@ const CARD_IMAGE_LIMITS = {
  * 분기 기준도 메시지가 아니라 `code`다 — Nest의 `transformException`은 영어 메시지
  * 문자열로 분기하는데, 그건 multer가 문구를 바꾸면 조용히 깨진다.
  */
-export function toUploadException(error: unknown): unknown {
+export function toUploadException(
+  error: unknown,
+  tooLargeMessage = CARD_IMAGE_TOO_LARGE_MESSAGE,
+): unknown {
   if (!(error instanceof multer.MulterError)) {
     // 출처가 multer가 아니면 원본 그대로 돌려보낸다 (메시지를 건드리지 않는다)
     return error;
@@ -62,7 +65,7 @@ export function toUploadException(error: unknown): unknown {
 
   switch (error.code) {
     case 'LIMIT_FILE_SIZE':
-      return new PayloadTooLargeException(CARD_IMAGE_TOO_LARGE_MESSAGE);
+      return new PayloadTooLargeException(tooLargeMessage);
     case 'LIMIT_UNEXPECTED_FILE':
       return new BadRequestException(CARD_IMAGE_FIELD_MESSAGE);
     case 'LIMIT_FILE_COUNT':
