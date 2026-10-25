@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ALBUM_COVER_IMAGE_ORIGIN, buildContentSecurityPolicy, toOrigin } from "./csp";
+import { ALBUM_COVER_IMAGE_ORIGIN, NAVER_MAP_ORIGINS, buildContentSecurityPolicy, toOrigin } from "./csp";
 
 function directive(csp: string, name: string): string[] {
   const found = csp.split("; ").find((d) => d.startsWith(`${name} `) || d === name);
@@ -25,7 +25,11 @@ describe("buildContentSecurityPolicy", () => {
   const prod = { apiBaseUrl: "https://api.example.com", publicSiteOrigin: "https://site.example.com", isDev: false };
 
   it("운영: connect-src는 self와 API 오리진뿐이다", () => {
-    expect(directive(buildContentSecurityPolicy(prod), "connect-src")).toEqual(["'self'", "https://api.example.com"]);
+    expect(directive(buildContentSecurityPolicy(prod), "connect-src")).toEqual([
+      "'self'",
+      "https://api.example.com",
+      ...NAVER_MAP_ORIGINS.connect,
+    ]);
   });
 
   it("운영: 개발용 허용(unsafe-eval, ws)이 없고 upgrade-insecure-requests가 있다", () => {
@@ -38,7 +42,7 @@ describe("buildContentSecurityPolicy", () => {
   it("개발: unsafe-eval과 HMR 웹소켓을 허용하고 upgrade-insecure-requests는 뺀다", () => {
     const csp = buildContentSecurityPolicy({ apiBaseUrl: "http://localhost:3001", isDev: true });
     expect(directive(csp, "script-src")).toContain("'unsafe-eval'");
-    expect(directive(csp, "connect-src")).toEqual(["'self'", "http://localhost:3001", "ws://localhost:*"]);
+    expect(directive(csp, "connect-src")).toEqual(["'self'", "http://localhost:3001", "ws://localhost:*", ...NAVER_MAP_ORIGINS.connect]);
     expect(csp).not.toContain("upgrade-insecure-requests");
   });
 
@@ -77,13 +81,8 @@ describe("buildContentSecurityPolicy", () => {
       supabaseStorageOrigin: "javascript:alert(1)",
       isDev: false,
     });
-    expect(directive(csp, "connect-src")).toEqual(["'self'"]);
-    expect(directive(csp, "img-src")).toEqual([
-      "'self'",
-      "data:",
-      "blob:",
-      ALBUM_COVER_IMAGE_ORIGIN,
-    ]);
+    expect(directive(csp, "connect-src")).toEqual(["'self'", ...NAVER_MAP_ORIGINS.connect]);
+    expect(directive(csp, "img-src")).toEqual(["'self'", "data:", "blob:", ALBUM_COVER_IMAGE_ORIGIN, ...NAVER_MAP_ORIGINS.img]);
   });
 
   it("프레임·플러그인·base·form을 막는다", () => {
@@ -93,4 +92,41 @@ describe("buildContentSecurityPolicy", () => {
     expect(directive(csp, "base-uri")).toEqual(["'self'"]);
     expect(directive(csp, "form-action")).toEqual(["'self'"]);
   });
+
+  it("네이버 지도 오리진은 명세의 고정값이다", () => {
+    expect(NAVER_MAP_ORIGINS).toEqual({
+      script: ["https://oapi.map.naver.com", "https://nrbe.pstatic.net"],
+      img: ["https://nrbe.pstatic.net", "https://ssl.pstatic.net"],
+      connect: ["https://kr-col-ext.nelo.navercorp.com"],
+    });
+  });
+
+  it.each([prod, { apiBaseUrl: "garbage", isDev: false }, { isDev: true }])(
+    "설정과 관계없이 필요한 지시어에만 지도 오리진을 허용한다",
+    (options) => {
+      const csp = buildContentSecurityPolicy(options);
+      expect(directive(csp, "script-src")).toEqual([
+        "'self'",
+        "'unsafe-inline'",
+        ...(options.isDev ? ["'unsafe-eval'"] : []),
+        ...NAVER_MAP_ORIGINS.script,
+      ]);
+      for (const origin of NAVER_MAP_ORIGINS.img) expect(directive(csp, "img-src")).toContain(origin);
+      for (const origin of NAVER_MAP_ORIGINS.connect) {
+        expect(directive(csp, "connect-src")).toContain(origin);
+        expect(directive(csp, "script-src")).not.toContain(origin);
+        expect(directive(csp, "img-src")).not.toContain(origin);
+      }
+      for (const origin of [...NAVER_MAP_ORIGINS.script, ...NAVER_MAP_ORIGINS.img])
+        expect(directive(csp, "connect-src")).not.toContain(origin);
+      expect(directive(csp, "img-src")).not.toContain(NAVER_MAP_ORIGINS.script[0]);
+      expect(directive(csp, "script-src")).not.toContain(NAVER_MAP_ORIGINS.img[1]);
+      expect(csp).not.toMatch(/\*\.(?:pstatic\.net|naver\.com|navercorp\.com)/);
+      expect(directive(csp, "default-src")).toEqual(["'self'"]);
+      expect(directive(csp, "style-src")).toEqual(["'self'", "'unsafe-inline'"]);
+      expect(directive(csp, "font-src")).toEqual(["'self'", "data:"]);
+      expect(directive(csp, "frame-ancestors")).toEqual(["'none'"]);
+      expect(directive(csp, "object-src")).toEqual(["'none'"]);
+    },
+  );
 });

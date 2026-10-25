@@ -15,6 +15,9 @@ import {
   uploadConcertImage,
   uploadTimetableImage,
   uploadTicketImage,
+  getVenue,
+  updateVenue,
+  geocodeAddress,
 } from "./concert-content";
 
 vi.mock("./client", () => ({ apiRequest: vi.fn() }));
@@ -23,6 +26,44 @@ beforeEach(() => {
 });
 
 describe("공연 콘텐츠 API", () => {
+  it("공연장 조회는 signal과 응답을 그대로 전달한다", async () => {
+    const signal = new AbortController().signal;
+    const response = { id: "1", latitude: 37.552555, longitude: 126.91899 };
+    vi.mocked(apiRequest).mockResolvedValueOnce(response);
+    expect(await getVenue({ signal })).toBe(response);
+    expect(apiRequest).toHaveBeenCalledExactlyOnceWith("/venue", { signal });
+  });
+  it("공연장 저장은 PUT 본문과 signal을 전달한다", async () => {
+    const signal = new AbortController().signal;
+    const input = {
+      name: "공연장",
+      address: "주소",
+      addressDetail: "",
+      latitude: 37.552555,
+      longitude: 126.91899,
+      naverMapUrl: "",
+      websiteUrl: "",
+    };
+    const response = { data: input, revalidated: false };
+    vi.mocked(apiRequest).mockResolvedValueOnce(response);
+    expect(await updateVenue(input, { signal })).toBe(response);
+    expect(apiRequest).toHaveBeenCalledExactlyOnceWith("/venue", { method: "PUT", body: input, signal });
+  });
+  it("주소 검색은 POST로 주소만 보내고 좌표 응답을 반환한다", async () => {
+    const signal = new AbortController().signal;
+    const response = { latitude: 37.552555, longitude: 126.91899, roadAddress: "도로명 주소" };
+    vi.mocked(apiRequest).mockResolvedValueOnce(response);
+    expect(await geocodeAddress("서울특별시 마포구 양화로 100-10", { signal })).toBe(response);
+    expect(apiRequest).toHaveBeenCalledExactlyOnceWith("/venue/geocode", {
+      method: "POST",
+      body: { address: "서울특별시 마포구 양화로 100-10" },
+      signal,
+    });
+  });
+  it("공연장 검색·저장 오류를 숨기지 않는다", async () => {
+    vi.mocked(apiRequest).mockRejectedValueOnce(new Error("주소를 다시 확인하거나 지도에서 직접 위치를 지정해 주세요."));
+    await expect(geocodeAddress("없는주소테스트12345")).rejects.toThrow("주소를 다시 확인하거나 지도에서 직접 위치를 지정해 주세요.");
+  });
   it("조회 4종은 signal을 전달하고 응답을 그대로 반환한다", async () => {
     const signal = new AbortController().signal;
     const calls = [

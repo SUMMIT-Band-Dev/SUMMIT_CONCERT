@@ -97,3 +97,19 @@ export interface InfoSection {
 
 /** 공연 콘텐츠 저장·업로드의 공통 응답 */
 export type SaveResult<T> = { data: T; revalidated: boolean };
+
+/** 미러링: apps/api/src/concert-content/dto/content-response.ts `VenueResponse` */
+export interface Venue {
+  id: string;
+  name: string;
+  address: string;
+  addressDetail: string | null;
+  latitude: number;
+  longitude: number;
+  naverMapUrl: string | null;
+  websiteUrl: string | null;
+  updatedAt: string;
+}
+
+/** 미러링: apps/api/src/geocoding/geocoding.service.ts `geocode` 응답 */
+export type GeocodeResult = { latitude: number; longitude: number; roadAddress: string };
