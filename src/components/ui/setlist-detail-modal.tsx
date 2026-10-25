@@ -9,6 +9,7 @@ import { DummyPosterArtwork, SquareGrayArtwork } from "@/components/ui/artwork-p
 import type { SetlistCard, TrackItem } from "@/types/setlist";
 
 type SetlistDetailModalProps = {
+  posterImageUrl: string | null;
   selectedCard: SetlistCard | null;
   trackItems: TrackItem[];
   onClose: () => void;
@@ -16,6 +17,7 @@ type SetlistDetailModalProps = {
 };
 
 export default function SetlistDetailModal({
+  posterImageUrl,
   selectedCard,
   trackItems,
   onClose,
@@ -125,13 +127,15 @@ export default function SetlistDetailModal({
 
               <div className="relative mt-8 overflow-hidden px-4 pb-8 pt-4 text-white">
                 <div className="pointer-events-none absolute inset-0">
-                  <Image
-                    src="/concert-poster-latest.png"
-                    alt=""
-                    fill
-                    sizes="100vw"
-                    className="object-cover object-center opacity-20"
-                  />
+                  {posterImageUrl ? (
+                    <Image
+                      src={posterImageUrl}
+                      alt=""
+                      fill
+                      sizes="100vw"
+                      className="object-cover object-center opacity-20"
+                    />
+                  ) : null}
                   <div className="absolute inset-0 bg-black/72" />
                 </div>
                 <div className="pointer-events-none absolute inset-0 ring-1 ring-white/10" />
@@ -284,13 +288,15 @@ export default function SetlistDetailModal({
 
               <div className="relative w-98.75 overflow-hidden border-l border-white/15 px-7 pb-6 pt-7 text-white">
                 <div className="pointer-events-none absolute inset-0">
-                  <Image
-                    src="/concert-poster-latest.png"
-                    alt=""
-                    fill
-                    sizes="395px"
-                    className="object-cover object-center opacity-[0.34]"
-                  />
+                  {posterImageUrl ? (
+                    <Image
+                      src={posterImageUrl}
+                      alt=""
+                      fill
+                      sizes="395px"
+                      className="object-cover object-center opacity-[0.34]"
+                    />
+                  ) : null}
                   <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,10,10,0.58)_0%,rgba(6,6,6,0.76)_100%)]" />
                 </div>
                 <div className="pointer-events-none absolute inset-0 ring-1 ring-white/10" />

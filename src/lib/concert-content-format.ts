@@ -20,3 +20,8 @@ export function formatTicketDateRange(start: string, end: string, showTime: stri
 export function formatBookingLineup(lineupOverride: string | null, autoLineup: readonly string[]): string {
   return lineupOverride?.trim() ? lineupOverride : autoLineup.join(", ");
 }
+
+export function formatTimetableTabLabel(dayKey: string, dayLabel: string): string {
+  const match = /^day(\d+)$/.exec(dayKey);
+  return match ? `${Number(match[1])}일차 공연` : dayLabel;
+}
