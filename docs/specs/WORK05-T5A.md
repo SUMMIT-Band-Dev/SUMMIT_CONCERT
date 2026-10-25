@@ -1,6 +1,6 @@
 ---
 spec_id: WORK05-T5A
-revision: 0
+revision: 1
 ---
 
 # WORK05-T5A — 공개 사이트 공연 콘텐츠 조회 계층 + 재검증 엔드포인트
@@ -142,7 +142,7 @@ fetch: (input, init = {}) =>
 - AC-09 조회 실패·단일 행 없음·필수 값 형식 오류에서 `ConcertContentError`를 던지고, 메시지에 Supabase 오류 객체·URL·키를 넣지 않는다
 - AC-10 `formatHomeDateRange`·`formatTicketDateRange`·`formatBookingLineup`이 테스트 계획의 Node 확인 명령에서 설계 결정 6의 예시와 같은 값을 출력한다. 이 파일에 `import`와 `new Date`가 없다
 - AC-11 루트에서 `npm run lint`·`npm run typecheck`가 통과한다
-- AC-12 루트에서 `npm run build`가 성공하고, 출력의 라우트 표에 `/api/revalidate`가 동적(ƒ) 라우트로 있으며, 다른 페이지의 렌더링 방식 표시는 변경 전 빌드와 같다 (두 빌드 출력의 라우트 표를 PR 본문에 붙인다)
+- AC-12 [manual] 루트에서 `npm run build`가 성공하고, 출력의 라우트 표에 `/api/revalidate`가 동적(ƒ) 라우트로 있으며, 다른 페이지의 렌더링 방식 표시는 변경 전 빌드와 같다. CI는 루트 빌드를 실행하지 않고 읽기 전용 리뷰는 PR 본문을 보지 못하므로, Codex는 변경 전·후 두 빌드의 라우트 표를 PR 본문에 붙이고 **사용자가 그 두 표를 비교하고 로컬 빌드 결과를 확인한다**
 - AC-13 `origin/develop` 대비 변경 파일이 범위 "포함"의 파일뿐이다. `src/app/` 아래에서 바뀐 것은 `src/app/api/revalidate/route.ts` 추가뿐이고, `src/components/`·`src/lib/supabase.ts`·`next.config.ts`·`apps/`는 바뀌지 않았다
 - AC-14 [manual] 로컬 프로덕션 실행(`npm run build && npm start`)에서 `/api/revalidate`가 올바른 시크릿 + `{"tags":["concert"]}`에 200 `{"revalidated":true,"tags":["concert"]}`, 틀린 시크릿에 401, 시크릿 없음에 401, `{"tags":["nope"]}`에 400, `GET`에 405로 응답한다
 - AC-15 [manual] 로컬 공개 사이트(3000)·API(3001, `PUBLIC_SITE_URL=http://localhost:3000`)·관리자(3010)를 띄우고 관리자 `/ticket`에서 티켓 설명을 저장하면, 지연 경고 대신 "저장했습니다."가 뜬다 (`revalidated: true`)
@@ -171,18 +171,19 @@ node --input-type=module -e "const f = await import('./src/lib/concert-content-f
 # 저장소 루트 — CI와 빌드
 npm run lint        # 통과 (AC-11)
 npm run typecheck   # 통과 (AC-11)
-npm run build       # 성공, 라우트 표를 PR 본문에 붙인다 (AC-12)
+npm run build       # 성공, 변경 후 라우트 표를 PR 본문에 붙인다 (AC-12, [manual])
 ```
 
 - Node 확인 명령은 **Git Bash** 기준 따옴표다. 실행하면 `[MODULE_TYPELESS_PACKAGE_JSON] Warning`이 함께 나오는데 정상이다(루트 `package.json`에 `type`이 없어 ESM으로 다시 해석한다는 안내). **경고를 없애려고 `package.json`에 `"type": "module"`을 넣지 않는다** — 빌드 설정 전체에 영향을 준다. 2026-10-25 같은 명령을 설계 결정 그대로의 시제품 모듈로 실행해 위 기대값이 나오는 것을 확인했다
-- AC-12의 "변경 전 빌드"는 작업 시작 전에 `origin/develop` 상태에서 `npm run build`를 한 번 실행해 라우트 표를 저장해 둔다
+- 기준 AC-12 [manual]의 "변경 전 빌드"는 작업 시작 전에 `origin/develop` 상태에서 `npm run build`를 한 번 실행해 라우트 표를 저장해 둔다. PR 본문에 "변경 전 / 변경 후" 라우트 표 두 개를 붙인다 (사용자 확인 절차 0번에서 사용자가 비교한다)
 - `npm run build`는 루트 `.env.local`의 Supabase 값을 쓴다. 이 명세의 조회 함수는 어떤 페이지도 부르지 않으므로 빌드 중 새 테이블을 조회하지 않는다
 
-### 사용자 확인 절차 (AC-14·AC-15) — PR 생성 후 사용자에게 요청할 내용
+### 사용자 확인 절차 (AC-12·AC-14·AC-15) — PR 생성 후 사용자에게 요청할 내용
 
 Codex는 PR을 만든 뒤 아래 절차를 사용자에게 그대로 안내하고 끝낸다 (실행하지 않는다). 시크릿 값을 채팅·PR에 붙여넣지 않는다.
 
 1. 공유 폴더에서 PR 브랜치를 체크아웃하고 루트에서 `npm install` → `npm run build` → `npm start` (포트 3000)
+0. (AC-12) PR 본문의 "변경 전 / 변경 후" 라우트 표 두 개를 비교한다: 변경 후에만 `/api/revalidate`(ƒ)가 추가되고 나머지 라우트의 렌더링 방식 표시(○·ƒ 등)는 같아야 한다. 가능하면 로컬 `npm run build` 성공도 직접 확인한다
 2. (AC-14) 새 터미널(Git Bash)에서 시크릿을 화면에 출력하지 않고 변수로 읽는다: `S=$(grep '^REVALIDATE_SECRET=' .env.local | cut -d= -f2-)`
    - `curl -s -X POST localhost:3000/api/revalidate -H "x-revalidate-secret: $S" -H 'content-type: application/json' -d '{"tags":["concert"]}'` → `{"revalidated":true,"tags":["concert"]}`
    - 같은 요청에 `-H "x-revalidate-secret: wrong"` → HTTP 401 (`-o /dev/null -w '%{http_code}\n'`로 상태만 확인)
@@ -190,4 +191,4 @@ Codex는 PR을 만든 뒤 아래 절차를 사용자에게 그대로 안내하�
    - 올바른 시크릿 + `-d '{"tags":["nope"]}'` → 400
    - `curl -s -o /dev/null -w '%{http_code}\n' localhost:3000/api/revalidate` (GET) → 405
 3. (AC-15) `apps/api/.env`의 `PUBLIC_SITE_URL`이 `http://localhost:3000`인지 확인하고 `apps/api`에서 `npm run start:dev`, `apps/admin`에서 `npm run dev`를 실행한다 → 관리자 `/ticket`에서 티켓 설명을 저장 → "저장했습니다."가 뜨는지(지연 경고가 아닌지) 확인한다
-4. 확인이 끝나면 PR 본문의 AC-14·AC-15를 체크하고 머지한다. 이 PR은 화면을 바꾸지 않으므로 T6 전에 머지해도 된다. 머지 후 Vercel 배포가 끝나면 운영 관리자에서 저장했을 때도 "저장했습니다."가 뜬다 (서버 API의 `PUBLIC_SITE_URL`이 `https://summit-concert.live`이고, `redirect: 'error'`이므로 리다이렉트 없는 최종 주소여야 한다 — 지연 경고가 계속 뜨면 이 값부터 확인한다)
+4. 확인이 끝나면 PR 본문의 AC-12·AC-14·AC-15를 체크하고 머지한다. 이 PR은 화면을 바꾸지 않으므로 T6 전에 머지해도 된다. 머지 후 Vercel 배포가 끝나면 운영 관리자에서 저장했을 때도 "저장했습니다."가 뜬다 (서버 API의 `PUBLIC_SITE_URL`이 `https://summit-concert.live`이고, `redirect: 'error'`이므로 리다이렉트 없는 최종 주소여야 한다 — 지연 경고가 계속 뜨면 이 값부터 확인한다)
