@@ -1,4 +1,10 @@
-export const PUBLIC_PAGE_PATHS = { concert: "/", performanceDays: "/time-table", ticket: "/ticket-info", notice: "/notice" } as const;
+export const PUBLIC_PAGE_PATHS = {
+  concert: "/",
+  venue: "/location",
+  performanceDays: "/time-table",
+  ticket: "/ticket-info",
+  notice: "/notice",
+} as const;
 
 export function buildPublicPageUrl(path: string, origin: string | undefined): string | null {
   if (!origin?.trim() || !path.startsWith("/") || path.startsWith("//")) return null;

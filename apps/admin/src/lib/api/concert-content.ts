@@ -1,7 +1,7 @@
 // 미러링: apps/api/src/concert-content/*.controller.ts
 import { apiRequest, type ApiRequestOptions } from "./client";
 import { CARD_IMAGE_FIELD_NAME } from "./teams";
-import type { Concert, PerformanceDay, Ticket, InfoSection, SaveResult } from "./types";
+import type { Concert, PerformanceDay, Ticket, InfoSection, SaveResult, Venue, GeocodeResult } from "./types";
 
 export const CONCERT_IMAGE_SLOTS = ["poster", "title", "subtitle"] as const;
 export const TICKET_IMAGE_SIDES = ["front", "back"] as const;
@@ -17,12 +17,23 @@ type UploadOptions = Pick<ApiRequestOptions, "signal" | "timeoutMs">;
 export type UpdateConcertInput = Pick<Concert, "titleKo" | "titleEn" | "subtitle" | "startDate" | "endDate" | "showTime">;
 export type UpdatePerformanceDayInput = Pick<PerformanceDay, "dayLabel" | "dateLabel" | "bookingUrl" | "lineupOverride">;
 export type UpdateTicketInput = Pick<Ticket, "description">;
+export type UpdateVenueInput = Pick<Venue, "name" | "address" | "addressDetail" | "latitude" | "longitude" | "naverMapUrl" | "websiteUrl">;
 export interface UpdateInfoSectionsInput {
   sections: { title: string; items: { content: string }[] }[];
 }
 
 export function getConcert(options: RequestOptions = {}): Promise<Concert> {
   return apiRequest("/concert", options);
+}
+
+export function getVenue(options: RequestOptions = {}): Promise<Venue> {
+  return apiRequest("/venue", options);
+}
+export function updateVenue(input: UpdateVenueInput, options: RequestOptions = {}): Promise<SaveResult<Venue>> {
+  return apiRequest("/venue", { method: "PUT", body: input, ...options });
+}
+export function geocodeAddress(address: string, options: RequestOptions = {}): Promise<GeocodeResult> {
+  return apiRequest("/venue/geocode", { method: "POST", body: { address }, ...options });
 }
 export function updateConcert(input: UpdateConcertInput, options: RequestOptions = {}): Promise<SaveResult<Concert>> {
   return apiRequest("/concert", { method: "PUT", body: input, ...options });

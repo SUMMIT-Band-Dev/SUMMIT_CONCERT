@@ -3,6 +3,7 @@ export const queryKeys = {
   me: ["auth", "me"] as const,
   teams: ["teams"] as const,
   concert: ["concert"] as const,
+  venue: ["venue"] as const,
   performanceDays: ["performance-days"] as const,
   ticket: ["ticket"] as const,
   infoSections: (category: "ticket" | "notice") => ["info-sections", category] as const,

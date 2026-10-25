@@ -8,6 +8,7 @@ describe("nav", () => {
       "곡 관리",
       "유튜브 연결 관리",
       "공연 기본 정보",
+      "공연장 정보",
       "일차별 공연",
       "티켓 안내",
       "관람 유의사항",
@@ -15,6 +16,7 @@ describe("nav", () => {
     expect(NAV_ITEMS.slice(0, 3).every((item) => item.group === undefined)).toBe(true);
     expect(NAV_ITEMS.slice(3).map(({ href, group }) => ({ href, group }))).toEqual([
       { href: "/concert", group: "공연 콘텐츠" },
+      { href: "/venue", group: "공연 콘텐츠" },
       { href: "/performance-days", group: "공연 콘텐츠" },
       { href: "/ticket", group: "공연 콘텐츠" },
       { href: "/notice", group: "공연 콘텐츠" },
@@ -30,6 +32,7 @@ describe("nav", () => {
 
   it("경로로 메뉴 항목을 찾는다", () => {
     expect(findNavItem("/youtube")?.label).toBe("유튜브 연결 관리");
+    expect(findNavItem("/venue")?.label).toBe("공연장 정보");
     expect(findNavItem("/performance-days")?.label).toBe("일차별 공연");
     expect(findNavItem("/songs/5")?.label).toBe("곡 관리");
     expect(findNavItem("/nope")).toBeUndefined();
