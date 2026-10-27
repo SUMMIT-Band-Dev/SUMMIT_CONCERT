@@ -7,8 +7,8 @@
  * ## 전역 순서
  *
  * ```
- *   "Line Up"  →  "Setlist"  →  "YoutubeSearchAttempt"
- *      (1)           (2)                 (3)
+ *   "Line Up"  →  "Setlist"
+ *      (1)           (2)
  * ```
  *
  * ## 경로별로 실제 잡는 잠금
@@ -19,12 +19,11 @@
  * | `PATCH /songs/:id` (곡 수정) | Line Up → Setlist UPDATE | 1→2 |
  * | `PUT /songs/:id/youtube-url` (F025) | Setlist UPDATE 만 | 2 |
  * | `DELETE /songs/:id/youtube-url` (F025) | Setlist UPDATE 만 | 2 |
- * | `youtube:cleanup` 스크립트 | Attempt / Recommendation 만 | 3 |
  *
  * ## 데드락이 불가능한 이유
  *
  * 순환 대기가 성립하려면 **두 경로가 서로 반대 순서로 같은 두 자원을 잡아야** 한다.
- * 위 표의 모든 경로는 `1 → 2 → 3`의 부분열이고, 역순으로 잡는 경로가 하나도 없다.
+ * 위 표의 모든 경로는 `1 → 2`의 부분열이고, 역순으로 잡는 경로가 하나도 없다.
  * 따라서 대기 그래프에 사이클이 생길 수 없다.
  *
  * ## 새 경로를 추가할 때
@@ -32,7 +31,7 @@
  * 이 순서를 어겨야 할 것 같으면 그 설계가 틀렸을 가능성이 높다. 표에 줄을 추가하고
  * 부분열인지 먼저 확인한다. `lock-order.spec.ts`가 이 상수의 순서를 테스트로 고정한다.
  */
-export const LOCK_ORDER = ['Line Up', 'Setlist', 'YoutubeSearchAttempt'] as const;
+export const LOCK_ORDER = ['Line Up', 'Setlist'] as const;
 
 export type LockableTable = (typeof LOCK_ORDER)[number];
 
