@@ -5,6 +5,8 @@
 > **명세대로 구현할 수 없거나 명세가 틀렸다고 판단되면, 우회하지 말고 작업을 멈추고 이유를 보고한다.** 설계 수정은 Claude Code가 이 문서에 반영한다.
 >
 > 작성: 2026-10-17 · 기준 PRD: `docs/specs/prd-construction.md` (✅ 확정 사항 2026-10-17)
+>
+> **진행 (2026-10-27)**: T1~T6 완료·배포. T7은 단위 명세 `docs/specs/WORK05-T7.md`로 진행한다. 진행 표는 `.claude/rules/work-05-construction.md` "상태" 참조
 
 ---
 

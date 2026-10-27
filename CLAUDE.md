@@ -26,13 +26,13 @@
 
 | 단계   | 작업                                                       | 상태                                                                                   | 상세 문서                                       |
 | ------ | ---------------------------------------------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| work05 | 공연 콘텐츠 관리 확장 + 유튜브 연결 관리 단순화 (어드민)  | **진행 중 (2026-10-15 착수)** — PRD: `docs/specs/prd-construction.md` · 구현 명세: `docs/specs/work05-implementation.md` | `.claude/rules/work-05-construction.md`         |
+| work05 | 공연 콘텐츠 관리 확장 + 유튜브 연결 관리 단순화 (어드민)  | **진행 중 (2026-10-15 착수)** — T1~T6 완료·배포(2026-10-27), T7(유튜브 DB 객체 제거) 잔여 · PRD: `docs/specs/prd-construction.md` · 구현 명세: `docs/specs/work05-implementation.md` | `.claude/rules/work-05-construction.md`         |
 | work01 | 리팩토링 (웹 성능 지표 개선)                               | 우선순위 1~4 완료, 5~7(정리 작업 · `@vercel/analytics` · 라우트 리네이밍) 잔여         | `.claude/rules/history/work-01-refactoring.md`  |
 | work04 | 어드민 페이지 기능 수정                                    | 종료 — 범위를 work05로 이관                                                            | `.claude/rules/history/work-04-admin.md`        |
 | work03 | 데이터 업데이트 + 어드민 페이지                            | 종료 — B(어드민)는 work02와 함께 구축 완료, A(데이터 업데이트)는 폐기                 | `.claude/rules/history/work-03-update.md`       |
 | work02 | Nest.js 백엔드 (로그인 + 팀/곡 CRUD 어드민)                | 종료 — 배포 완료. 이전 어드민 PRD: `docs/specs/prd-admin.md`                         | `.claude/rules/history/work-02-nest.js.md`      |
 
-**이력 요약**: 2026-09-19에 Setlist/Line Up 스키마를 FK 구조로 정규화하고 RLS를 활성화한 뒤(`REFACTOR_NOTES.md` §8) work02(백엔드)를 착수해 배포까지 완료함. 이후 어드민 기능 수정을 work04로 신설했으나, 2026-10-15 공연 콘텐츠 전체 관리 + 유튜브 관리 단순화로 범위를 넓혀 work05로 새로 시작함.
+**이력 요약**: 2026-09-19에 Setlist/Line Up 스키마를 FK 구조로 정규화하고 RLS를 활성화한 뒤(`REFACTOR_NOTES.md` §8) work02(백엔드)를 착수해 배포까지 완료함. 이후 어드민 기능 수정을 work04로 신설했으나, 2026-10-15 공연 콘텐츠 전체 관리 + 유튜브 관리 단순화로 범위를 넓혀 work05로 새로 시작함. 2026-10-27 work05 T1~T6을 main에 배포하고 Lightsail API를 재배포함(배포 절차: `apps/api/deploy/README.md`).
 
 다음 두 문서는 작업 종류와 무관하게 항상 적용되는 공통 규칙이므로 항상 로드합니다:
 
@@ -199,7 +199,7 @@ apps/
 | 홈/세트리스트 LCP 4–5s      | `public` 폴더의 이미지가 `next/image`로 최적화되지 않음 | 2        | 진단됨                  |
 | 로드 중 스크롤 끊김         | 이미지 디코딩 또는 메인 스레드 JS 실행                  | 3        | DevTools 성능 기록 필요 |
 | 큰 클라이언트 컴포넌트      | `setlist/` & `event-goods/`는 654 & 539줄로 과도하게 큼 | 4        | 해결됨 (work01-4 Server/Client 분할) |
-| 공연 정보 하드코딩          | 포스터·장소·날짜·티켓·유의사항·예매 링크가 코드에 고정, 주소 불일치 발생 | -        | work05에서 DB 관리로 전환 예정 |
+| 공연 정보 하드코딩          | 포스터·장소·날짜·티켓·유의사항·예매 링크가 코드에 고정, 주소 불일치 발생 | -        | 해결됨 (work05 T5, 2026-10-27 배포 — 어드민에서 관리, 저장 시 재검증) |
 | 중복 파일                   | `lib/src/lib/supabase.ts` (미사용 옛 사본)              | 5        | 해결됨 (2026-10-20 삭제, CLEANUP-0001 #70) |
 | 저장소의 `dist/` 폴더       | 빌드 산물이 커밋됨; 저장소 크기 비대화                  | 5        | 정리 작업               |
 | Supabase Free Tier 일시중지 | 비활성 기간 경과 시 데이터 접근 중단                    | 4        | 운영 위험 요소          |
@@ -252,7 +252,8 @@ apps/
 - **PERFORMANCE_LOG.md**: 성능 개선 작업 단위별 Before/After 지표와 원리 설명·개념 노트 누적 기록. 신규 측정은 `/perf-check`로만 진행 (자동 트리거 없음)
 - **.claude/rules/code-style.md**: 코드 스타일 규칙
 - **.claude/rules/git-rules.md**: Git 브랜치/커밋 규칙
-- **.claude/rules/work-05-construction.md**: work05 상세 범위 (진행 중)
+- **.claude/rules/work-05-construction.md**: work05 상세 범위 (진행 중 — T7 잔여)
+- **apps/api/deploy/README.md**: 관리자 API(Lightsail) 배포 절차. API는 Vercel처럼 자동 배포되지 않으므로 `apps/api` 변경이 머지되면 이 절차로 직접 반영한다
 - **docs/specs/prd-construction.md**: work05 PRD (공연 콘텐츠 관리 + 유튜브 연결 관리 개편)
 - **docs/specs/work05-implementation.md**: work05 구현 명세 (설계 결정 D1~D10, 작업 단위 T1~T7, 완료 기준). T2부터는 단위 명세 `docs/specs/WORK05-T2.md` 등으로 나눠 새 흐름으로 진행 (계획 Step 5)
 - **docs/workflow/claude-codex-plan.md**: Claude·Codex 연결 계획 (분류 규칙, 검증·게이트, 세팅 순서와 진행 표)
