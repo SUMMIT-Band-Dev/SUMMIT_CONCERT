@@ -50,3 +50,8 @@ next-env.d.ts
 # AI agent local configs (API keys, webhooks — never commit)
 .codex/config.toml
 .claude/settings.local.json
+
+# Codex가 구현 PR 본문을 임시로 쓰는 위치 (create-impl-pr --body-file)
+.ai-tmp/
+
+.shrimp-data/WebGUI.md

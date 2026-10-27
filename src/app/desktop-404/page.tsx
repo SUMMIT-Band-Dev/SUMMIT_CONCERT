@@ -1,22 +1,26 @@
+import { getConcert } from "@/lib/concert-content";
 import Link from "next/link";
 import Image from "next/image";
 import SiteHeader from "@/components/layout/site-header";
 
-export default function Desktop404Page() {
+export default async function Desktop404Page() {
+  const concert = await getConcert();
   return (
     <div className="min-h-screen bg-black text-white">
       <SiteHeader />
 
       <main className="relative isolate min-h-screen overflow-hidden pt-16 md:pt-21 lg:pt-25.5">
         <div className="pointer-events-none absolute inset-0 z-0">
-          <Image
-            src="/concert-poster-latest.png"
-            alt="404 배경"
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover object-top"
-          />
+          {concert.posterImageUrl ? (
+            <Image
+              src={concert.posterImageUrl}
+              alt="404 배경"
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover object-top"
+            />
+          ) : null}
           <div className="absolute inset-0 bg-black/45" />
         </div>
 

@@ -26,11 +26,11 @@
 
 | 단계   | 작업                                                       | 상태                                                                                   | 상세 문서                                       |
 | ------ | ---------------------------------------------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| work05 | 공연 콘텐츠 관리 확장 + 유튜브 연결 관리 단순화 (어드민)  | **진행 중 (2026-10-15 착수)** — PRD: `.claude/docs/prd-construction.md` · 구현 명세: `.claude/docs/work05-implementation.md` | `.claude/rules/work-05-construction.md`         |
+| work05 | 공연 콘텐츠 관리 확장 + 유튜브 연결 관리 단순화 (어드민)  | **진행 중 (2026-10-15 착수)** — PRD: `docs/specs/prd-construction.md` · 구현 명세: `docs/specs/work05-implementation.md` | `.claude/rules/work-05-construction.md`         |
 | work01 | 리팩토링 (웹 성능 지표 개선)                               | 우선순위 1~4 완료, 5~7(정리 작업 · `@vercel/analytics` · 라우트 리네이밍) 잔여         | `.claude/rules/history/work-01-refactoring.md`  |
 | work04 | 어드민 페이지 기능 수정                                    | 종료 — 범위를 work05로 이관                                                            | `.claude/rules/history/work-04-admin.md`        |
 | work03 | 데이터 업데이트 + 어드민 페이지                            | 종료 — B(어드민)는 work02와 함께 구축 완료, A(데이터 업데이트)는 폐기                 | `.claude/rules/history/work-03-update.md`       |
-| work02 | Nest.js 백엔드 (로그인 + 팀/곡 CRUD 어드민)                | 종료 — 배포 완료. 이전 어드민 PRD: `.claude/docs/prd-admin.md`                         | `.claude/rules/history/work-02-nest.js.md`      |
+| work02 | Nest.js 백엔드 (로그인 + 팀/곡 CRUD 어드민)                | 종료 — 배포 완료. 이전 어드민 PRD: `docs/specs/prd-admin.md`                         | `.claude/rules/history/work-02-nest.js.md`      |
 
 **이력 요약**: 2026-09-19에 Setlist/Line Up 스키마를 FK 구조로 정규화하고 RLS를 활성화한 뒤(`REFACTOR_NOTES.md` §8) work02(백엔드)를 착수해 배포까지 완료함. 이후 어드민 기능 수정을 work04로 신설했으나, 2026-10-15 공연 콘텐츠 전체 관리 + 유튜브 관리 단순화로 범위를 넓혀 work05로 새로 시작함.
 
@@ -45,45 +45,44 @@
 
 ---
 
-## Claude–Codex 협업 흐름 (work05부터)
+## Claude–Codex 협업 흐름 (2026-10-20부터, 전체 설계: `docs/workflow/claude-codex-plan.md`)
 
-**설계·리뷰는 Claude Code(터미널), 구현은 Codex(패널)**가 맡는다. Codex의 규칙은 루트 `AGENTS.md`에 있으며, 이 섹션과 같은 흐름을 Codex 관점으로 적어 두었다. 흐름을 바꿀 때는 두 파일을 함께 고친다.
+**설계는 Claude Code(터미널), 구현은 Codex(패널), 검증은 GitHub Actions, 머지는 사용자**가 맡는다. Codex의 규칙은 루트 `AGENTS.md`에 같은 흐름을 Codex 관점으로 적어 두었다. 흐름을 바꿀 때는 두 파일과 `.claude/rules/git-rules.md`를 함께 고친다 (모두 정책 경로 → `spec/`·`impl/`이 아닌 일반 브랜치 PR). `spec/`·`impl/`은 파이프라인 예약 접두사이고, 그 밖의 브랜치는 기존 관행(`feature/`·`fix/` 등)대로 쓴다 (`.claude/rules/git-rules.md`).
 
-### 한 작업 단위(Tn)의 흐름 — 항상 직렬로 진행
+### 명세 하나의 흐름 — 항상 직렬로 진행
 
-1. **Claude — 명세 작성·수정 → 커밋**: 명세(`.claude/docs/work05-implementation.md`)를 고치면 `docs/*` 브랜치에서 커밋 → PR → `develop` 머지까지 끝낸 뒤 Codex에 넘긴다. Codex는 `develop`에서 분기하므로 머지되지 않은 명세는 Codex에 보이지 않는다
-2. **Codex — 구현 → 커밋**: 명세의 작업 단위 순서대로, 명세에 적힌 `feature/*` 브랜치에서 구현한다. 커밋은 사용자 확인 후 `source-command-git-commit` 규칙대로 한다. 커밋하고 나면 **멈추고 리뷰를 기다린다** (push·PR은 아직 안 함)
-3. **Claude — 리뷰**: 아래 "리뷰 절차"대로 `code-reviewer` 에이전트로 리뷰한다
-   - 문제가 없으면 → 4로
-   - 구현이 명세와 어긋나면 → "Codex 전달용 수정 요청"을 작성하고, 사용자가 Codex에 전달한다. Codex는 같은 브랜치에 **추가 커밋**으로 고치고(amend·force push 금지), 다시 3으로
-   - 명세 자체가 틀렸으면 → Claude가 명세를 고친다. 이때는 **현재 feature 브랜치에 별도 `📝 docs` 커밋**으로 넣어 구현과 같은 PR로 묶는다. 그다음 수정 요청을 Codex에 전달한다
-4. **push·PR → 머지**: 리뷰를 통과하면 사용자가 `git:push`(Claude) 또는 `source-command-git-push`(Codex)로 PR을 연다. 머지는 사용자가 직접 한다
-5. 머지가 끝난 뒤에 다음 작업 단위로 넘어간다. **이전 PR이 머지되기 전에 다음 Tn을 시작하지 않는다**
+1. **Claude — 명세 PR**: `/design-pr`로 단위 명세 `docs/specs/<SPEC_ID>.md`를 쓰고 `spec/<SPEC_ID>-r<N>` PR을 연다. 수용 기준은 `- AC-xx` 목록, 사람이 확인할 기준은 `[manual]`
+2. **사용자 — 명세 머지**: `pr-gate`(명세 형식·revision 검사) 통과 후 머지. Actions(`spec-merged-notify.yml`)가 그 PR에 **Codex용 프롬프트 코멘트**를 게시한다
+3. **Codex — 판정·구현·PR**: 사용자가 프롬프트를 패널에 붙여넣으면 Codex가 판정 JSON을 출력하고, `ready`면 `impl/<SPEC_ID>-spec-<명세 PR 번호>`에서 구현·테스트·커밋 후 `create-impl-pr`로 PR을 연다 (실행 승인은 사용자)
+4. **Actions — 검증**: `pr-validation.yml`이 `classify`(분류·경로·메타데이터 대조) → `ci` + `review`(Claude 명세 대조 리뷰, 읽기 전용) → `pr-gate`로 판정한다
+5. **사용자 — 머지**: `pr-gate`, 리뷰 잡 요약의 기준별 판정, `[manual]` 체크리스트를 확인하고 머지한다. 이전 구현 PR이 머지되기 전에 다음 명세를 Codex에 넘기지 않는다
 
-### 같은 작업 폴더를 공유하므로 지킬 것
+### 막혔을 때
 
-- Claude와 Codex는 같은 체크아웃을 쓴다. **Codex가 작업 중일 때 Claude는 파일 수정·브랜치 전환·커밋을 하지 않는다** (읽기 전용 확인만 한다)
-- Claude가 명세를 고치거나 커밋할 때는 Codex가 멈춰 있는 상태(커밋 후 리뷰 대기, 또는 작업 단위 사이)여야 한다
-- 브랜치 전환 전에는 `git status`로 미커밋 변경이 없는지 확인한다. 다른 쪽이 남긴 변경이 보이면 손대지 말고 사용자에게 알린다
+- **Codex가 `needs_spec_revision`**: Codex가 출력한 `[명세 보완 요청 — <ID> r<N>]`을 사용자가 Claude에 전달 → Claude가 `/design-pr`로 revision을 올린 명세 PR을 연다 (최대 r2, 그 이상은 사람이 범위를 나눈다)
+- **`pr-gate` 실패**: 잡 요약의 실패 사유를 보고 사용자가 Codex에 수정을 지시한다. Codex는 같은 브랜치에 추가 커밋 후 `create-impl-pr`을 다시 실행한다. 사용자가 Claude에 분석을 요청하면 아래 "구현 PR 확인"을 한다
+- **명세 자체가 틀렸음**: 구현 PR에서 명세를 고치지 않는다 (`impl/` PR은 `docs/specs/`를 바꿀 수 없다). Claude가 revision을 올린 명세 PR을 새로 열고, 머지 후 Codex가 새 프롬프트로 다시 구현한다
 
-### 리뷰 절차 (Claude)
+### Claude 작업 공간
 
-1. 대상 범위 확인: `git log --oneline develop..HEAD`, `git diff --stat develop...HEAD`
-2. diff 전문을 스크래치패드에 저장한다 (`git diff develop...HEAD > <스크래치패드>/review-Tn.diff`). `code-reviewer`는 읽기 전용 도구(Read·Grep·Glob)만 있어 git을 직접 실행하지 못하기 때문이다
-3. `code-reviewer` 에이전트에 넘길 것: 작업 단위 번호(Tn), diff 파일 경로, 변경 파일 목록, 해당 Tn의 범위·완료 기준이 있는 명세 위치
-4. 에이전트 결과를 Claude가 직접 검증한다. 실제 코드를 확인해 사실인 항목만 남긴다. 완료 기준 중 실행이 필요한 것(build·lint·test)은 Codex 보고의 출력을 확인하고, 의심스러우면 Claude가 직접 실행한다
-5. 결과를 사용자에게 보고한다: 통과 여부, 명세 불일치, 버그, 그리고 수정이 필요하면 "Codex 전달용 수정 요청"
+- Claude는 **전용 워크트리 `C:\Users\PC\worktrees\summit-claude`**에서만 파일 수정·브랜치 전환·커밋을 한다
+- 사용자·Codex가 쓰는 OneDrive 체크아웃(`summit_concert`)은 읽기만 한다. 그쪽에 미커밋 변경이 보이면 손대지 말고 사용자에게 알린다
 
-### "Codex 전달용 수정 요청" 형식
+### 구현 PR 확인 (사용자가 요청할 때, Claude)
 
-사용자가 Codex 패널에 그대로 붙여넣을 수 있게, 하나의 코드 블록으로 작성한다.
+CI의 Claude 리뷰는 명세 대조만 한다. 사용자가 더 깊은 확인을 요청하면:
+
+1. 워크트리에서 `git fetch origin` 후 PR 범위 확인: `git diff --stat origin/develop...origin/<impl 브랜치>`
+2. diff 전문을 스크래치패드에 저장하고 `code-reviewer` 에이전트에 diff 경로, 변경 파일 목록, 명세 경로를 넘긴다 (에이전트는 git을 실행하지 못한다)
+3. 에이전트 결과를 Claude가 실제 코드로 검증해 사실인 항목만 남긴다. **API의 메서드·헤더가 바뀌었다면 CORS 설정(`apps/api/src/common/cors.ts`)과 어드민 호출이 맞는지 직접 확인한다** — 서버 단위 테스트는 브라우저 preflight를 거치지 않아 통과해도 화면에서 막힐 수 있다 (work05 T1.1). 브라우저로 확인하지 못한 항목은 "사용자 수동 확인 필요"로 따로 적는다
+4. 수정이 필요하면 사용자가 Codex 패널에 붙여넣을 수 있게 코드 블록 하나로 쓴다
 
 ```
-[work05 Tn 리뷰 수정 요청]
-기준: .claude/docs/work05-implementation.md (Dn / Tn 완료 기준)
+[<SPEC_ID> 수정 요청]
+기준: docs/specs/<SPEC_ID>.md (AC-xx)
 1. <파일:줄> — <문제> → <명세가 요구하는 것>
 2. ...
-수정 후: 같은 브랜치에 추가 커밋(amend 금지), 완료 기준 재검증 출력 첨부, 커밋 후 멈춤
+수정 후: 같은 브랜치에 추가 커밋(amend 금지), 테스트 계획 재실행, create-impl-pr 재실행 후 멈춤
 ```
 
 ---
@@ -128,7 +127,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<익명-키>
 
 - **`apps/admin`**: 관리자 프론트 — Next.js 16.3.5, TanStack Query 5, shadcn/ui, React Hook Form + Zod (별도 Vercel 프로젝트)
 - **`apps/api`**: 관리자 API — NestJS 12 + Prisma 7, Supabase Postgres 직접 연결, JWT 인증, Supabase Storage 이미지 업로드
-- 구성 결정과 근거는 `REFACTOR_NOTES.md` §9 이후, 기능 명세는 `.claude/docs/prd-admin.md`(기존) · `.claude/docs/prd-construction.md`(work05) 참조
+- 구성 결정과 근거는 `REFACTOR_NOTES.md` §9 이후, 기능 명세는 `docs/specs/prd-admin.md`(기존) · `docs/specs/prd-construction.md`(work05) 참조
 
 ## 아키텍처
 
@@ -201,7 +200,7 @@ apps/
 | 로드 중 스크롤 끊김         | 이미지 디코딩 또는 메인 스레드 JS 실행                  | 3        | DevTools 성능 기록 필요 |
 | 큰 클라이언트 컴포넌트      | `setlist/` & `event-goods/`는 654 & 539줄로 과도하게 큼 | 4        | 해결됨 (work01-4 Server/Client 분할) |
 | 공연 정보 하드코딩          | 포스터·장소·날짜·티켓·유의사항·예매 링크가 코드에 고정, 주소 불일치 발생 | -        | work05에서 DB 관리로 전환 예정 |
-| 중복 파일                   | `lib/src/lib/supabase.ts` (삭제 필요)                   | 5        | 정리 작업               |
+| 중복 파일                   | `lib/src/lib/supabase.ts` (미사용 옛 사본)              | 5        | 해결됨 (2026-10-20 삭제, CLEANUP-0001 #70) |
 | 저장소의 `dist/` 폴더       | 빌드 산물이 커밋됨; 저장소 크기 비대화                  | 5        | 정리 작업               |
 | Supabase Free Tier 일시중지 | 비활성 기간 경과 시 데이터 접근 중단                    | 4        | 운영 위험 요소          |
 | 분석 기능 미설치            | Vercel Analytics가 설치되지 않음                        | 4        | H2 공연 시즌에 필요     |
@@ -254,8 +253,11 @@ apps/
 - **.claude/rules/code-style.md**: 코드 스타일 규칙
 - **.claude/rules/git-rules.md**: Git 브랜치/커밋 규칙
 - **.claude/rules/work-05-construction.md**: work05 상세 범위 (진행 중)
-- **.claude/docs/prd-construction.md**: work05 PRD (공연 콘텐츠 관리 + 유튜브 연결 관리 개편)
-- **.claude/docs/work05-implementation.md**: work05 구현 명세 (설계 결정 D1~D10, 작업 단위 T1~T7, 완료 기준) — Codex 구현 기준 문서
+- **docs/specs/prd-construction.md**: work05 PRD (공연 콘텐츠 관리 + 유튜브 연결 관리 개편)
+- **docs/specs/work05-implementation.md**: work05 구현 명세 (설계 결정 D1~D10, 작업 단위 T1~T7, 완료 기준). T2부터는 단위 명세 `docs/specs/WORK05-T2.md` 등으로 나눠 새 흐름으로 진행 (계획 Step 5)
+- **docs/workflow/claude-codex-plan.md**: Claude·Codex 연결 계획 (분류 규칙, 검증·게이트, 세팅 순서와 진행 표)
+- **docs/ai/spec-template.md**, **docs/ai/codex-prompt.template.md**: 단위 명세 템플릿, 명세 머지 시 게시되는 Codex 프롬프트 템플릿
+- **.claude/commands/design-pr.md**: 명세 작성·보완 → `spec/` PR 커맨드
 - **AGENTS.md**: Codex용 진입점 (역할 분담: 설계 Claude Code / 구현 Codex). 이 파일과 규칙을 맞춰 유지한다
-- **.claude/docs/prd-admin.md**: 이전 어드민 PRD (work02, 기존 기능 참고용)
+- **docs/specs/prd-admin.md**: 이전 어드민 PRD (work02, 기존 기능 참고용)
 - **.claude/rules/history/**: 종료된 work 문서 보관 (work01 잔여 항목 포함 — `work-01-refactoring.md`)

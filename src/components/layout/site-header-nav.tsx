@@ -1,0 +1,219 @@
+"use client";
+
+import { AnimatePresence, motion } from "framer-motion";
+import Link from "next/link";
+import { useState } from "react";
+
+type MobileMenuSection = {
+  title: string;
+  href?: string;
+  items?: string[];
+};
+
+const headerNavItems = ["홈", "예매하기", "셋리스트", "시설 및 서비스"];
+
+const mobileMenuHrefByItem: Record<string, string> = {
+  홈: "/",
+  예매하기: "/book",
+  셋리스트: "/setlist",
+  "타임 테이블": "/time-table",
+  "티켓 안내": "/ticket-info",
+  "셋리스트 전체 보기": "/event-goods",
+  "오시는 길": "/location",
+  "관람 유의사항": "/notice",
+};
+
+const headerNavHrefByItem: Record<string, string> = {
+  홈: "/",
+  예매하기: "/book",
+  셋리스트: "/setlist",
+  "시설 및 서비스": "/#facility-service",
+};
+
+export default function SiteHeaderNav({ bookingItems, stageInfoUrl }: {
+  bookingItems: { label: string; href: string | null }[];
+  stageInfoUrl: string | null;
+}) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const menuSections: MobileMenuSection[] = [
+    {
+      title: "홈",
+      href: "/",
+    },
+    {
+      title: "예매하기",
+      items: bookingItems.map((item) => item.label),
+    },
+    {
+      title: "셋리스트",
+      href: "/setlist",
+    },
+    {
+      title: "시설 및 서비스",
+      items: ["공연장 안내", "타임 테이블", "티켓 안내", "셋리스트 전체 보기", "오시는 길", "관람 유의사항"],
+    },
+  ];
+
+  return (
+    <>
+      <header className="fixed inset-x-0 top-0 z-50 w-full">
+        <div className="flex h-16 w-full items-center justify-between border-b border-white/35 bg-black/20 px-5 backdrop-blur-[2px] md:h-21 md:px-8 lg:h-25.5 lg:px-18">
+          <Link
+            href="/"
+            className="text-[18px] leading-[19.8px] transition-opacity hover:opacity-80 md:text-[32px] md:leading-[1.15] lg:text-[40px] lg:leading-[45.8px]"
+            style={{ fontFamily: '"GangwonEduAll", Pretendard, sans-serif' }}
+          >
+            SUMMIT
+          </Link>
+
+          <nav className="hidden items-center text-white md:flex md:gap-8 md:text-[22px] md:font-bold md:leading-6.5 lg:gap-12 lg:text-[28px] lg:leading-[33.41px]">
+            {headerNavItems.map((item) => (
+              headerNavHrefByItem[item] ? (
+                <Link
+                  key={item}
+                  href={headerNavHrefByItem[item]}
+                  className="transition-opacity duration-200 hover:opacity-80"
+                  style={{ fontFamily: "Pretendard, system-ui, sans-serif" }}
+                >
+                  {item}
+                </Link>
+              ) : (
+                <button
+                  key={item}
+                  type="button"
+                  className="transition-opacity duration-200 hover:opacity-80"
+                  style={{ fontFamily: "Pretendard, system-ui, sans-serif" }}
+                >
+                  {item}
+                </button>
+              )
+            ))}
+          </nav>
+
+          <button
+            type="button"
+            aria-label={isMenuOpen ? "메뉴 닫기" : "메뉴 열기"}
+            aria-expanded={isMenuOpen}
+            onClick={() => setIsMenuOpen((prev) => !prev)}
+            className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-white sm:text-sm md:hidden"
+          >
+            <span className="relative flex h-6 w-6 items-center justify-center">
+              <span
+                className={`absolute block h-0.5 w-4.5 rounded-full bg-white transition-transform duration-300 ${isMenuOpen ? "rotate-45" : "-translate-y-[5px]"
+                  }`}
+              />
+              <span
+                className={`absolute block h-0.5 w-4.5 rounded-full bg-white transition-opacity duration-300 ${isMenuOpen ? "opacity-0" : "opacity-100"
+                  }`}
+              />
+              <span
+                className={`absolute block h-0.5 w-4.5 rounded-full bg-white transition-transform duration-300 ${isMenuOpen ? "-rotate-45" : "translate-y-[5px]"
+                  }`}
+              />
+            </span>
+          </button>
+        </div>
+      </header>
+
+      <AnimatePresence mode="sync">
+        {isMenuOpen ? (
+          <motion.div
+            key="concert-menu-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="fixed inset-0 z-40 bg-black/90 backdrop-blur-[1px] md:hidden"
+          >
+            <motion.nav
+              initial={{ opacity: 0, y: -28 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -28 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              aria-label="전체 메뉴"
+              className="mx-auto h-full w-full max-w-345 overflow-y-auto px-6 pb-14 pt-26 md:px-12 lg:px-20"
+            >
+              <div className="space-y-12 md:space-y-16">
+                {menuSections.map((section) => (
+                  <section key={section.title}>
+                    {section.href ? (
+                      section.href.startsWith("http") ? (
+                        <a
+                          href={section.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => setIsMenuOpen(false)}
+                          className="text-[22px] font-semibold leading-[1.2] text-white transition-opacity hover:opacity-80 md:text-[36px]"
+                        >
+                          {section.title}
+                        </a>
+                      ) : (
+                        <Link
+                          href={section.href}
+                          onClick={() => setIsMenuOpen(false)}
+                          className="text-[22px] font-semibold leading-[1.2] text-white transition-opacity hover:opacity-80 md:text-[36px]"
+                        >
+                          {section.title}
+                        </Link>
+                      )
+                    ) : (
+                      <h2 className="text-[22px] font-semibold leading-[1.2] text-white md:text-[36px]">
+                        {section.title}
+                      </h2>
+                    )}
+
+                    {section.items ? (
+                      <>
+                        <div className="mt-3 h-px w-full bg-white/70 md:mt-5" />
+                        <ul className="mt-4 flex flex-wrap items-center gap-x-8 gap-y-3 md:mt-6 md:gap-x-10">
+                          {section.items.map((item, index) => {
+                            const href = section.title === "예매하기"
+                              ? bookingItems[index]?.href
+                              : item === "공연장 안내" ? stageInfoUrl : mobileMenuHrefByItem[item];
+                            return (
+                              <li key={`${index}-${item}`}>
+                                {href ? (
+                                  href.startsWith("http") ? (
+                                    <a
+                                      href={href}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      onClick={() => setIsMenuOpen(false)}
+                                      className="text-left text-[15px] font-semibold leading-[1.35] text-[#b0b0b0] transition-colors hover:text-white md:text-[22px]"
+                                    >
+                                      {item}
+                                    </a>
+                                  ) : (
+                                    <Link
+                                      href={href}
+                                      onClick={() => setIsMenuOpen(false)}
+                                      className="text-left text-[15px] font-semibold leading-[1.35] text-[#b0b0b0] transition-colors hover:text-white md:text-[22px]"
+                                    >
+                                      {item}
+                                    </Link>
+                                  )
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="text-left text-[15px] font-semibold leading-[1.35] text-[#b0b0b0] transition-colors hover:text-white md:text-[22px]"
+                                  >
+                                    {item}
+                                  </button>
+                                )}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </>
+                    ) : null}
+                  </section>
+                ))}
+              </div>
+            </motion.nav>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </>
+  );
+}

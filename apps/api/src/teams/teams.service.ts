@@ -6,12 +6,19 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { parseBigIntId } from '../common/parse-bigint.pipe.js';
-import { mapRecordNotFound, mapUniqueViolation } from '../common/prisma-error.js';
-import { PERFORMANCE_ORDER_MAX, TEAM_NOT_FOUND_MESSAGE } from './teams.constants.js';
+import {
+  mapRecordNotFound,
+  mapUniqueViolation,
+} from '../common/prisma-error.js';
+import {
+  PERFORMANCE_ORDER_MAX,
+  TEAM_NOT_FOUND_MESSAGE,
+} from './teams.constants.js';
 import { toTeamResponse, type TeamResponse } from './dto/team-response.js';
 import type { CreateTeamDto } from './dto/create-team.dto.js';
 import type { UpdateTeamDto } from './dto/update-team.dto.js';
 import type { ReorderTeamsDto } from './dto/reorder-teams.dto.js';
+import { RevalidationService } from '../revalidation/revalidation.service.js';
 
 /**
  * `PrismaService`와 트랜잭션 클라이언트를 모두 받을 수 있는 최소 타입.
@@ -29,7 +36,10 @@ interface TeamUpdateData {
 
 @Injectable()
 export class TeamsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly revalidation: RevalidationService,
+  ) {}
 
   /**
    * 전체 팀 조회 (PRD F003).
@@ -65,7 +75,7 @@ export class TeamsService {
    * 관리자 1인 전제라 수용하고 기록만 남긴다 (REFACTOR_NOTES §11).
    */
   async create(dto: CreateTeamDto): Promise<TeamResponse> {
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const taken = await tx.lineUp.findFirst({
         where: { day: dto.day, performanceOrder: dto.performanceOrder },
         select: { teamName: true },
@@ -95,6 +105,8 @@ export class TeamsService {
 
       return toTeamResponse(created);
     });
+    await this.revalidation.revalidate(['lineup']);
+    return result;
   }
 
   /**
@@ -111,7 +123,7 @@ export class TeamsService {
       throw new BadRequestException('수정할 항목을 하나 이상 입력해 주세요.');
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const current = await tx.lineUp.findUnique({ where: { id } });
       if (!current) {
         throw new NotFoundException(TEAM_NOT_FOUND_MESSAGE);
@@ -141,6 +153,8 @@ export class TeamsService {
 
       return toTeamResponse(updated);
     });
+    await this.revalidation.revalidate(['lineup']);
+    return result;
   }
 
   /**
@@ -156,14 +170,16 @@ export class TeamsService {
     const requestedIds = dto.teamIds.map((teamId) => {
       const parsed = parseBigIntId(teamId);
       if (parsed === null) {
-        throw new BadRequestException(`팀 id 형식이 올바르지 않습니다: ${teamId}`);
+        throw new BadRequestException(
+          `팀 id 형식이 올바르지 않습니다: ${teamId}`,
+        );
       }
       return parsed;
     });
 
     assertNoDuplicateIds(requestedIds);
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const existing = await tx.lineUp.findMany({
         where: { day: dto.day },
         select: { id: true },
@@ -202,13 +218,18 @@ export class TeamsService {
 
       return reordered.map(toTeamResponse);
     });
+    await this.revalidation.revalidate(['lineup']);
+    return result;
   }
 
   /**
    * 해당 일자의 마지막 순서 + 1. 그 일자에 팀이 없으면 1.
    * 호출자가 같은 트랜잭션의 클라이언트를 넘겨야 조회-갱신 사이가 끊기지 않는다.
    */
-  private async nextPerformanceOrder(tx: LineUpClient, day: string): Promise<number> {
+  private async nextPerformanceOrder(
+    tx: LineUpClient,
+    day: string,
+  ): Promise<number> {
     const { _max } = await tx.lineUp.aggregate({
       where: { day },
       _max: { performanceOrder: true },

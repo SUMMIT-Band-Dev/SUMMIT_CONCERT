@@ -1,7 +1,7 @@
 # work05 — 공연 콘텐츠 관리 확장 + 유튜브 연결 관리 단순화
 
 > 이 문서는 **어드민 페이지 기능 수정·확장 작업(work05)을 시작할 때만** 참조합니다.
-> 상세 기능 명세는 `.claude/docs/prd-construction.md`를 기준으로 합니다.
+> 상세 기능 명세는 `docs/specs/prd-construction.md`를 기준으로 합니다.
 
 ## 상태
 
@@ -10,7 +10,7 @@
 ## 배경
 
 - work02(Nest.js 백엔드 + 로그인 + 팀/곡 CRUD 어드민)와 work04(어드민 기능 수정)는 종료됨 — 이력은 `.claude/rules/history/` 참조
-- 기존 어드민 PRD(`.claude/docs/prd-admin.md`)의 범위(팀 관리 · 곡 관리 · 유튜브 연결 관리)는 구현 완료로 종료하고, 이번 work05는 그 위에서 **기능을 수정·디벨롭**하는 작업
+- 기존 어드민 PRD(`docs/specs/prd-admin.md`)의 범위(팀 관리 · 곡 관리 · 유튜브 연결 관리)는 구현 완료로 종료하고, 이번 work05는 그 위에서 **기능을 수정·디벨롭**하는 작업
 - 현재 어드민에서 다룰 수 있는 것은 팀/곡/유튜브 링크뿐이고, 나머지 공연 정보(포스터, 공연명, 장소, 날짜, 타임 테이블, 티켓, 유의사항, 예매 링크 등)는 **전부 공개 사이트 코드에 하드코딩**돼 있음 → 공연이 바뀔 때마다 코드 수정 + 재배포가 필요
 
 ### 하드코딩 현황 (2026-10-15 기준 코드 조사)
@@ -64,8 +64,8 @@
 
 ## 관련 문서
 
-- `.claude/docs/prd-construction.md` — work05 PRD (상세 기능 명세)
-- `.claude/docs/work05-implementation.md` — work05 구현 명세 (설계 결정·작업 단위·완료 기준, Codex 구현 기준)
-- `.claude/docs/prd-admin.md` — 종료된 이전 어드민 PRD (기존 기능 참고용)
+- `docs/specs/prd-construction.md` — work05 PRD (상세 기능 명세)
+- `docs/specs/work05-implementation.md` — work05 구현 명세 (설계 결정·작업 단위·완료 기준, Codex 구현 기준)
+- `docs/specs/prd-admin.md` — 종료된 이전 어드민 PRD (기존 기능 참고용)
 - `.claude/rules/history/work-04-admin.md` — 종료된 work04
 - `REFACTOR_NOTES.md` §13(이미지 업로드), §14·§15(유튜브 검토 상태·배치 추천)

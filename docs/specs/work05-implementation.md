@@ -4,7 +4,7 @@
 > Codex는 이 문서의 설계 결정(D1~D10)을 그대로 따르고, 작업 단위(T1~T7)를 순서대로 하나씩 구현한다.
 > **명세대로 구현할 수 없거나 명세가 틀렸다고 판단되면, 우회하지 말고 작업을 멈추고 이유를 보고한다.** 설계 수정은 Claude Code가 이 문서에 반영한다.
 >
-> 작성: 2026-10-17 · 기준 PRD: `.claude/docs/prd-construction.md` (✅ 확정 사항 2026-10-17)
+> 작성: 2026-10-17 · 기준 PRD: `docs/specs/prd-construction.md` (✅ 확정 사항 2026-10-17)
 
 ---
 
@@ -20,7 +20,8 @@
   - 에러 응답·Prisma 에러 매핑: `apps/api/src/common/` (`prisma-error.ts`, `http-messages.ts`, `trim.transform.ts`)
   - 관리자 프론트: `src/lib/api/client.ts`(API 호출), `src/lib/query-keys.ts`, `src/components/layout/*`(page-header, page-states), shadcn/ui 컴포넌트, RHF + Zod 스키마 패턴(`src/lib/teams/team-schema.ts`)
 - 환경변수를 추가하면 해당 앱의 `.env.example`에 **키 이름과 설명만** 추가한다 (기존 주석 스타일 그대로). 실제 값은 사용자가 넣는다
-- **각 작업을 시작할 때 맨 먼저 "4. 사용자 작업 체크포인트"의 해당 작업 착수 전 항목을 점검한다.** 준비되지 않은 항목이 있으면 구현을 시작하지 말고, 그 항목의 안내(U1~U5)를 사용자에게 그대로 전달한 뒤 완료 확인을 기다린다
+- **새 HTTP 메서드·요청 헤더를 쓰는 API를 추가하면 CORS 설정(`apps/api/src/common/cors.ts`)과 그 테스트(`cors.spec.ts`)를 함께 확인한다.** 관리자 프론트(다른 오리진)에서 부르는 요청은 브라우저가 preflight를 먼저 보내는데, 허용 목록에 없는 메서드·헤더는 서버에 닿기 전에 막혀 화면에서는 "서버에 연결할 수 없습니다"로만 보인다. supertest 같은 서버 단위 테스트는 이 경로를 거치지 않으므로 테스트 통과만으로는 알 수 없다 (T1에서 `DELETE`가 빠져 발생 → T1.1). 현재 허용: `GET, POST, PATCH, PUT, DELETE, OPTIONS` / 헤더 `Authorization, Content-Type`
+- **각 작업을 시작할 때 맨 먼저 "4. 사용자 작업 체크포인트"의 해당 작업 착수 전 항목을 점검한다.** 준비되지 않은 항목이 있으면 구현을 시작하지 말고, 그 항목의 안내(U1~U6)를 사용자에게 그대로 전달한 뒤 완료 확인을 기다린다
 
 ---
 
@@ -197,6 +198,24 @@
   - `youtube-maintenance.service.spec.ts`가 `npm test`에 포함되어 통과함
   - `YOUTUBE_BATCH_API_KEY` 없이 API 서버가 기동함
 
+### T1.1. T1 후속 수정 — CORS에 `DELETE` 허용 — `fix/cors-allow-delete`
+
+- **배경 (2026-10-18 발견)**: T1이 `DELETE /songs/:id/youtube-url`을 추가했지만 CORS 허용 메서드에는 `DELETE`가 없다(`cors.ts`에 "PRD에서 삭제 기능을 제외했으므로 `DELETE`는 열지 않는다"로 의도적으로 막아 둔 상태였고 `cors.spec.ts`가 그 정책을 단언한다). 그래서 관리자 화면에서 "빈 값으로 저장(연결 해제)"을 하면 브라우저가 preflight 단계에서 요청을 막아 "서버에 연결할 수 없습니다"로 실패한다. 서버를 새로 배포해도 해결되지 않는다. 명세(T1)가 CORS 변경을 빠뜨린 것이며 구현 오류가 아니다
+- **결정**: `DELETE`를 허용한다 (`PUT`으로 연결 해제하는 대안은 채택하지 않음). 근거: 변경이 가장 작고, 이 앱의 `DELETE` 라우트는 유튜브 연결 해제 1개뿐이며 모든 요청에 로그인 토큰이 필요하고, 레코드 삭제 엔드포인트는 여전히 없다. T2~T5의 API는 `GET`·`PUT`·`POST`만 쓰므로 추가 변경은 없다
+- **범위 (`apps/api` 만)**:
+  - `src/common/cors.ts`: `methods`를 `['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS']`로 변경 (순서 고정 — 테스트가 헤더 문자열을 그대로 비교한다). `buildCorsOptions` 주석의 "`DELETE`는 열지 않는다"를 현재 사실로 고쳐 쓴다: 허용 이유(유튜브 연결 해제 1건), 레코드 삭제 엔드포인트는 없음, 모든 라우트가 인증을 요구함
+  - `src/common/cors.spec.ts`: 옛 정책을 단언하던 테스트를 새 정책에 맞게 고친다
+    - "credentials=false, 허용 메서드·헤더 …" 테스트의 기대 `methods` 배열
+    - "DELETE는 허용하지 않는다" 테스트 → "DELETE를 허용한다(유튜브 연결 해제)"로 교체
+    - "허용 오리진의 preflight" 테스트의 `access-control-allow-methods` 헤더 기대값 → `GET,POST,PATCH,PUT,DELETE,OPTIONS`
+    - "허용 목록에 있어도 DELETE preflight는 …" 테스트 → **허용 오리진의 `DELETE` preflight가 204이고 `access-control-allow-methods`에 `DELETE`가 포함됨**으로 교체. 추가로 **허용되지 않은 오리진의 `DELETE` preflight에는 여전히 허용 헤더를 주지 않음**을 단언한다 (오리진 정책은 그대로임을 고정)
+  - 위 외에는 변경하지 않는다: 다른 메서드·헤더·오리진 정책, 라우트, 서비스, 어드민 코드 (`apps/admin`은 건드리지 않는다)
+- **완료 기준**:
+  - `apps/api`: `npm run build` · `npm run lint` · `npm run typecheck` · `npm test` 통과
+  - `grep -n "DELETE" apps/api/src/common/cors.ts`가 `methods` 배열과 주석에 `DELETE`가 허용된다는 내용으로 나옴 ("열지 않는다"는 문구가 남아 있지 않음)
+  - 변경 파일이 `cors.ts`, `cors.spec.ts` 두 개뿐임
+- **완료 후**: **U6**(API 서버 배포와 preflight 확인)을 사용자에게 안내한다. 서버 코드 변경이므로 **배포하기 전에는 증상이 그대로**다. T1에서 추가된 API 변경도 이 배포에 함께 반영된다
+
 ### T2. 공연 콘텐츠 스키마 — `feature/concert-content-schema`
 
 - **범위**: D5의 마이그레이션 SQL + 롤백 SQL 작성, `schema.prisma` 모델 추가, `npx prisma generate`
@@ -252,7 +271,7 @@
 2. 변경 파일 목록
 3. 완료 기준별 통과 여부 + 검증 명령 출력
 4. 명세와 다르게 한 부분과 이유 (없으면 "없음")
-5. 사용자가 해야 할 일 — "4. 사용자 작업 체크포인트"에서 이 작업의 **완료 후** 항목과 **다음 작업의 착수 전** 항목을 U1~U5 안내와 함께 적는다
+5. 사용자가 해야 할 일 — "4. 사용자 작업 체크포인트"에서 이 작업의 **완료 후** 항목과 **다음 작업의 착수 전** 항목을 U1~U6 안내와 함께 적는다
 
 ---
 
@@ -263,6 +282,7 @@ Codex가 대신할 수 없는 작업(시크릿 입력, 외부 콘솔 설정, 프
 | 작업 | 착수 전 (준비 안 됐으면 구현 시작 금지) | 완료 후 (결과 보고에 안내) |
 | --- | --- | --- |
 | T1 | 없음 | 없음 |
+| T1.1 | 없음 | **U6** API 서버 배포 + preflight 확인 (배포 전에는 "연결 해제"가 계속 실패함) |
 | T2 | 없음 | **U5** 마이그레이션 적용 → 적용 확인 후 PR 머지 |
 | T3 | U5 적용 완료 (`npx prisma migrate status`가 up to date) · **U2**(NCP 키 발급) · **U3-로컬**(`apps/api/.env` 4개 키) | **U3-서버**: 서버 `.env`를 **T3 배포 전에** 채울 것 (키가 없으면 서버가 기동하지 않음) |
 | T4 | **U2**(어드민 도메인 등록) · **U4-로컬** | **U4-Vercel** |
@@ -338,3 +358,29 @@ Codex가 대신할 수 없는 작업(시크릿 입력, 외부 콘솔 설정, 프
    ```
 6. 문제가 있으면 롤백 SQL을 임의로 실행하지 않고 먼저 보고한다 (롤백 시 `_prisma_migrations` 이력도 함께 맞춰야 함 — REFACTOR_NOTES §9 "작업 중 발생한 이슈")
 7. 확인 후 T2 PR 머지 → T3 착수
+
+### U6. API 서버 배포와 CORS preflight 확인 (서버 `summit-api`, Lightsail)
+
+API 코드 변경은 CI가 서버에 자동 배포하지 않는다. 서버가 `develop`을 추적하므로 PR이 `develop`에 머지된 뒤 서버에서 직접 업데이트한다. (최초 설치 스크립트 `apps/api/deploy/setup-lightsail.sh`의 단계를 기준으로 정리한 절차이며 서버 실행 결과는 확인되지 않았다 — 어긋나면 보고한다)
+
+1. SSH 접속 후 업데이트:
+   ```bash
+   cd /opt/summit-api/repo
+   sudo -u summit git pull origin develop
+   cd apps/api
+   sudo -u summit npm ci --no-audit --no-fund
+   sudo -u summit env DATABASE_URL="postgresql://localhost:5432/placeholder" npx prisma generate
+   sudo -u summit npm run build
+   sudo systemctl restart summit-api
+   sudo systemctl status summit-api --no-pager
+   curl https://api.summit-concert.live/health
+   ```
+2. preflight 확인 (데이터를 바꾸지 않는 OPTIONS 요청, `<어드민 도메인>`은 서버 `.env`의 `CORS_ALLOWED_ORIGINS`에 들어 있는 값 그대로):
+   ```bash
+   curl -i -X OPTIONS https://api.summit-concert.live/songs/1/youtube-url \
+     -H "Origin: <어드민 도메인>" \
+     -H "Access-Control-Request-Method: DELETE" \
+     -H "Access-Control-Request-Headers: authorization"
+   ```
+   기대값: `204`, `access-control-allow-origin: <어드민 도메인>`, `access-control-allow-methods`에 `DELETE` 포함
+3. 어드민에서 곡 하나로 "수정하기 → 빈 값 저장(연결 해제)"을 확인하고, 원래 주소를 다시 저장해 복원한다

@@ -1,3 +1,5 @@
+import { getConcert, getVenue } from "@/lib/concert-content";
+import { formatHomeDateRange } from "@/lib/concert-content-format";
 import Image from "next/image";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -18,7 +20,8 @@ const CardCarousel = dynamic(
   },
 );
 
-export default function Home() {
+export default async function Home() {
+  const [concert, venue] = await Promise.all([getConcert(), getVenue()]);
   return (
     <div className="flex min-h-screen w-full items-start overflow-hidden bg-black text-white">
       <main className="relative isolate w-full overflow-hidden bg-black/78">
@@ -27,36 +30,42 @@ export default function Home() {
           <div>
             <section className="relative h-[100svh] min-h-182 overflow-visible bg-black md:min-h-190 lg:min-h-205">
               <div className="hero-poster-media pointer-events-none absolute inset-x-0 top-0 z-0 w-full">
-                <Image
-                  src="/concert-poster-latest.png"
-                  alt="여름 공연 포스터 배경"
-                  width={835}
-                  height={1024}
-                  priority
-                  sizes="100vw"
-                  className="h-[100svh] w-full object-cover object-top md:h-auto md:object-contain"
-                />
+                {concert.posterImageUrl ? (
+                  <Image
+                    src={concert.posterImageUrl}
+                    alt="여름 공연 포스터 배경"
+                    width={835}
+                    height={1024}
+                    priority
+                    sizes="100vw"
+                    className="h-[100svh] w-full object-cover object-top md:h-auto md:object-contain"
+                  />
+                ) : null}
                 <div className="absolute inset-x-0 bottom-0 h-[56svh] bg-linear-to-b from-transparent via-black/70 to-black md:h-[62svh] lg:h-[68svh]" />
               </div>
               <div className="pointer-events-none absolute inset-x-0 top-[31svh] z-20 flex flex-col items-center justify-center gap-3 md:top-[15svh] md:gap-4 lg:top-[24svh] lg:gap-8">
-                <FadeInUp delay={0.06}>
-                  <Image
-                    src="/hero-hanja.png"
-                    alt="황혼 타이틀"
-                    width={512}
-                    height={200}
-                    className="h-auto w-55 md:w-75 lg:w-100"
-                  />
-                </FadeInUp>
-                <FadeInUp delay={0.12}>
-                  <Image
-                    src="/hero-subtitle.png"
-                    alt="황혼에 물드는, 우리의 여름"
-                    width={434}
-                    height={45}
-                    className="h-auto w-52.5 md:w-72.5 lg:w-90"
-                  />
-                </FadeInUp>
+                {concert.titleImageUrl ? (
+                  <FadeInUp delay={0.06}>
+                    <Image
+                      src={concert.titleImageUrl}
+                      alt={concert.titleKo}
+                      width={512}
+                      height={200}
+                      className="h-auto w-55 md:w-75 lg:w-100"
+                    />
+                  </FadeInUp>
+                ) : null}
+                {concert.subtitleImageUrl ? (
+                  <FadeInUp delay={0.12}>
+                    <Image
+                      src={concert.subtitleImageUrl}
+                      alt={concert.subtitle ?? ""}
+                      width={434}
+                      height={45}
+                      className="h-auto w-52.5 md:w-72.5 lg:w-90"
+                    />
+                  </FadeInUp>
+                ) : null}
               </div>
 
               <div className="absolute z-20 inset-x-0 bottom-[10svh] w-full px-5 pb-8 text-white md:bottom-0 md:px-8 md:pb-10 lg:px-12 lg:pb-30">
@@ -68,7 +77,7 @@ export default function Home() {
                         fontFamily: "Pretendard, system-ui, sans-serif",
                       }}
                     >
-                      2026년 SUMMIT 여름공연
+                      {concert.titleKo}
                     </h1>
                   </FadeInUp>
 
@@ -80,10 +89,10 @@ export default function Home() {
                       }}
                     >
                       <p className="mx-auto max-w-140 text-center">
-                        플렉스라운지 (서울특별시 마포구 양화로 100-10)
+                        {`${venue.name} (${venue.address})`}
                       </p>
                       <p className="mt-1 whitespace-nowrap text-center md:mt-2">
-                        2026-06-25 ~ 2026-06-26
+                        {formatHomeDateRange(concert.startDate, concert.endDate)}
                       </p>
                     </div>
                   </FadeInUp>
@@ -117,7 +126,7 @@ export default function Home() {
                   <div className="shared-flow-background" />
                 </div>
                 <div className="relative z-20 md:mt-12 lg:mt-20">
-                  <FacilityServiceSection />
+                  <FacilityServiceSection stageInfoUrl={venue.websiteUrl} />
                 </div>
                 <div className="relative z-20">
                   <section className="px-5 pb-16 pt-12 md:px-8 md:pb-20 md:pt-16 lg:px-12 lg:pb-24 lg:pt-20">

@@ -41,6 +41,7 @@ Use this skill when the user asks to run the migrated source command `git-commit
 1. 변경사항의 성격에 맞춰 브랜치명을 정한다. 형식은 `<타입>/<기능명>` (영문 kebab-case)
    - 예) `feature/kanban-board`, `fix/deadline-sort`, `docs/qa-list`, `chore/design-system`
    - 타입은 `CONTRIBUTING.md`의 브랜치 전략(`feature/`, `hotfix/`)을 따르되, 문서·설정 변경은 `docs/`, `chore/`도 사용 가능
+   - `spec/`·`impl/`는 Claude·Codex 파이프라인 예약 접두사라 이 절차로 만들지 않는다 (`/design-pr`, Codex 프롬프트가 만든다)
 2. 기준 브랜치는 `develop`. 최신 `develop`에서 분기하는 것이 원칙이며, 작업 중인 변경사항은 `git switch -c <브랜치명>`으로 그대로 가져온다
 3. 브랜치명을 사용자에게 알린 뒤 새 브랜치에서 커밋을 진행한다
 4. 현재 브랜치가 적합하다면 브랜치를 바꾸지 않고 그대로 커밋한다

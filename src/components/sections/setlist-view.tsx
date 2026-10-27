@@ -10,9 +10,11 @@ import type { DayType, SetlistCard, TrackItem } from "@/types/setlist";
 
 export default function SetlistView({
   cardsData,
+  posterImageUrl,
   trackItemsByTeamId,
 }: {
   cardsData: SetlistCard[];
+  posterImageUrl: string | null;
   trackItemsByTeamId: Record<number, TrackItem[]>;
 }) {
   const [pickedDay, setPickedDay] = useState<DayType | null>(null);
@@ -67,6 +69,7 @@ export default function SetlistView({
       />
 
       <SetlistDetailModal
+        posterImageUrl={posterImageUrl}
         selectedCard={selectedCard}
         trackItems={trackItems}
         onClose={handleCloseCard}

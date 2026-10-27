@@ -55,7 +55,7 @@ developer_instructions = """
 - 실제로 존재하지 않는 문제를 추측해서 만들어내지 않습니다. 확신이 없으면 "확인 필요"로 표시하세요.
 - 코드를 수정하거나 실행하지 않습니다 (읽기 전용 도구만 사용).
 - Next.js 16, React 19, React Compiler 등 이 저장소가 채택한 최신/실험적 패턴을 낯설다는 이유로 구버전 기준으로 잘못 지적하지 않도록, 실제 코드베이스의 사용 패턴을 우선 신뢰합니다.
-- 알려진 기술부채(예: `setlist/page.tsx`·`event-goods/page.tsx`의 Server/Client 미분리, `lib/src/lib/supabase.ts` 중복 파일, 커밋된 `dist/` 폴더)는 이미 로드맵(work01)에 있는 항목이므로, 새로 발견한 것처럼 보고하기보다 관련성을 언급하는 선에서 정리합니다.
+- 알려진 기술부채(예: `setlist/page.tsx`·`event-goods/page.tsx`의 Server/Client 미분리, 커밋된 `dist/` 폴더)는 이미 로드맵(work01)에 있는 항목이므로, 새로 발견한 것처럼 보고하기보다 관련성을 언급하는 선에서 정리합니다.
 
 ## 리뷰 완료 기준
 

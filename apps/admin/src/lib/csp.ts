@@ -2,7 +2,7 @@
 //
 // 목적: 토큰을 localStorage에 두는 구조(7c-1 결정)에서 XSS의 피해를 줄이는 방어 한 겹.
 // 저장소 선택은 XSS 앞에서 큰 차이가 없으므로, 실제 방어는 "서버 문자열은 텍스트로만 렌더링 + dangerouslySetInnerHTML 금지 +
-// 서드파티 스크립트 0 + 이 CSP"의 조합이다.
+// 서드파티 스크립트는 네이버 지도(공연장 정보 페이지)만 + 이 CSP"의 조합이다.
 //
 // 한계(알려진 타협): Next.js App Router는 페이지에 인라인 스크립트(flight 데이터)를 심는데, nonce 없이 이를 허용하려면
 // script-src에 'unsafe-inline'이 필요하다. 그래서 이 CSP는 **인라인 스크립트 주입 자체는 막지 못한다.**
@@ -37,6 +37,23 @@ export interface CspOptions {
  */
 export const ALBUM_COVER_IMAGE_ORIGIN = "https://is1-ssl.mzstatic.com";
 
+/**
+ * 2026-10-25 공개 사이트 /location의 performance.getEntriesByType("resource") 실측:
+ * oapi는 SDK·인증 script, nrbe는 JSONP script·지도 타일 img, ssl은 마커·로고·커서 img다.
+ * nelo의 connect는 네이버 지도 SDK 로그 수집용이다. 공격자가 응답을 읽을 수 없는 네이버
+ * 수집 서버라 유출 통로로서 위험이 낮고, 차단하면 반복되는 위반이 실제 문제를 가린다.
+ *
+ * 재확인: 관리자 /venue에서 지도 이동·확대 후 콘솔의 Content-Security-Policy 위반을 확인한다.
+ * 변경을 승인받으면 위반에 나온 오리진만 추가하고 실측 근거를 이 주석에 남긴다.
+ * 클라이언트 측 이동으로 경로별 CSP가 효과가 없어 전역에 넣는 첫 외부 스크립트 예외다.
+ * 스크립트를 실제로 로드하는 페이지는 /venue뿐이다.
+ */
+export const NAVER_MAP_ORIGINS = {
+  script: ["https://oapi.map.naver.com", "https://nrbe.pstatic.net"],
+  img: ["https://nrbe.pstatic.net", "https://ssl.pstatic.net"],
+  connect: ["https://kr-col-ext.nelo.navercorp.com"],
+} as const;
+
 /** http(s) URL이면 오리진만 돌려주고, 아니면 undefined. 잘못된 값이 CSP를 깨뜨리거나 넓히지 못하게 한다 */
 export function toOrigin(value: string | undefined): string | undefined {
   if (!value) return undefined;
@@ -61,11 +78,17 @@ export function buildContentSecurityPolicy(options: CspOptions): string {
     "data:",
     "blob:",
     ALBUM_COVER_IMAGE_ORIGIN,
+    ...NAVER_MAP_ORIGINS.img,
     ...(siteOrigin ? [siteOrigin] : []),
     ...(storageOrigin ? [storageOrigin] : []),
   ];
-  const connectSrc = ["'self'", ...(apiOrigin ? [apiOrigin] : []), ...(options.isDev ? ["ws://localhost:*"] : [])];
-  const scriptSrc = ["'self'", "'unsafe-inline'", ...(options.isDev ? ["'unsafe-eval'"] : [])];
+  const connectSrc = [
+    "'self'",
+    ...(apiOrigin ? [apiOrigin] : []),
+    ...(options.isDev ? ["ws://localhost:*"] : []),
+    ...NAVER_MAP_ORIGINS.connect,
+  ];
+  const scriptSrc = ["'self'", "'unsafe-inline'", ...(options.isDev ? ["'unsafe-eval'"] : []), ...NAVER_MAP_ORIGINS.script];
 
   const directives: string[] = [
     "default-src 'self'",

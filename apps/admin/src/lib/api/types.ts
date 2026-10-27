@@ -52,3 +52,64 @@ export interface Team {
   /** work02-7c-2b(카드뉴스 사진 업로드)부터 화면에서 갱신한다. 이번 단계는 읽기만 한다 */
   cardImageUrl: string | null;
 }
+
+/** 미러링: apps/api/src/concert-content/dto/content-response.ts `ConcertResponse` */
+export interface Concert {
+  titleKo: string;
+  titleEn: string;
+  subtitle: string | null;
+  startDate: string;
+  endDate: string;
+  showTime: string;
+  posterImageUrl: string | null;
+  titleImageUrl: string | null;
+  subtitleImageUrl: string | null;
+  venue: { id: string; name: string; address: string };
+  updatedAt: string;
+}
+
+/** 미러링: apps/api/src/concert-content/dto/content-response.ts `PerformanceDayResponse` */
+export interface PerformanceDay {
+  dayKey: string;
+  dayLabel: string;
+  dateLabel: string;
+  bookingUrl: string | null;
+  lineupOverride: string | null;
+  timetableImageUrl: string | null;
+  autoLineup: string[];
+  updatedAt: string;
+}
+
+/** 미러링: apps/api/src/concert-content/dto/content-response.ts `TicketResponse` */
+export interface Ticket {
+  frontImageUrl: string | null;
+  backImageUrl: string | null;
+  description: string | null;
+  updatedAt: string;
+}
+
+/** 미러링: apps/api/src/concert-content/dto/content-response.ts `InfoSectionResponse` */
+export interface InfoSection {
+  id: string;
+  title: string;
+  items: { id: string; content: string }[];
+}
+
+/** 공연 콘텐츠 저장·업로드의 공통 응답 */
+export type SaveResult<T> = { data: T; revalidated: boolean };
+
+/** 미러링: apps/api/src/concert-content/dto/content-response.ts `VenueResponse` */
+export interface Venue {
+  id: string;
+  name: string;
+  address: string;
+  addressDetail: string | null;
+  latitude: number;
+  longitude: number;
+  naverMapUrl: string | null;
+  websiteUrl: string | null;
+  updatedAt: string;
+}
+
+/** 미러링: apps/api/src/geocoding/geocoding.service.ts `geocode` 응답 */
+export type GeocodeResult = { latitude: number; longitude: number; roadAddress: string };
