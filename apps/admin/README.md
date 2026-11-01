@@ -1,82 +1,100 @@
-# apps/admin — SUMMIT 관리자 프론트
+# apps/admin — SUMMIT 어드민
 
-SUMMIT 정기공연 사이트의 관리자 페이지(팀·곡·유튜브 연결 관리). 공개 사이트(레포 루트)와 **별도 앱·별도 Vercel 프로젝트**다.
-API는 `apps/api`(NestJS)를 쓴다. 결정 배경과 기술 판단은 `REFACTOR_NOTES.md` §18.
+임원진이 공연 콘텐츠를 직접 관리하는 관리자 앱입니다. 공개 사이트와 분리된 Vercel 프로젝트로 배포하고, 모든 데이터는 [관리자 API](../api/README.md)를 거칩니다. 전체 구성은 [루트 README](../../README.md), 호출 흐름은 [아키텍처 문서](../../docs/architecture.md)를 참고하세요.
 
-> 현재 상태(7c-1b): 로그인·인증 저장·보호 라우트·API 클라이언트·**레이아웃(어두운 사이드바 + 상단 바)과 디자인 토큰**까지. 팀·곡·유튜브 화면은 "준비 중" 자리표시 페이지다(7c-2~4).
+## 기술 스택
 
-## 스택
+| 기술 | 역할 |
+| --- | --- |
+| Next.js 16.3 (App Router), React 19 | 화면과 라우팅 |
+| TanStack Query 5 | 서버 상태 조회와 변경 |
+| React Hook Form, Zod | 폼 상태와 입력 검증 |
+| shadcn/ui, Tailwind CSS 4 | UI 컴포넌트와 디자인 토큰 |
+| dnd-kit | 공연 순서 드래그 재정렬 |
+| Vitest | 단위 테스트 |
 
-Next.js 16.3.5(App Router) · React 19.2.4 · TypeScript · Tailwind 4 · shadcn/ui(radix-nova; 토큰은 `globals.css`의 `:root` 한 곳) ·
-TanStack Query · React Hook Form + Zod · Vitest. 의존성은 **정확 버전으로 고정**한다(`^` 없음). 잠금 파일은 이 폴더의 `package-lock.json`이며 루트와 독립이다.
+의존성은 `^` 없이 정확한 버전으로 고정합니다. 잠금 파일은 이 폴더의 `package-lock.json`이며 루트와 독립입니다.
 
-## 스크립트
+## 프로젝트 구조
 
-```bash
-npm run dev        # 개발 서버 http://localhost:3010
-npm run build      # 프로덕션 빌드
-npm start          # 빌드 결과 실행 (3010)
-npm run lint
-npm run typecheck  # 빌드 뒤에 실행(next-env.d.ts, .next/types 필요)
-npm test           # vitest
-```
-
-## 환경변수
-
-`.env.example` 참고. 실제 값은 `apps/admin/.env.local`(gitignore)에 둔다.
-
-| 이름 | 필수 | 설명 |
-| --- | --- | --- |
-| `NEXT_PUBLIC_API_BASE_URL` | 예 | 관리자 API 주소. 로컬 `http://localhost:3001`. http는 로컬 루프백에서만, 경로·끝 슬래시 없이 |
-| `NEXT_PUBLIC_PUBLIC_SITE_ORIGIN` | 아니오 | 공개 사이트 오리진. 7c-2(팀 카드 미리보기)부터 사용 |
-
-⚠️ `NEXT_PUBLIC_*`는 **브라우저 번들에 그대로 들어가 누구에게나 보인다.** 비밀값을 넣지 않는다. 값이 바뀌면 **다시 빌드**해야 한다.
-
-## 로컬에서 API와 함께 띄우기
-
-1. **API의 CORS에 admin 오리진을 허용한다** — `apps/api/.env`에 한 줄 추가(값은 비밀이 아니다):
-   ```
-   CORS_ALLOWED_ORIGINS=http://localhost:3010
-   ```
-   설정하지 않으면 API가 모든 크로스 오리진 요청을 거부한다(fail-closed). 브라우저에서는 로그인이 "서버에 연결할 수 없습니다"로 보인다.
-2. API 실행(기본 3001): `cd apps/api && npm run start:dev`. **같은 DB에 API 서버를 둘 이상 띄우지 않는다**(요청 mutex가 프로세스 단위).
-3. admin 실행: `cd apps/admin && npm run dev` → http://localhost:3010
-
-로그인 한도는 **IP당 5분에 5회**, 초과하면 15분 차단이다(성공한 로그인과 입력 검증 실패도 센다). 실제 계정으로 여러 번 시험하지 않는다.
-
-## 구조
-
-```
+```text
 src/
   app/
-    login/            로그인 페이지
-    (admin)/          보호된 영역(레이아웃이 로그인 여부를 확인): teams, songs, youtube
-  components/         AuthGate(보호 라우트), layout/(AppShell·Sidebar·Topbar·MobileDrawer·PageHeader·SplitPanel·page-states), LoginForm, SessionExpiredDialog, ui/(shadcn + badge·table)
+    login/              로그인
+    (admin)/            보호 영역: teams, songs, youtube, concert, venue,
+                        performance-days, ticket, notice
+  components/
+    ui/                 shadcn 기반 공통 컴포넌트
+    layout/             AppShell, Sidebar, Topbar, PageHeader, 상태 화면
+    teams/ songs/ youtube/ concert-content/
+                        도메인 화면. *-page-client.tsx가 페이지 진입점
   lib/
-    api/              client.ts(유일한 호출 통로), errors.ts(오류 정규화), config.ts, types.ts(계약 타입)
-    auth/             token-storage.ts, session-expiry.ts, login-schema.ts, login-block.ts, next-path.ts, guard.ts, auth-context.tsx
-    csp.ts            next.config.ts가 쓰는 Content-Security-Policy 생성
-    nav.ts            메뉴 정의(사이드바·상단 바가 함께 씀)
+    api/                API 호출, 오류 정규화, 계약 타입
+    auth/               토큰 저장, 세션, 로그인 스키마, 인증 훅
+    teams/ songs/ youtube/ concert-content/
+                        Zod 스키마와 도메인 규칙
+    query-client.ts     TanStack Query 기본값
+    query-keys.ts       쿼리 키
+    nav.ts              메뉴 정의
+    csp.ts              Content-Security-Policy 생성
 ```
 
-## 디자인 토큰
+## 상태 관리 원칙
 
-색·radius·글꼴·밀도·레이아웃 치수는 **`src/app/globals.css`의 `:root` 한 곳**에만 둔다. 컴포넌트에는 색상 값(`#hex`, `rgb()`, `bg-blue-500`, `bg-white` 등)을 쓰지 않고 `bg-primary`, `text-muted-foreground`, `w-(--sidebar-width)` 같은 토큰 유틸리티만 쓴다(`src/lib/design-tokens.test.ts`가 검사). 디자인을 바꿀 때는 `:root` 블록과 `components/layout/`만 손본다.
+- 화면은 `lib/api`의 함수만 호출합니다. `fetch` 직접 호출은 `lib/api/client.ts`의 `apiRequest` 한 곳에만 둡니다.
+- 쿼리 키는 `lib/query-keys.ts`에 모아 무효화가 어긋나지 않게 합니다.
+- 조회는 일시적 오류만 재시도하고, 변경은 중복 등록을 막기 위해 자동 재시도하지 않습니다.
+- 낙관적 업데이트는 쓰지 않습니다. 서버 응답을 받은 뒤 화면을 바꿉니다.
+
+## 실행
+
+```bash
+cp .env.example .env.local
+npm ci
+npm run dev        # http://localhost:3010
+npm test
+```
+
+| 스크립트 | 설명 |
+| --- | --- |
+| `npm run build`, `npm start` | 프로덕션 빌드와 실행 |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | 타입 검사. 빌드 뒤에 실행 |
+
+API를 함께 띄울 때는 `apps/api/.env`의 `CORS_ALLOWED_ORIGINS`에 `http://localhost:3010`을 넣습니다. 비어 있으면 브라우저에서 "서버에 연결할 수 없습니다"로 보입니다.
+
+| 환경 변수 | 필수 | 설명 |
+| --- | --- | --- |
+| `NEXT_PUBLIC_API_BASE_URL` | 예 | 관리자 API 주소. 로컬은 `http://localhost:3001` |
+| `NEXT_PUBLIC_PUBLIC_SITE_ORIGIN` | 아니오 | 상대 경로 이미지 미리보기와 공개 페이지 확인 링크 |
+| `NEXT_PUBLIC_SUPABASE_STORAGE_ORIGIN` | 아니오 | 업로드 이미지를 CSP `img-src`에 허용 |
+| `NEXT_PUBLIC_NAVER_MAP_CLIENT_ID` | 아니오 | 공연장 지도. 비어 있으면 좌표 직접 입력만 가능 |
+
+`NEXT_PUBLIC_*` 값은 브라우저 번들에 그대로 들어가므로 비밀값을 넣지 않습니다. 값을 바꾸면 다시 빌드해야 합니다. 자세한 형식은 `.env.example`을 참고하세요.
 
 ## 보안 원칙
 
-- 토큰은 localStorage에 둔다. **읽고 쓰는 곳은 `token-storage.ts` 하나**이고, 로그·URL·오류 화면·analytics에 남기지 않는다.
-- 서버가 준 문자열(오류 메시지, 계정 이름 등)은 **텍스트로만 렌더링**한다. `dangerouslySetInnerHTML` 금지, 서드파티 스크립트 0.
-- 보호 라우트(`AuthGate`)는 화면 이동(UX)일 뿐이다. 데이터를 지키는 경계는 API의 JWT Guard다.
-- 세션이 만료되면 로그인 페이지로 이동하지 않고 **현재 페이지 위에** 재로그인 대화상자를 띄운다(작성 중이던 폼이 보존된다).
-- CSP는 `next.config.ts`의 헤더로 건다. Next.js 인라인 스크립트 때문에 `script-src`에 `'unsafe-inline'`이 필요하다는 한계는 `src/lib/csp.ts` 주석에 있다.
+- 토큰은 localStorage에 두고, 읽고 쓰는 곳은 `token-storage.ts` 하나입니다. 로그, URL, 오류 화면에 남기지 않습니다.
+- 서버가 준 문자열은 텍스트로만 렌더링합니다. `dangerouslySetInnerHTML`은 쓰지 않습니다.
+- `AuthGate`는 화면 이동만 담당합니다. 데이터를 지키는 경계는 API의 JWT Guard입니다.
+- 세션이 만료되면 현재 페이지 위에 재로그인 대화상자를 띄워 작성 중인 폼을 보존합니다.
+- CSP는 `next.config.ts`의 헤더로 적용합니다. `script-src`의 `'unsafe-inline'` 한계는 `src/lib/csp.ts` 주석에 있습니다.
+
+## 디자인 토큰
+
+색, radius, 글꼴, 밀도, 레이아웃 치수는 `src/app/globals.css`의 `:root` 한 곳에만 둡니다. 컴포넌트에는 색상 값을 직접 쓰지 않고 `bg-primary` 같은 토큰 유틸리티만 씁니다. `src/lib/design-tokens.test.ts`가 이를 검사합니다.
 
 ## 새 API 호출을 추가할 때
 
-1. `src/lib/api/types.ts`에 응답 타입을 옮기고, **미러링하는 API 쪽 정의의 위치를 주석으로 적는다**(OpenAPI가 없어 드리프트를 사람이 관리한다).
-2. 호출은 반드시 `apiRequest`를 쓴다(`fetch` 직접 호출 금지). 오류는 `ApiError`로 정규화돼 나온다.
-3. 조회는 TanStack Query, 변경은 `useMutation`(자동 재시도 없음, 낙관적 업데이트 금지).
+1. `src/lib/api/types.ts`에 응답 타입을 옮기고, 미러링한 API 쪽 위치를 주석으로 적습니다. OpenAPI가 없어 타입 차이는 사람이 관리합니다.
+2. 호출은 `apiRequest`를 사용합니다. 오류는 `ApiError`로 정규화됩니다.
+3. 조회는 TanStack Query, 변경은 `useMutation`을 사용합니다.
+4. 새 HTTP 메서드나 헤더를 쓰면 `apps/api/src/common/cors.ts`도 함께 확인합니다.
 
 ## shadcn 컴포넌트를 추가할 때
 
-`npx shadcn add …` 뒤에 (1) 생성된 파일의 `from "cn"` import를 `@/lib/utils`로 바꾸고 (2) `package.json`에 `cn` 패키지가 다시 들어오지 않았는지 확인한다(이 프로젝트는 `clsx` + `tailwind-merge`를 쓴다). (3) 색 하드코딩이 들어오지 않았는지 `npm test`로 확인한다.
+`npx shadcn add …` 뒤에 아래 세 가지를 확인합니다.
+
+1. 생성된 파일의 `from "cn"` import를 `@/lib/utils`로 바꿉니다.
+2. `package.json`에 `cn` 패키지가 다시 들어오지 않았는지 확인합니다.
+3. 색 하드코딩이 없는지 `npm test`로 확인합니다.
