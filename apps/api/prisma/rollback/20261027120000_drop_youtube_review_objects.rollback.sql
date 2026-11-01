@@ -1,0 +1,403 @@
+-- 롤백 SQL — 20261027120000_drop_youtube_review_objects
+--
+-- ⚠️ 이 파일은 적용하지 않는다. 사용자 판단을 위한 절차 문서이며 모든 SQL은 주석이다.
+-- ⚠️ 적용된 migration.sql은 수정하지 않는다. 체크섬과 다른 환경의 이력을 보존한다.
+-- Prisma는 prisma/migrations 밖의 이 문서를 마이그레이션으로 실행하지 않는다.
+--
+-- ⚠️ 재생성해도 지워진 youtube_review_status 값과 리뷰 이력은 돌아오지 않는다.
+-- 두 테이블은 명세 작성 시 0행이었으며 DROP 전 안전장치도 두 테이블이 0행인지 검사한다.
+-- 상태 컬럼은 아래 원본 백필 규칙으로만 채워지므로 과거의 개별 상태를 복구하는 것이 아니다.
+--
+-- ============================================================================
+-- 0) 실행 순서 — 되돌릴 때는 반드시 DB 먼저, 코드 나중
+-- ============================================================================
+--
+--   ① 아래 1)로 실제 상태를 확인하고 3)의 갈래를 결정한다.
+--   ② 객체를 재생성한다. 성공 기록이면 3)의 (나) 정방향 재생성 마이그레이션을 우선한다.
+--   ③ 객체·제약·권한을 확인한 뒤에만, 이 객체를 쓰는 옛 Prisma 스키마와 API 코드를 배포한다.
+--   지금 코드는 이 객체를 읽지 않으므로 DB만 되돌려도 무해하다. 옛 코드를 먼저 배포하면
+--   아직 없는 컬럼을 SELECT하게 되어 곡 API가 실패한다.
+--   제거를 진행하는 배포 순서(코드 먼저, DB 나중)와 이 복구 순서는 반대다.
+--
+--   락 주의: 컬럼 재생성은 Setlist에 ACCESS EXCLUSIVE, FK 재생성은 참조 대상에
+--   SHARE ROW EXCLUSIVE를 잡는다. 수동·정방향 모두 5초 lock_timeout을 유지한다.
+--
+-- ============================================================================
+-- 1) 실제 스키마와 Prisma 이력을 먼저 확인한다
+-- ============================================================================
+--
+--   파일 실행과 finished_at 기록은 별개다. 연결이 끊기면 스키마 적용과 이력 기록이
+--   어긋날 수 있으므로 이력만 믿고 재생성하거나 resolve하지 않는다.
+--   오류·접속 정보가 들어 있을 수 있는 logs 컬럼은 조회하지 않는다.
+--
+--   SELECT migration_name, started_at, finished_at, rolled_back_at, applied_steps_count
+--     FROM "_prisma_migrations"
+--    WHERE migration_name = '20261027120000_drop_youtube_review_objects';
+--
+--   SELECT table_name FROM information_schema.tables
+--    WHERE table_schema = 'public'
+--      AND table_name IN ('YoutubeSearchAttempt', 'YoutubeRecommendation');
+--
+--   SELECT column_name FROM information_schema.columns
+--    WHERE table_schema = 'public' AND table_name = 'Setlist'
+--      AND column_name IN ('youtube_review_status', 'youtube_url');
+--
+--   SELECT typname FROM pg_type
+--    WHERE typname IN ('youtube_review_status', 'youtube_search_outcome', 'youtube_review_state');
+--
+--   DROP 완료 상태: 테이블 2개·검토 상태 컬럼·enum 3개는 없고 youtube_url은 있다.
+--   제거 전 상태: 위 객체가 모두 있으며, 두 원본 마이그레이션과 제약·권한도 일치한다.
+--   일부만 있으면 원자성 가정과 어긋나므로 실행을 멈추고 원인을 확인한다.
+--
+-- ============================================================================
+-- 2) 재생성 SQL — 3)에서 재생성이 필요하다고 판단한 경우에만 사용
+-- ============================================================================
+--
+--   원본 생성 문장을 그대로 옮겼다. 첫 원본의 상태 컬럼 생성·백필, 두 번째 원본의
+--   enum·테이블·CHECK 4개·인덱스 3개·UNIQUE·FK 2개·RLS·권한 회수를 모두 포함한다.
+--   원본: prisma/migrations/20260920120000_add_youtube_review_status/migration.sql
+--         prisma/migrations/20260920210000_add_youtube_recommendation/migration.sql
+--
+--   ▶ 수동 실행용 — 트랜잭션 안에서만 SET LOCAL이 유효하다.
+--   콘솔의 트랜잭션 동작은 실행 전에 확인한다. 이미 존재하는 객체가 있으면 무작정 실행하지 않는다.
+--
+--     BEGIN;
+--     SET LOCAL lock_timeout = '5s';
+--
+--     -- CreateEnum
+--     CREATE TYPE "youtube_review_status" AS ENUM ('pending', 'approved', 'rejected');
+--
+--     -- AlterTable
+--     -- Postgres 11+에서 상수 DEFAULT의 ADD COLUMN은 테이블을 재작성하지 않고 메타데이터만 바꾼다.
+--     -- ACCESS EXCLUSIVE 락을 잡지만 64행/96kB라 점유 시간은 무시할 수 있다.
+--     ALTER TABLE "Setlist" ADD COLUMN     "youtube_review_status" "youtube_review_status" NOT NULL DEFAULT 'pending';
+--
+--     -- 백필: 기존에 사람이 검토해 채운 링크는 approved로 본다 (예상 5건, 나머지 59건은 기본값 pending).
+--     -- 이 5건은 1학기에 수동으로 확인해 넣은 값이라 "추천 대기" 상태로 두면 6단계 2/2의 배치
+--     -- 재검색 대상에 잘못 포함된다. 빈 문자열은 현재 0건이지만 방어적으로 함께 제외한다.
+--     UPDATE "Setlist"
+--     SET "youtube_review_status" = 'approved'
+--     WHERE "youtube_url" IS NOT NULL
+--       AND btrim("youtube_url") <> '';
+--
+--     -- CreateEnum
+--     -- reserved = 외부 호출 직전에 예약된 상태(아직 결과 없음). 위 [예약 기록] 참조.
+--     CREATE TYPE "youtube_search_outcome" AS ENUM ('reserved', 'searched', 'no_results', 'failed');
+--
+--     -- CreateEnum
+--     -- closed = 리뷰 대상이 아님(볼 후보가 존재하지 않음). expired = 30일 경과로 정리됨.
+--     CREATE TYPE "youtube_review_state" AS ENUM ('open', 'approved', 'rejected', 'superseded', 'expired', 'closed');
+--
+--     -- CreateTable
+--     CREATE TABLE "YoutubeSearchAttempt" (
+--         "id" BIGSERIAL NOT NULL,
+--         "songId" BIGINT NOT NULL,
+--         -- 실제로 보낸 검색어. 우리 입력이라 30일 보관 제한 대상이 아니다.
+--         "query" TEXT NOT NULL,
+--         -- 예약 시각 = 쿼터 집계의 유일한 원천. 태평양 시간 자정 경계로 센다.
+--         "searchedAt" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+--         "completedAt" TIMESTAMPTZ(6),
+--         "outcome" "youtube_search_outcome" NOT NULL DEFAULT 'reserved',
+--         "reviewState" "youtube_review_state" NOT NULL DEFAULT 'closed',
+--         "candidateCount" SMALLINT NOT NULL DEFAULT 0,
+--         -- 승인한 후보의 등수. 후보 행은 승인 시점에 삭제되므로 참조 대상이 없는 기록값이다.
+--         "approvedRank" SMALLINT,
+--         "rejectedReason" TEXT,
+--         "reviewedAt" TIMESTAMPTZ(6),
+--         -- 곡 제목/가수가 실제로 바뀌었거나 관리자가 재큐하면 찍힌다. 찍힌 행은 배치 선정에서
+--         -- 제외 판단에 쓰이지 않는다(= 곡이 대상으로 복귀한다). 쿼터 집계에는 계속 포함된다.
+--         "invalidatedAt" TIMESTAMPTZ(6),
+--
+--         CONSTRAINT "YoutubeSearchAttempt_pkey" PRIMARY KEY ("id")
+--     );
+--
+--     -- CreateTable
+--     CREATE TABLE "YoutubeRecommendation" (
+--         "id" BIGSERIAL NOT NULL,
+--         "attemptId" BIGINT NOT NULL,
+--         "rank" SMALLINT NOT NULL,
+--         "score" INTEGER NOT NULL,
+--         "videoId" TEXT NOT NULL,
+--         "title" TEXT NOT NULL,
+--         "channelTitle" TEXT NOT NULL,
+--         "thumbnailUrl" TEXT NOT NULL,
+--
+--         CONSTRAINT "YoutubeRecommendation_pkey" PRIMARY KEY ("id")
+--     );
+--
+--     -- CreateIndex
+--     -- 배치 선정의 "마지막 시도 시각" 계산과 곡별 이력 조회에 쓴다.
+--     CREATE INDEX "YoutubeSearchAttempt_songId_searchedAt_idx" ON "YoutubeSearchAttempt"("songId", "searchedAt" DESC);
+--
+--     -- CreateIndex
+--     -- 리뷰 대기 목록 조회.
+--     CREATE INDEX "YoutubeSearchAttempt_reviewState_idx" ON "YoutubeSearchAttempt"("reviewState");
+--
+--     -- CreateIndex
+--     -- 일일 쿼터 집계와 30일 경과 정리.
+--     CREATE INDEX "YoutubeSearchAttempt_searchedAt_idx" ON "YoutubeSearchAttempt"("searchedAt");
+--
+--     -- CreateIndex
+--     -- 같은 시도 안에서 등수가 겹치지 않게 한다. attemptId가 선두라 조인 인덱스도 겸한다.
+--     CREATE UNIQUE INDEX "YoutubeRecommendation_attemptId_rank_key" ON "YoutubeRecommendation"("attemptId", "rank");
+--
+--     -- AddForeignKey
+--     -- 곡 삭제 API가 없으므로 NO ACTION (§11·§12의 Setlist.teamId와 같은 방침).
+--     ALTER TABLE "YoutubeSearchAttempt" ADD CONSTRAINT "YoutubeSearchAttempt_songId_fkey"
+--         FOREIGN KEY ("songId") REFERENCES "Setlist"("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+--
+--     -- AddForeignKey
+--     -- 시도가 후보를 소유하는 관계라 CASCADE. 후보만 남는 고아 행이 생길 수 없다.
+--     ALTER TABLE "YoutubeRecommendation" ADD CONSTRAINT "YoutubeRecommendation_attemptId_fkey"
+--         FOREIGN KEY ("attemptId") REFERENCES "YoutubeSearchAttempt"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+--
+--     -- AddCheckConstraint
+--     -- outcome과 reviewState의 조합을 DB가 강제한다.
+--     -- searched면 볼 후보가 있었다는 뜻이라 closed일 수 없고,
+--     -- reserved/no_results/failed면 볼 것이 없으므로 항상 closed다.
+--     ALTER TABLE "YoutubeSearchAttempt" ADD CONSTRAINT "YoutubeSearchAttempt_state_valid" CHECK (
+--         CASE WHEN "outcome" = 'searched'
+--              THEN "reviewState" <> 'closed'
+--              ELSE "reviewState" = 'closed'
+--         END
+--     );
+--
+--     -- AddCheckConstraint
+--     -- 승인이면 등수가 반드시 있고, 승인이 아니면 반드시 없다.
+--     ALTER TABLE "YoutubeSearchAttempt" ADD CONSTRAINT "YoutubeSearchAttempt_approved_rank_valid" CHECK (
+--         ("reviewState" = 'approved') = ("approvedRank" IS NOT NULL)
+--     );
+--
+--     -- AddCheckConstraint
+--     -- 반려 사유는 반려일 때만 남는다.
+--     ALTER TABLE "YoutubeSearchAttempt" ADD CONSTRAINT "YoutubeSearchAttempt_rejected_reason_valid" CHECK (
+--         "rejectedReason" IS NULL OR "reviewState" = 'rejected'
+--     );
+--
+--     -- AddCheckConstraint
+--     -- 등수는 1부터. 상한(후보 수)은 애플리케이션이 소유한다 — 후보 수를 바꿀 때마다
+--     -- 프로덕션 마이그레이션이 필요해지지 않게 한다.
+--     ALTER TABLE "YoutubeRecommendation" ADD CONSTRAINT "YoutubeRecommendation_rank_positive" CHECK ("rank" >= 1);
+--
+--     -- Supabase는 public 스키마의 신규 테이블/시퀀스에 anon·authenticated 권한을 기본 부여한다
+--     -- (pg_default_acl 실측: 테이블 arwdDxtm, 시퀀스 rwU). §9와 같은 이유로 RLS를 켜되,
+--     -- RLS는 TRUNCATE에 적용되지 않으므로 권한 자체도 회수한다 — AdminUser에는 비어 있는
+--     -- 방어 계층이고(§10 "7단계 전 확인 항목"), 새 테이블은 지금 닫는 비용이 0이다.
+--     -- Nest.js가 쓰는 postgres 롤은 rolbypassrls=true이고 소유자라 영향받지 않는다.
+--     ALTER TABLE "YoutubeSearchAttempt" ENABLE ROW LEVEL SECURITY;
+--     ALTER TABLE "YoutubeRecommendation" ENABLE ROW LEVEL SECURITY;
+--
+--     REVOKE ALL ON TABLE "YoutubeSearchAttempt" FROM anon, authenticated;
+--     REVOKE ALL ON TABLE "YoutubeRecommendation" FROM anon, authenticated;
+--
+--     -- 시퀀스 이름은 하드코딩하지 않는다. "Line Up"의 시퀀스가 개명 흔적 때문에
+--     -- setlist_id_seq였던 선례(§11)가 있어, 이름을 가정하면 조용히 빗나갈 수 있다.
+--     -- 찾지 못하면 예외를 던져 파일 전체를 롤백시킨다 — 권한이 열린 채로 넘어가지 않게.
+--     DO $$
+--     DECLARE
+--         attempt_seq TEXT;
+--         recommendation_seq TEXT;
+--     BEGIN
+--         attempt_seq := pg_get_serial_sequence('"YoutubeSearchAttempt"', 'id');
+--         recommendation_seq := pg_get_serial_sequence('"YoutubeRecommendation"', 'id');
+--
+--         IF attempt_seq IS NULL OR recommendation_seq IS NULL THEN
+--             RAISE EXCEPTION '신규 테이블의 id 시퀀스를 찾지 못했습니다. 권한 회수를 건너뛸 수 없어 중단합니다.';
+--         END IF;
+--
+--         EXECUTE format('REVOKE ALL ON SEQUENCE %s FROM anon, authenticated', attempt_seq);
+--         EXECUTE format('REVOKE ALL ON SEQUENCE %s FROM anon, authenticated', recommendation_seq);
+--     END
+--     $$;
+--
+--     COMMIT;
+--
+--   ▶ 정방향 마이그레이션 파일용 — 파일 전체가 암묵적 트랜잭션에서 실행된다.
+--   아래 블록은 명시적 트랜잭션 경계 없이 새 migration.sql에 옮긴다.
+--
+--     SET LOCAL lock_timeout = '5s';
+--
+--     -- CreateEnum
+--     CREATE TYPE "youtube_review_status" AS ENUM ('pending', 'approved', 'rejected');
+--
+--     -- AlterTable
+--     -- Postgres 11+에서 상수 DEFAULT의 ADD COLUMN은 테이블을 재작성하지 않고 메타데이터만 바꾼다.
+--     -- ACCESS EXCLUSIVE 락을 잡지만 64행/96kB라 점유 시간은 무시할 수 있다.
+--     ALTER TABLE "Setlist" ADD COLUMN     "youtube_review_status" "youtube_review_status" NOT NULL DEFAULT 'pending';
+--
+--     -- 백필: 기존에 사람이 검토해 채운 링크는 approved로 본다 (예상 5건, 나머지 59건은 기본값 pending).
+--     -- 이 5건은 1학기에 수동으로 확인해 넣은 값이라 "추천 대기" 상태로 두면 6단계 2/2의 배치
+--     -- 재검색 대상에 잘못 포함된다. 빈 문자열은 현재 0건이지만 방어적으로 함께 제외한다.
+--     UPDATE "Setlist"
+--     SET "youtube_review_status" = 'approved'
+--     WHERE "youtube_url" IS NOT NULL
+--       AND btrim("youtube_url") <> '';
+--
+--     -- CreateEnum
+--     -- reserved = 외부 호출 직전에 예약된 상태(아직 결과 없음). 위 [예약 기록] 참조.
+--     CREATE TYPE "youtube_search_outcome" AS ENUM ('reserved', 'searched', 'no_results', 'failed');
+--
+--     -- CreateEnum
+--     -- closed = 리뷰 대상이 아님(볼 후보가 존재하지 않음). expired = 30일 경과로 정리됨.
+--     CREATE TYPE "youtube_review_state" AS ENUM ('open', 'approved', 'rejected', 'superseded', 'expired', 'closed');
+--
+--     -- CreateTable
+--     CREATE TABLE "YoutubeSearchAttempt" (
+--         "id" BIGSERIAL NOT NULL,
+--         "songId" BIGINT NOT NULL,
+--         -- 실제로 보낸 검색어. 우리 입력이라 30일 보관 제한 대상이 아니다.
+--         "query" TEXT NOT NULL,
+--         -- 예약 시각 = 쿼터 집계의 유일한 원천. 태평양 시간 자정 경계로 센다.
+--         "searchedAt" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+--         "completedAt" TIMESTAMPTZ(6),
+--         "outcome" "youtube_search_outcome" NOT NULL DEFAULT 'reserved',
+--         "reviewState" "youtube_review_state" NOT NULL DEFAULT 'closed',
+--         "candidateCount" SMALLINT NOT NULL DEFAULT 0,
+--         -- 승인한 후보의 등수. 후보 행은 승인 시점에 삭제되므로 참조 대상이 없는 기록값이다.
+--         "approvedRank" SMALLINT,
+--         "rejectedReason" TEXT,
+--         "reviewedAt" TIMESTAMPTZ(6),
+--         -- 곡 제목/가수가 실제로 바뀌었거나 관리자가 재큐하면 찍힌다. 찍힌 행은 배치 선정에서
+--         -- 제외 판단에 쓰이지 않는다(= 곡이 대상으로 복귀한다). 쿼터 집계에는 계속 포함된다.
+--         "invalidatedAt" TIMESTAMPTZ(6),
+--
+--         CONSTRAINT "YoutubeSearchAttempt_pkey" PRIMARY KEY ("id")
+--     );
+--
+--     -- CreateTable
+--     CREATE TABLE "YoutubeRecommendation" (
+--         "id" BIGSERIAL NOT NULL,
+--         "attemptId" BIGINT NOT NULL,
+--         "rank" SMALLINT NOT NULL,
+--         "score" INTEGER NOT NULL,
+--         "videoId" TEXT NOT NULL,
+--         "title" TEXT NOT NULL,
+--         "channelTitle" TEXT NOT NULL,
+--         "thumbnailUrl" TEXT NOT NULL,
+--
+--         CONSTRAINT "YoutubeRecommendation_pkey" PRIMARY KEY ("id")
+--     );
+--
+--     -- CreateIndex
+--     -- 배치 선정의 "마지막 시도 시각" 계산과 곡별 이력 조회에 쓴다.
+--     CREATE INDEX "YoutubeSearchAttempt_songId_searchedAt_idx" ON "YoutubeSearchAttempt"("songId", "searchedAt" DESC);
+--
+--     -- CreateIndex
+--     -- 리뷰 대기 목록 조회.
+--     CREATE INDEX "YoutubeSearchAttempt_reviewState_idx" ON "YoutubeSearchAttempt"("reviewState");
+--
+--     -- CreateIndex
+--     -- 일일 쿼터 집계와 30일 경과 정리.
+--     CREATE INDEX "YoutubeSearchAttempt_searchedAt_idx" ON "YoutubeSearchAttempt"("searchedAt");
+--
+--     -- CreateIndex
+--     -- 같은 시도 안에서 등수가 겹치지 않게 한다. attemptId가 선두라 조인 인덱스도 겸한다.
+--     CREATE UNIQUE INDEX "YoutubeRecommendation_attemptId_rank_key" ON "YoutubeRecommendation"("attemptId", "rank");
+--
+--     -- AddForeignKey
+--     -- 곡 삭제 API가 없으므로 NO ACTION (§11·§12의 Setlist.teamId와 같은 방침).
+--     ALTER TABLE "YoutubeSearchAttempt" ADD CONSTRAINT "YoutubeSearchAttempt_songId_fkey"
+--         FOREIGN KEY ("songId") REFERENCES "Setlist"("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
+--
+--     -- AddForeignKey
+--     -- 시도가 후보를 소유하는 관계라 CASCADE. 후보만 남는 고아 행이 생길 수 없다.
+--     ALTER TABLE "YoutubeRecommendation" ADD CONSTRAINT "YoutubeRecommendation_attemptId_fkey"
+--         FOREIGN KEY ("attemptId") REFERENCES "YoutubeSearchAttempt"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+--
+--     -- AddCheckConstraint
+--     -- outcome과 reviewState의 조합을 DB가 강제한다.
+--     -- searched면 볼 후보가 있었다는 뜻이라 closed일 수 없고,
+--     -- reserved/no_results/failed면 볼 것이 없으므로 항상 closed다.
+--     ALTER TABLE "YoutubeSearchAttempt" ADD CONSTRAINT "YoutubeSearchAttempt_state_valid" CHECK (
+--         CASE WHEN "outcome" = 'searched'
+--              THEN "reviewState" <> 'closed'
+--              ELSE "reviewState" = 'closed'
+--         END
+--     );
+--
+--     -- AddCheckConstraint
+--     -- 승인이면 등수가 반드시 있고, 승인이 아니면 반드시 없다.
+--     ALTER TABLE "YoutubeSearchAttempt" ADD CONSTRAINT "YoutubeSearchAttempt_approved_rank_valid" CHECK (
+--         ("reviewState" = 'approved') = ("approvedRank" IS NOT NULL)
+--     );
+--
+--     -- AddCheckConstraint
+--     -- 반려 사유는 반려일 때만 남는다.
+--     ALTER TABLE "YoutubeSearchAttempt" ADD CONSTRAINT "YoutubeSearchAttempt_rejected_reason_valid" CHECK (
+--         "rejectedReason" IS NULL OR "reviewState" = 'rejected'
+--     );
+--
+--     -- AddCheckConstraint
+--     -- 등수는 1부터. 상한(후보 수)은 애플리케이션이 소유한다 — 후보 수를 바꿀 때마다
+--     -- 프로덕션 마이그레이션이 필요해지지 않게 한다.
+--     ALTER TABLE "YoutubeRecommendation" ADD CONSTRAINT "YoutubeRecommendation_rank_positive" CHECK ("rank" >= 1);
+--
+--     -- Supabase는 public 스키마의 신규 테이블/시퀀스에 anon·authenticated 권한을 기본 부여한다
+--     -- (pg_default_acl 실측: 테이블 arwdDxtm, 시퀀스 rwU). §9와 같은 이유로 RLS를 켜되,
+--     -- RLS는 TRUNCATE에 적용되지 않으므로 권한 자체도 회수한다 — AdminUser에는 비어 있는
+--     -- 방어 계층이고(§10 "7단계 전 확인 항목"), 새 테이블은 지금 닫는 비용이 0이다.
+--     -- Nest.js가 쓰는 postgres 롤은 rolbypassrls=true이고 소유자라 영향받지 않는다.
+--     ALTER TABLE "YoutubeSearchAttempt" ENABLE ROW LEVEL SECURITY;
+--     ALTER TABLE "YoutubeRecommendation" ENABLE ROW LEVEL SECURITY;
+--
+--     REVOKE ALL ON TABLE "YoutubeSearchAttempt" FROM anon, authenticated;
+--     REVOKE ALL ON TABLE "YoutubeRecommendation" FROM anon, authenticated;
+--
+--     -- 시퀀스 이름은 하드코딩하지 않는다. "Line Up"의 시퀀스가 개명 흔적 때문에
+--     -- setlist_id_seq였던 선례(§11)가 있어, 이름을 가정하면 조용히 빗나갈 수 있다.
+--     -- 찾지 못하면 예외를 던져 파일 전체를 롤백시킨다 — 권한이 열린 채로 넘어가지 않게.
+--     DO $$
+--     DECLARE
+--         attempt_seq TEXT;
+--         recommendation_seq TEXT;
+--     BEGIN
+--         attempt_seq := pg_get_serial_sequence('"YoutubeSearchAttempt"', 'id');
+--         recommendation_seq := pg_get_serial_sequence('"YoutubeRecommendation"', 'id');
+--
+--         IF attempt_seq IS NULL OR recommendation_seq IS NULL THEN
+--             RAISE EXCEPTION '신규 테이블의 id 시퀀스를 찾지 못했습니다. 권한 회수를 건너뛸 수 없어 중단합니다.';
+--         END IF;
+--
+--         EXECUTE format('REVOKE ALL ON SEQUENCE %s FROM anon, authenticated', attempt_seq);
+--         EXECUTE format('REVOKE ALL ON SEQUENCE %s FROM anon, authenticated', recommendation_seq);
+--     END
+--     $$;
+--
+-- ============================================================================
+-- 3) Prisma 이력 처리 — 위 1)의 실제 상태에 맞춰 결정한다
+-- ============================================================================
+--
+--   (가) 이력이 실패이고 제거 전 객체가 전부 남아 있음 (정상적인 실패):
+--       트랜잭션이 롤백되었으므로 2)의 재생성은 하지 않는다. 상태·제약·권한을 확인한 뒤:
+--         npx prisma migrate resolve --rolled-back 20261027120000_drop_youtube_review_objects
+--       제거를 재시도할지, 미머지 브랜치를 폐기할지 별도로 결정한다.
+--
+--   (나) 이력이 성공이고 제거 대상 객체가 모두 없음 — 우선안은 정방향 새 마이그레이션:
+--       더 늦은 타임스탬프의 _restore_youtube_review_objects/migration.sql을 수작성하고
+--       2)의 정방향 문장을 넣는다. 되돌릴 Prisma 스키마·코드도 별도 변경으로 준비한다.
+--       사용자가 migrate deploy로 DB를 먼저 복구·확인한 뒤 옛 코드를 배포한다.
+--       이력은 append-only로 보존하며, 적용된 DROP 파일과 기존 원본은 바꾸거나 지우지 않는다.
+--       성공 기록에는 migrate resolve --rolled-back을 쓰지 않는다.
+--
+--   (다) 예외 — 이력 삭제는 머지 전 브랜치 자체를 폐기할 때만 가능:
+--       develop/main에 들어가지 않았고 다른 환경에도 적용·복제되지 않았으며, 마이그레이션
+--       폴더도 브랜치와 함께 버려지는 경우에 한한다. 실제 객체가 제거됐다면 먼저 2)의
+--       수동 SQL로 되돌리고 객체·제약·권한을 확인한다. 그 뒤에만 사용자가 다음을 판단한다.
+--         DELETE FROM "_prisma_migrations" WHERE migration_name = '20261027120000_drop_youtube_review_objects';
+--       브랜치와 해당 마이그레이션 디렉터리를 함께 폐기한다. 머지된 뒤에는 이력을 지우지 않는다.
+--
+--   (라) 이력이 실패(또는 행 없음)인데 제거 대상이 모두 사라짐 — 적용과 이력 기록의 어긋남:
+--       --rolled-back만 하면 다음 실행이 이미 없는 객체를 다시 지우려다 실패한다.
+--       (라-1) 제거 결과를 유지하려면: 테이블 2개·컬럼·enum 3개가 없고 youtube_url은 유지됨을
+--              확인한다. 사람이 실제 스키마와 migration.sql을 대조하고 필요 시 DB 접속을 수반하는
+--              migrate diff도 검토한다. 전부 일치할 때만:
+--                npx prisma migrate resolve --applied 20261027120000_drop_youtube_review_objects
+--              --applied는 SQL 실행 여부를 검증하지 않고 이력만 기록한다. 부분 적용이면 중단한다.
+--       (라-2) 제거 결과를 되돌리려면: 미머지·미복제 상태에 한해 2)의 수동 재생성 후
+--              원래 객체·제약·권한을 확인하고 (가)의 --rolled-back 경로를 검토한다.
+--              이미 머지됐으면 이력의 정합성을 먼저 맞춘 뒤 (나)의 정방향 재생성을 우선한다.
+--
+--   재생성 확인 시 enum 값·CHECK 4개·FK 2개·인덱스 3개·UNIQUE 인덱스와 두 테이블 RLS,
+--   정책 없음, anon/authenticated의 테이블·시퀀스 권한 회수, 컬럼 백필까지 원본과 대조한다.
+--   Prisma 스키마는 CHECK를 표현하지 못하므로 diff에서 CHECK만 다르면 제약을 지우지 말고
+--   원인과 결과를 기록한다. 그 외 차이(테이블·컬럼·인덱스·FK·타입)가 있으면 실제 드리프트다.

@@ -6,20 +6,17 @@ import { LOCK_ORDER, locksBefore } from './lock-order.js';
  * "왜 이 순서인지"를 `lock-order.ts` 주석에서 다시 읽게 만든다.
  */
 describe('LOCK_ORDER', () => {
-  it('Line Up → Setlist → YoutubeSearchAttempt 순이다', () => {
-    expect([...LOCK_ORDER]).toEqual(['Line Up', 'Setlist', 'YoutubeSearchAttempt']);
+  it('Line Up → Setlist 순이다', () => {
+    expect([...LOCK_ORDER]).toEqual(['Line Up', 'Setlist']);
   });
 
   it('실제 경로들이 전부 이 순서의 부분열이다', () => {
     // lock-order.ts의 표를 코드로 옮긴 것이다. 새 경로를 추가하면 여기에도 줄을 더한다.
     const paths: Array<[string, Array<(typeof LOCK_ORDER)[number]>]> = [
       ['곡 등록', ['Line Up', 'Setlist']],
-      ['곡 수정', ['Line Up', 'Setlist', 'YoutubeSearchAttempt']],
-      ['F013 URL 수동 입력', ['Setlist', 'YoutubeSearchAttempt']],
-      ['F012 승인', ['Setlist', 'YoutubeSearchAttempt']],
-      ['F012 반려', ['Setlist', 'YoutubeSearchAttempt']],
-      ['재큐', ['Setlist', 'YoutubeSearchAttempt']],
-      ['배치 예약·완료', ['YoutubeSearchAttempt']],
+      ['곡 수정', ['Line Up', 'Setlist']],
+      ['F025 URL 저장', ['Setlist']],
+      ['F025 연결 해제', ['Setlist']],
     ];
 
     for (const [name, sequence] of paths) {
@@ -34,8 +31,7 @@ describe('LOCK_ORDER', () => {
 
   it('locksBefore가 순서를 그대로 반영한다', () => {
     expect(locksBefore('Line Up', 'Setlist')).toBe(true);
-    expect(locksBefore('Setlist', 'YoutubeSearchAttempt')).toBe(true);
-    expect(locksBefore('YoutubeSearchAttempt', 'Setlist')).toBe(false);
+    expect(locksBefore('Setlist', 'Line Up')).toBe(false);
     expect(locksBefore('Setlist', 'Setlist')).toBe(false);
   });
 });
