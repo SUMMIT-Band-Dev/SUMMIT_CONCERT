@@ -312,3 +312,91 @@
 - 일반 개념: 브라우저 캐시 히트 시 `PerformanceResourceTiming.transferSize`가 실제 파일 크기를 반영하지 않는다(0 또는 매우 작은 값) — 반복 측정이나 재방문 시나리오에서 Playwright 실측 바이트 수치를 그대로 신뢰하면 안 되고, Lighthouse의 Total Byte Weight처럼 캐시 상태를 통제한 지표를 병행 확인해야 한다. 이번 `/setlist`의 `day1-team*.png` 측정에서 이 함정이 실제로 관찰됐다.
 - 이 프로젝트 적용: SUMMIT은 데이터 페칭 위치 이동(client→server)과 오버레이 포지셔닝 방식 변경(absolute→fixed) 두 가지를 동시에 적용해 CLS 원인을 이중으로 제거했고, `/event-goods`의 CLS 0.480→0, Performance 56→84 회복으로 그 효과가 실측 확인됐다.
 - 이 프로젝트 적용: `/setlist`는 이번 작업의 영향을 받지 않는 이미지 최적화 이슈(`day1-team*.png`)가 여전히 남아 있어, Total Byte Weight 개선을 보려면 work01 2순위 과제(팀 카드 이미지 `next/image` 전환)를 별도로 진행해야 한다는 것이 이번 측정으로 재확인됐다.
+
+---
+
+## 2026-11-01 — 공개 사이트 현재 상태 재측정 (코드 변경 없음, work05 T5 이후 첫 측정)
+
+- 커밋/브랜치: docs/readme-rewrite, 023755b 기준 (`origin/develop`과 같은 코드, 이번 측정을 위한 코드 변경 없음)
+- 측정 대상 페이지: `/`, `/setlist`, `/event-goods`
+- 측정 조건:
+  - Lighthouse 모바일: 13.6.0, 전용 워크트리의 프로덕션 서버(`npm run build && npm start`, dev 마커 0건), `--preset=perf --form-factor=mobile --screenEmulation.mobile --throttling-method=simulate`, 페이지별 3회. 이전 항목은 1회 실행이었고 Lighthouse 버전 기록이 없다
+  - Lighthouse 데스크톱: 같은 서버, `--preset=desktop`(simulate, RTT 40ms, 10Mbps, CPU 감속 없음), 페이지별 1회. 비교 기준이 없는 신규 측정이다
+  - Playwright: 같은 서버, 데스크톱 뷰포트 1652x850, 스로틀링 없음, 페이지별 1회. 같은 프로필의 디스크 캐시가 남아 바이트 값에 영향을 줬다
+  - 홈은 같은 조건의 이전 Lighthouse가 없어 Baseline(DevTools, 2026-08-30)과 방향만 비교한다
+
+### Lighthouse (공식 Before/After 비교용, 모바일, 3회 중앙값)
+
+**`/event-goods`** (Before: 2026-09-13)
+
+| 지표 | Before | After | 범위 |
+| --- | --- | --- | --- |
+| Performance 점수 | 84 | 99 | 86~99 |
+| LCP | 4.38s | 0.93s | 0.93~4.08s |
+| FCP | 0.93s | 0.93s | 0.93~0.93s |
+| TBT | 145.5ms | 102ms | 97~108.5ms |
+| Speed Index | 1.18s | 1.66s | 1.61~2.96s |
+| CLS | 0 | 0 | 0 |
+| Total Byte Weight | 637 KiB | 640.5 KiB | 640.3~647.5 KiB |
+
+**`/setlist`** (Before: 2026-09-13)
+
+| 지표 | Before | After | 범위 |
+| --- | --- | --- | --- |
+| Performance 점수 | 77 | 79 | 79~80 |
+| LCP | 5.35s | 5.03s | 5.03~5.04s |
+| FCP | 0.76s | 0.91s | 0.91~0.91s |
+| TBT | 192.5ms | 138ms | 136.5~139.5ms |
+| Speed Index | 1.78s | 3.18s | 3.17~3.26s |
+| CLS | 0 | 0 | 0 |
+| Total Byte Weight | 1,052 KiB | 1,063.2 KiB | 3회 동일 |
+
+**`/`** (Before: 2026-08-30 Baseline, 조건이 달라 방향 참고용)
+
+| 지표 | Before | After | 범위 |
+| --- | --- | --- | --- |
+| Performance 점수 | 78 | 80 | 78~81 |
+| LCP | 4.4s | 5.02s | 5.00~5.08s |
+| FCP | 1.0s | 1.02s | 0.95~1.02s |
+| TBT | 300ms | 119ms | 80.5~195.5ms |
+| Speed Index | 1.5s | 3.07s | 2.97~3.16s |
+| CLS | 0 | 0 | 0 |
+| Total Byte Weight | 974 KiB | 881.4 KiB | 881.1~881.4 KiB |
+
+**관찰**: `/event-goods`의 0.93s 2회는 LCP 요소 `<h1>`이 문서에서 분리된 상태로 기록됐고, 4.08s 1회는 실제 DOM 경로에서 기록됐다. 중앙값 0.93s와 99점을 개선으로 단정할 수 없다. 세 페이지 모두 Speed Index가 이전보다 크다.
+
+### Lighthouse 데스크톱 (신규 측정, 1회)
+
+| 페이지 | 점수 | LCP | FCP | TBT | Speed Index | CLS | Total Byte Weight |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `/` | 95 | 1.00s | 0.31s | 7ms | 1.99s | 0 | 1,254.6 KiB |
+| `/setlist` | 99 | 0.97s | 0.25s | 4.5ms | 0.61s | 0 | 1,085.3 KiB |
+| `/event-goods` | 99 | 0.87s | 0.26s | 10ms | 0.56s | 0 | 670.5 KiB |
+
+### Playwright 실측 (네트워크 요청/바이트 변화 확인용)
+
+| 지표 | `/` | `/setlist` | `/event-goods` |
+| --- | --- | --- | --- |
+| LCP | 1,256ms | 1,256ms (Before 1.304s) | 1,060ms (Before 1.456s) |
+| FCP | 440ms | 432ms (Before 0.516s) | 432ms (Before 0.496s) |
+| longtask | 2건 | 2건 (Before 0건) | 2건 (Before 0건) |
+| CLS | 0 | 0 | 0 |
+| 전체 리소스 `encodedBodySize` | 1,261,889 B, 37개 | 1,084,824 B, 35개 | 549,983 B, 45개 |
+| 이미지 | 853,999 B, 10개 | 670,820 B, 8개 | 137,477 B, 17개 |
+| `/_next/image` 미경유 이미지 | 824,577 B, 9개 | 641,398 B, 7개 | 108,055 B, 16개 |
+
+**한계**: 이전 바이트 값은 `transferSize`와 `encodedBodySize` 중 어느 쪽인지 기록이 없고 캐시 영향도 달라 직접 비교할 수 없다. 스크롤 끊김은 초기 로드 측정으로 확인하지 못했다.
+
+### 코드 변경 요약
+
+- 이번 측정을 위한 코드 변경은 없다. 2026-09-13 이후 공개 사이트에는 공연 콘텐츠 DB 조회(work05 T5), 태그 캐시, `/api/revalidate`, 헤더 내비게이션 분리 등이 반영됐다.
+
+### 원리 설명
+
+- 가설: 측정 대상 코드, 데이터, Lighthouse 버전, 실행 횟수가 모두 달라졌으므로 어떤 변경이 어떤 지표를 움직였는지 이번 측정만으로 나눌 수 없다.
+- 관찰: `/setlist` 모바일 LCP 요소는 `loading="lazy"` 팀 이미지이며 로드 시작 전 약 1.1초, 렌더 전 약 1.0초가 지연됐다. 홈 모바일 LCP 요소는 텍스트 `<h1>`이고 렌더 지연이 약 2.0초였다. 두 지연의 원인은 아직 확인하지 않았다.
+
+### 개념 노트
+
+- 일반 개념: Lighthouse의 LCP 요소가 문서에서 분리된 노드로 기록되면 중앙값이 좋아 보여도 실제 체감을 대표하지 않을 수 있다. 범위와 LCP 요소를 함께 확인해야 한다.
+- 이 프로젝트 적용: SUMMIT은 데스크톱 우선 서비스이지만 기준선과 비교하려고 모바일 조건을 유지했다. 같은 코드가 데스크톱에서는 95~99점, 모바일에서는 79~80점(홈, `/setlist`)으로 나타나므로 지표를 읽을 때 대상 기기를 함께 밝힌다.
